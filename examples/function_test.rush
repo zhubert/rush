@@ -1,0 +1,40 @@
+# Comprehensive function tests
+
+# Test 1: Simple function call
+test1 = fn() { return 42 }
+result1 = test1()
+
+# Test 2: Function with parameters  
+test2 = fn(x) { return x * 2 }
+result2 = test2(21)
+
+# Test 3: Function with multiple parameters
+test3 = fn(a, b, c) { return a + b + c }
+result3 = test3(1, 2, 3)
+
+# Test 4: Function with local scope
+test4 = fn(x) {
+  local = x + 10
+  return local
+}
+result4 = test4(5)
+
+# Test 5: Recursive function (factorial)
+factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+result5 = factorial(5)
+
+# Test 6: Higher-order function
+apply = fn(f, x) {
+  return f(x)
+}
+square = fn(x) { return x * x }
+result6 = apply(square, 7)
+
+# Test the final result
+final = result1 + result2 + result3 + result4 + result5 + result6

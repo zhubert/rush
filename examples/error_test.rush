@@ -1,0 +1,8 @@
+# Test error handling
+add = fn(x, y) { return x + y }
+
+# This should work
+good = add(1, 2)
+
+# This should error - wrong number of arguments
+bad = add(1)

@@ -3,18 +3,22 @@ package interpreter
 import (
 	"fmt"
 	"strings"
+
+	"rush/ast"
 )
 
 // ValueType represents the type of a value
 type ValueType string
 
 const (
-	INTEGER_VALUE ValueType = "INTEGER"
-	FLOAT_VALUE   ValueType = "FLOAT"
-	STRING_VALUE  ValueType = "STRING"
-	BOOLEAN_VALUE ValueType = "BOOLEAN"
-	ARRAY_VALUE   ValueType = "ARRAY"
-	NULL_VALUE    ValueType = "NULL"
+	INTEGER_VALUE  ValueType = "INTEGER"
+	FLOAT_VALUE    ValueType = "FLOAT"
+	STRING_VALUE   ValueType = "STRING"
+	BOOLEAN_VALUE  ValueType = "BOOLEAN"
+	ARRAY_VALUE    ValueType = "ARRAY"
+	NULL_VALUE     ValueType = "NULL"
+	FUNCTION_VALUE ValueType = "FUNCTION"
+	RETURN_VALUE   ValueType = "RETURN_VALUE"
 )
 
 // Value represents a value in the Rush language
@@ -74,6 +78,30 @@ type Null struct{}
 
 func (n *Null) Type() ValueType { return NULL_VALUE }
 func (n *Null) Inspect() string { return "null" }
+
+// Function represents function values
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+func (f *Function) Type() ValueType { return FUNCTION_VALUE }
+func (f *Function) Inspect() string {
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+	return fmt.Sprintf("fn(%s) {\n%s\n}", strings.Join(params, ", "), f.Body.String())
+}
+
+// ReturnValue wraps values to signal a return statement
+type ReturnValue struct {
+	Value Value
+}
+
+func (rv *ReturnValue) Type() ValueType { return RETURN_VALUE }
+func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
 
 // IsTruthy returns whether a value is considered truthy
 func IsTruthy(val Value) bool {

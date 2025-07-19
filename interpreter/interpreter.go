@@ -72,6 +72,29 @@ func Eval(node ast.Node, env *Environment) Value {
 	case *ast.BlockStatement:
 		return evalBlockStatement(node, env)
 	
+	case *ast.FunctionLiteral:
+		params := node.Parameters
+		body := node.Body
+		return &Function{Parameters: params, Env: env, Body: body}
+	
+	case *ast.CallExpression:
+		function := Eval(node.Function, env)
+		if isError(function) {
+			return function
+		}
+		args := evalExpressions(node.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(function, args)
+	
+	case *ast.ReturnStatement:
+		val := Eval(node.ReturnValue, env)
+		if isError(val) {
+			return val
+		}
+		return &ReturnValue{Value: val}
+	
 	default:
 		return newError("unknown node type: %T", node)
 	}
@@ -83,8 +106,13 @@ func evalProgram(stmts []ast.Statement, env *Environment) Value {
 	for _, statement := range stmts {
 		result = Eval(statement, env)
 		
-		if result != nil && result.Type() == ERROR_VALUE {
-			return result
+		if result != nil {
+			if result.Type() == RETURN_VALUE {
+				return result.(*ReturnValue).Value
+			}
+			if result.Type() == ERROR_VALUE {
+				return result
+			}
 		}
 	}
 	
@@ -351,7 +379,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *Environment) Value {
 
 		if result != nil {
 			rt := result.Type()
-			if rt == ERROR_VALUE {
+			if rt == RETURN_VALUE || rt == ERROR_VALUE {
 				return result
 			}
 		}
@@ -383,4 +411,35 @@ func evalBooleanInfixExpression(operator string, left, right Value) Value {
 	default:
 		return newError("unknown operator: %s", operator)
 	}
+}
+
+func applyFunction(fn Value, args []Value) Value {
+	switch fn := fn.(type) {
+	case *Function:
+		if len(args) != len(fn.Parameters) {
+			return newError("wrong number of arguments: want=%d, got=%d", len(fn.Parameters), len(args))
+		}
+		extendedEnv := extendFunctionEnv(fn, args)
+		evaluated := Eval(fn.Body, extendedEnv)
+		return unwrapReturnValue(evaluated)
+	default:
+		return newError("not a function: %T", fn)
+	}
+}
+
+func extendFunctionEnv(fn *Function, args []Value) *Environment {
+	env := NewEnclosedEnvironment(fn.Env)
+
+	for paramIdx, param := range fn.Parameters {
+		env.Set(param.Value, args[paramIdx])
+	}
+
+	return env
+}
+
+func unwrapReturnValue(val Value) Value {
+	if returnValue, ok := val.(*ReturnValue); ok {
+		return returnValue.Value
+	}
+	return val
 }

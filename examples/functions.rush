@@ -1,0 +1,40 @@
+# Test function definitions and calls
+
+# Simple function with no parameters
+greet = fn() {
+  return "Hello, World!"
+}
+
+# Function with parameters
+add = fn(x, y) {
+  return x + y
+}
+
+# Function that uses local variables
+multiply = fn(a, b) {
+  result = a * b
+  return result
+}
+
+# Test function calls
+message = greet()
+sum = add(5, 3)
+product = multiply(4, 6)
+
+# Nested function calls
+nested = add(multiply(2, 3), add(1, 2))
+
+# Function as expression in assignment
+double = fn(x) { return x * 2 }
+doubled = double(10)
+
+# Test conditionals in functions
+max = fn(a, b) {
+  if (a > b) {
+    return a
+  } else {
+    return b
+  }
+}
+
+maximum = max(15, 8)

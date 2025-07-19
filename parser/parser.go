@@ -34,6 +34,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.MULT:   PRODUCT,
 	lexer.AND:    EQUALS,
 	lexer.OR:     EQUALS,
+	lexer.LPAREN: CALL,
 }
 
 // Parser parses tokens into an AST
@@ -74,6 +75,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(lexer.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(lexer.IF, p.parseIfExpression)
+	p.registerPrefix(lexer.FN, p.parseFunctionLiteral)
 
 	// Initialize infix parse functions
 	p.infixParseFns = make(map[lexer.TokenType]infixParseFn)
@@ -89,6 +91,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(lexer.GTE, p.parseInfixExpression)
 	p.registerInfix(lexer.AND, p.parseInfixExpression)
 	p.registerInfix(lexer.OR, p.parseInfixExpression)
+	p.registerInfix(lexer.LPAREN, p.parseCallExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -140,13 +143,17 @@ func (p *Parser) ParseProgram() *ast.Program {
 
 // parseStatement parses statements
 func (p *Parser) parseStatement() ast.Statement {
-	// Check if this is an assignment statement (identifier followed by =)
-	if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
-		return p.parseAssignmentStatement()
+	switch p.curToken.Type {
+	case lexer.RETURN:
+		return p.parseReturnStatement()
+	default:
+		// Check if this is an assignment statement (identifier followed by =)
+		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
+			return p.parseAssignmentStatement()
+		}
+		// Otherwise, parse as expression statement
+		return p.parseExpressionStatement()
 	}
-
-	// Otherwise, parse as expression statement
-	return p.parseExpressionStatement()
 }
 
 // parseAssignmentStatement parses assignment statements like "a = 5"
@@ -413,4 +420,69 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	}
 
 	return block
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	lit := &ast.FunctionLiteral{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	lit.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	identifiers := []*ast.Identifier{}
+
+	if p.peekToken.Type == lexer.RPAREN {
+		p.nextToken()
+		return identifiers
+	}
+
+	p.nextToken()
+
+	ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	for p.peekToken.Type == lexer.COMMA {
+		p.nextToken()
+		p.nextToken()
+		ident := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	return identifiers
+}
+
+func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: p.curToken, Function: fn}
+	exp.Arguments = p.parseExpressionList(lexer.RPAREN)
+	return exp
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.curToken}
+
+	p.nextToken()
+
+	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
+	return stmt
 }

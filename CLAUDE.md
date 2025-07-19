@@ -89,18 +89,29 @@ rush/
 - Complex boolean expressions
 - Truthy/falsy value evaluation
 
-## Phase 4: Functions
+## Phase 4: Functions ✅ COMPLETED
 
 **Goal**: Function definitions and calls
 
 ### Tasks:
 
-- Parse function declarations with `fn` keyword
-- Implement function call parsing and evaluation
-- Add parameter binding and local scope
-- Implement `return` statements
+- ✅ Parse function declarations with `fn` keyword
+- ✅ Implement function call parsing and evaluation
+- ✅ Add parameter binding and local scope
+- ✅ Implement `return` statements
 
-**Milestone**: Can define and call functions
+**Milestone**: ✅ Can define and call functions
+
+### Implemented Features:
+
+- Function literals with `fn` keyword syntax: `fn(x, y) { return x + y }`
+- Function calls with argument passing: `add(5, 3)`
+- Return statements for early function exit
+- Parameter binding and local scoping
+- Nested function calls and higher-order functions
+- Function assignment to variables
+- Proper error handling for wrong argument counts
+- Recursive function support
 
 ## Phase 5: Loops & Arrays
 
@@ -129,14 +140,16 @@ rush/
 ## Development Best Practices
 
 - Always update CLAUDE.md after completing a phase and then commit the changes.
+- Always use two spaces instead of a tab.
 
 ## Current Status
 
 - Phase 1: ✅ COMPLETED - Basic parsing working
 - Phase 2: ✅ COMPLETED - Basic interpreter working
 - Phase 3: ✅ COMPLETED - Control flow working
-- Phase 4: 🔄 NEXT - Ready to implement functions
-- Next: Implement function definitions and calls
+- Phase 4: ✅ COMPLETED - Functions working
+- Phase 5: 🔄 NEXT - Ready to implement loops and arrays
+- Next: Implement for/while loops and array indexing
 
 ## Testing
 
@@ -174,6 +187,29 @@ if (score >= 90) {
 # Boolean logic
 canDrive = (age >= 16) && hasLicense
 shouldStop = (light == "red") || (emergency == true)
+
+# Functions
+add = fn(x, y) { return x + y }
+multiply = fn(a, b) { return a * b }
+
+# Function calls
+sum = add(10, 5)
+product = multiply(4, 6)
+
+# Recursive functions
+factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+fact5 = factorial(5)
+
+# Higher-order functions
+apply = fn(f, x) { return f(x) }
+square = fn(x) { return x * x }
+result = apply(square, 8)
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
@@ -196,7 +232,13 @@ Run with: `go run cmd/rush/main.go examples/test.rush`
 - Nested conditionals
 - Complex boolean expressions
 
-```
+### New Phase 4 Features:
 
-```
-
+- Function definitions with `fn` keyword
+- Function calls with parameter passing
+- Return statements for function exit
+- Local variable scoping within functions
+- Recursive function calls
+- Higher-order functions (functions as values)
+- Proper argument count validation
+- Nested function calls
