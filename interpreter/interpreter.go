@@ -66,6 +66,12 @@ func Eval(node ast.Node, env *Environment) Value {
 		}
 		return &Array{Elements: elements}
 	
+	case *ast.IfExpression:
+		return evalIfExpression(node, env)
+	
+	case *ast.BlockStatement:
+		return evalBlockStatement(node, env)
+	
 	default:
 		return newError("unknown node type: %T", node)
 	}
@@ -145,6 +151,10 @@ func evalInfixExpression(operator string, left, right Value) Value {
 		return nativeBoolToBooleanValue(left == right)
 	case operator == "!=":
 		return nativeBoolToBooleanValue(left != right)
+	case operator == "&&":
+		return evalBooleanInfixExpression(operator, left, right)
+	case operator == "||":
+		return evalBooleanInfixExpression(operator, left, right)
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
@@ -170,6 +180,10 @@ func evalIntegerInfixExpression(operator string, left, right Value) Value {
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanValue(leftVal > rightVal)
+	case "<=":
+		return nativeBoolToBooleanValue(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanValue(leftVal >= rightVal)
 	case "==":
 		return nativeBoolToBooleanValue(leftVal == rightVal)
 	case "!=":
@@ -199,6 +213,10 @@ func evalFloatInfixExpression(operator string, left, right Value) Value {
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanValue(leftVal > rightVal)
+	case "<=":
+		return nativeBoolToBooleanValue(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanValue(leftVal >= rightVal)
 	case "==":
 		return nativeBoolToBooleanValue(leftVal == rightVal)
 	case "!=":
@@ -239,6 +257,10 @@ func evalMixedNumberInfixExpression(operator string, left, right Value) Value {
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
 		return nativeBoolToBooleanValue(leftVal > rightVal)
+	case "<=":
+		return nativeBoolToBooleanValue(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanValue(leftVal >= rightVal)
 	case "==":
 		return nativeBoolToBooleanValue(leftVal == rightVal)
 	case "!=":
@@ -304,4 +326,61 @@ func isError(val Value) bool {
 		return val.Type() == ERROR_VALUE
 	}
 	return false
+}
+
+func evalIfExpression(ie *ast.IfExpression, env *Environment) Value {
+	condition := Eval(ie.Condition, env)
+	if isError(condition) {
+		return condition
+	}
+
+	if IsTruthy(condition) {
+		return Eval(ie.Consequence, env)
+	} else if ie.Alternative != nil {
+		return Eval(ie.Alternative, env)
+	} else {
+		return NULL
+	}
+}
+
+func evalBlockStatement(block *ast.BlockStatement, env *Environment) Value {
+	var result Value
+
+	for _, statement := range block.Statements {
+		result = Eval(statement, env)
+
+		if result != nil {
+			rt := result.Type()
+			if rt == ERROR_VALUE {
+				return result
+			}
+		}
+	}
+
+	return result
+}
+
+func evalBooleanInfixExpression(operator string, left, right Value) Value {
+	switch operator {
+	case "&&":
+		// Short-circuit evaluation for AND
+		if !IsTruthy(left) {
+			return FALSE
+		}
+		if !IsTruthy(right) {
+			return FALSE
+		}
+		return TRUE
+	case "||":
+		// Short-circuit evaluation for OR
+		if IsTruthy(left) {
+			return TRUE
+		}
+		if IsTruthy(right) {
+			return TRUE
+		}
+		return FALSE
+	default:
+		return newError("unknown operator: %s", operator)
+	}
 }

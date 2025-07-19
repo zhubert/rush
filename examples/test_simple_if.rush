@@ -1,0 +1,18 @@
+# Simple if test
+
+# Test basic if/else
+x = 15
+if (x > 10) {
+    result = "greater"
+} else {
+    result = "smaller"
+}
+
+# Test boolean operators
+a = true
+b = false
+andTest = a && b
+orTest = a || b
+
+# Final result  
+final = result

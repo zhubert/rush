@@ -1,0 +1,18 @@
+# Test boolean operations
+
+# Basic boolean values
+a = true
+b = false
+
+# Boolean logic
+andResult = a && b
+orResult = a || b
+notA = !a
+notB = !b
+
+# Complex boolean expressions
+complexAnd = (5 > 3) && (10 < 20)
+complexOr = (5 < 3) || (10 > 20)
+
+# Final result
+final = complexAnd

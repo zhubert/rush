@@ -1,12 +1,15 @@
 # Programming Language Implementation Plan - Phased Development
 
 ## Language Overview
+
 A general-purpose programming language built with Go, featuring clean syntax inspired by modern languages with C-style control flow.
 
 ## Phase 1: Foundation & Basic Parsing ✅ COMPLETED
+
 **Goal**: Get basic tokenization and parsing working
 
 ### Tasks:
+
 - ✅ Set up Go module structure and project organization
 - ✅ Implement lexer for basic tokens (numbers, strings, identifiers, operators)
 - ✅ Create basic AST node types
@@ -16,6 +19,7 @@ A general-purpose programming language built with Go, featuring clean syntax ins
 **Milestone**: ✅ Can tokenize and parse simple assignments
 
 ### Implemented Features:
+
 - Complete lexer with all token types (keywords, operators, literals)
 - Recursive descent parser with operator precedence
 - AST nodes for expressions, statements, and literals
@@ -25,6 +29,7 @@ A general-purpose programming language built with Go, featuring clean syntax ins
 - Working CLI interface with example programs
 
 ### Architecture:
+
 ```
 rush/
 ├── cmd/rush/main.go  # CLI entry point
@@ -39,9 +44,11 @@ rush/
 ```
 
 ## Phase 2: Basic Interpreter ✅ COMPLETED
+
 **Goal**: Execute simple programs
 
 ### Tasks:
+
 - ✅ Implement value representation (numbers, strings, booleans)
 - ✅ Create environment/scope system for variables
 - ✅ Build expression evaluator for arithmetic and comparisons
@@ -50,6 +57,7 @@ rush/
 **Milestone**: ✅ Can execute `a = 5; b = a + 3`
 
 ### Implemented Features:
+
 - Complete value system with Integer, Float, String, Boolean, Array, and Null types
 - Environment system with variable scope support
 - Expression evaluation for arithmetic, comparison, and logical operations
@@ -59,20 +67,34 @@ rush/
 - Comprehensive error handling with runtime error reporting
 - Updated CLI to execute programs instead of just parsing
 
-## Phase 3: Control Flow
+## Phase 3: Control Flow ✅ COMPLETED
+
 **Goal**: Add conditionals and basic program flow
 
 ### Tasks:
-- Parse and evaluate if/else statements (expression-based)
-- Implement boolean logic operators (&&, ||, !)
-- Add comparison operators
 
-**Milestone**: Can execute conditional expressions
+- ✅ Parse and evaluate if/else statements (expression-based)
+- ✅ Implement boolean logic operators (&&, ||, !)
+- ✅ Add comparison operators (<=, >=)
+
+**Milestone**: ✅ Can execute conditional expressions
+
+### Implemented Features:
+
+- If/else expressions with condition evaluation
+- Block statements for grouping code in braces
+- Boolean logic operators (&&, ||) with short-circuit evaluation
+- Enhanced comparison operators (<=, >=) for all numeric types
+- Nested if/else statements support
+- Complex boolean expressions
+- Truthy/falsy value evaluation
 
 ## Phase 4: Functions
+
 **Goal**: Function definitions and calls
 
 ### Tasks:
+
 - Parse function declarations with `fn` keyword
 - Implement function call parsing and evaluation
 - Add parameter binding and local scope
@@ -81,9 +103,11 @@ rush/
 **Milestone**: Can define and call functions
 
 ## Phase 5: Loops & Arrays
+
 **Goal**: Complete core language features
 
 ### Tasks:
+
 - Implement for loops (C-style) and while loops
 - Add array literals `[1, 2, 3]` and indexing
 - Array operations and built-ins
@@ -91,23 +115,33 @@ rush/
 **Milestone**: Full language feature set working
 
 ## Phase 6: Polish & Tools
+
 **Goal**: Production-ready language
 
 ### Tasks:
+
 - Comprehensive error handling and reporting
 - REPL (Read-Eval-Print Loop)
 - Standard library functions (print, etc.)
 - Test suite and example programs
 - Documentation and language specification
 
+## Development Best Practices
+
+- Always update CLAUDE.md after completing a phase and then commit the changes.
+
 ## Current Status
+
 - Phase 1: ✅ COMPLETED - Basic parsing working
 - Phase 2: ✅ COMPLETED - Basic interpreter working
-- Phase 3: 🔄 NEXT - Ready to implement control flow
-- Next: Implement if/else statements and boolean logic
+- Phase 3: ✅ COMPLETED - Control flow working
+- Phase 4: 🔄 NEXT - Ready to implement functions
+- Next: Implement function definitions and calls
 
 ## Testing
+
 The language can currently execute programs like:
+
 ```rush
 # Basic variable assignments
 a = 42
@@ -124,14 +158,45 @@ isGreater = a > 30
 # Complex expressions
 result = (a + 10) * 2.5
 message = "Hello, " + "Rush"
+
+# Control flow
+score = 85
+if (score >= 90) {
+    grade = "A"
+} else {
+    if (score >= 80) {
+        grade = "B"
+    } else {
+        grade = "C"
+    }
+}
+
+# Boolean logic
+canDrive = (age >= 16) && hasLicense
+shouldStop = (light == "red") || (emergency == true)
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
 
 ### New Phase 2 Features:
+
 - Variable assignments and retrieval
-- Mixed-type arithmetic operations  
+- Mixed-type arithmetic operations
 - String concatenation
 - Boolean operations and comparisons
 - Array literals
 - Runtime error handling
+
+### New Phase 3 Features:
+
+- If/else conditional statements
+- Boolean logic operators (&&, ||) with short-circuit evaluation
+- Enhanced comparison operators (<=, >=)
+- Block statements with braces
+- Nested conditionals
+- Complex boolean expressions
+
+```
+
+```
+
