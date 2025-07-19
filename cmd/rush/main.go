@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"rush/interpreter"
 	"rush/lexer"
 	"rush/parser"
 )
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// Phase 1: Tokenize and parse
-	fmt.Printf("Rush interpreter - parsing file: %s\n", filename)
+	fmt.Printf("Rush interpreter - executing file: %s\n", filename)
 	
 	// Create lexer
 	l := lexer.New(string(input))
@@ -46,9 +47,17 @@ func main() {
 		os.Exit(1)
 	}
 	
-	// Print the parsed AST
-	fmt.Println("\nParsed AST:")
-	fmt.Println(program.String())
+	// Phase 2: Interpret and execute
+	env := interpreter.NewEnvironment()
+	result := interpreter.Eval(program, env)
 	
-	fmt.Println("\nPhase 1 complete: Successfully parsed!")
+	if result != nil {
+		if result.Type() == "ERROR" {
+			fmt.Printf("Runtime error: %s\n", result.Inspect())
+			os.Exit(1)
+		}
+		fmt.Printf("Result: %s\n", result.Inspect())
+	}
+	
+	fmt.Println("\nExecution complete!")
 }
