@@ -351,7 +351,7 @@ rush/
 - Phase 5: ✅ COMPLETED - Loops and arrays working
 - Phase 6: ✅ COMPLETED - Core polish and tools
 - Phase 7: ✅ COMPLETED - Testing and documentation
-- Phase 8: 🔄 PLANNED - Module system and imports/exports
+- Phase 8: ✅ COMPLETED - Module system and imports/exports
 - Phase 9: 🔄 PLANNED - Error handling with try/catch
 - Phase 10: 🔄 PLANNED - Object system with classes and inheritance
 - Phase 11: 🔄 PLANNED - Enhanced standard library
@@ -466,6 +466,16 @@ numbers = [1, 2, 3]
 extended = push(numbers, 4)
 last_element = pop(extended)
 subset = slice(extended, 1, 3)
+
+# Module system (Phase 8)
+# math.rush:
+export add = fn(x, y) { return x + y }
+export PI = 3.14159
+
+# main.rush:
+import { add, PI } from "./math"
+result = add(10, 5)
+print("Result:", result, "PI:", PI)
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
@@ -520,3 +530,14 @@ Run with: `go run cmd/rush/main.go examples/test.rush`
 - **Array Functions**: `push(array, element)`, `pop(array)`, and `slice(array, start, end)`
 - **Enhanced Error Handling**: Line and column numbers in both parse and runtime errors
 - **Better Error Messages**: Contextual error information for debugging
+
+### New Phase 8 Features:
+
+- **Import Statements**: `import { func, var } from "module"` syntax for importing values from other modules
+- **Export Statements**: `export name = value` declarations for making values available to other modules
+- **Module Loading**: Automatic module file resolution and loading with `.rush` extension
+- **Module Caching**: Prevents duplicate loading and improves performance
+- **Circular Dependency Detection**: Detects and prevents infinite import loops
+- **Relative Paths**: Support for `./module` and `../module` relative imports
+- **Module Isolation**: Each module executes in its own scope
+- **Export Tracking**: Proper capture and binding of exported values

@@ -1,0 +1,2 @@
+export add = fn(x, y) { return x + y }
+export PI = 3.14159

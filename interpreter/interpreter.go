@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"rush/ast"
 )
@@ -111,6 +112,15 @@ func Eval(node ast.Node, env *Environment) Value {
 	
 	case *ast.ForStatement:
 		return evalForStatement(node, env)
+	
+	case *ast.ImportStatement:
+		return evalImportStatement(node, env)
+	
+	case *ast.ExportStatement:
+		return evalExportStatement(node, env)
+	
+	case *ast.ModuleAccess:
+		return evalModuleAccess(node, env)
 	
 	default:
 		return newError("unknown node type: %T", node)
@@ -583,4 +593,93 @@ func evalForStatement(fs *ast.ForStatement, env *Environment) Value {
 	}
 
 	return result
+}
+
+// evalImportStatement handles import statements
+func evalImportStatement(node *ast.ImportStatement, env *Environment) Value {
+	// Get the module path
+	modulePath := node.Module.Value
+	
+	// Load the module
+	moduleResolver := env.GetModuleResolver()
+	module, err := moduleResolver.LoadModule(modulePath, env.GetCurrentDir())
+	if err != nil {
+		return newError("failed to import module %s: %s", modulePath, err.Error())
+	}
+	
+	// Execute the module to populate its exports
+	if module.Exports == nil || len(module.Exports) == 0 {
+		// Create a new environment for the module
+		moduleEnv := NewModuleEnvironment(env)
+		
+		// Set the current directory to the module's directory for nested imports
+		moduleDir := filepath.Dir(module.Path)
+		moduleEnv.SetCurrentDir(moduleDir)
+		
+		// Execute the module
+		result := Eval(module.AST, moduleEnv)
+		if isError(result) {
+			return newError("error executing module %s: %s", modulePath, result.Inspect())
+		}
+		
+		// Extract exports from the module environment
+		module.Exports = make(map[string]interface{})
+		for name, value := range moduleEnv.GetExports() {
+			module.Exports[name] = value
+		}
+	}
+	
+	// Import the specified names into the current environment
+	for _, name := range node.Names {
+		if value, exists := module.Exports[name.Value]; exists {
+			// Convert interface{} back to Value
+			if val, ok := value.(Value); ok {
+				env.Set(name.Value, val)
+			} else {
+				return newError("invalid export type for %s", name.Value)
+			}
+		} else {
+			return newError("module %s does not export %s", modulePath, name.Value)
+		}
+	}
+	
+	return NULL
+}
+
+// evalExportStatement handles export statements
+func evalExportStatement(node *ast.ExportStatement, env *Environment) Value {
+	var value Value
+	
+	if node.Value != nil {
+		// Export an assignment: export name = value
+		value = Eval(node.Value, env)
+		if isError(value) {
+			return value
+		}
+		
+		// Set the value in the local environment
+		env.Set(node.Name.Value, value)
+	} else {
+		// Export a previously defined value: export name
+		var exists bool
+		value, exists = env.Get(node.Name.Value)
+		if !exists {
+			return newError("cannot export undefined variable: %s", node.Name.Value)
+		}
+	}
+	
+	// Add the export to the environment's export list
+	env.AddExport(node.Name.Value, value)
+	
+	return value
+}
+
+// evalModuleAccess handles module member access like module.function
+func evalModuleAccess(node *ast.ModuleAccess, env *Environment) Value {
+	// For now, treat this as a simple property access
+	// This is a placeholder implementation
+	// In a full implementation, we'd need to track loaded modules
+	
+	return newError("module access not yet fully implemented: %s.%s", 
+		node.Module.Value, node.Member.Value)
 }

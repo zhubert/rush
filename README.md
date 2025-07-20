@@ -34,6 +34,7 @@ go run cmd/rush/main.go hello.rush
 
 - **Dynamic Typing**: Variables can hold any type of value
 - **First-Class Functions**: Functions are values that can be passed around
+- **Module System**: Import/export functionality for code organization
 - **Arrays**: Built-in support for dynamic arrays
 - **String Manipulation**: Comprehensive string operations
 - **Control Flow**: If/else, while, and for loops
@@ -107,6 +108,20 @@ subset = slice(numbers, 1, 4)   # Get slice
 text = "Hello, World!"
 chars = split(text, ", ")       # Split string
 hello = substr(text, 0, 5)      # Substring
+```
+
+### Module System
+```rush
+# math.rush - Define a module
+export add = fn(x, y) { return x + y }
+export PI = 3.14159
+export square = fn(x) { return x * x }
+
+# main.rush - Use the module
+import { add, PI, square } from "./math"
+result = add(10, 5)             # 15
+area = PI * square(3)           # ~28.27
+print("Result:", result, "Area:", area)
 ```
 
 ## 🛠️ Built-in Functions
@@ -256,8 +271,8 @@ Rush was developed through a systematic phased approach:
 - **✅ Phase 6**: Core Polish & Tools
 - **✅ Phase 7**: Testing & Documentation
 
-### Advanced Features (Planned)
-- **🔄 Phase 8**: Module System - Import/export functionality
+### Advanced Features (In Progress)
+- **✅ Phase 8**: Module System - Import/export functionality
 - **🔄 Phase 9**: Error Handling - Try/catch mechanisms
 - **🔄 Phase 10**: Object System - Classes and inheritance
 - **🔄 Phase 11**: Enhanced Standard Library - File I/O, JSON, regex

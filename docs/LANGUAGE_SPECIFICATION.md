@@ -13,8 +13,9 @@ Rush is a dynamically-typed, interpreted programming language with clean syntax 
 5. [Statements](#statements)
 6. [Functions](#functions)
 7. [Control Flow](#control-flow)
-8. [Built-in Functions](#built-in-functions)
-9. [Grammar](#grammar)
+8. [Module System](#module-system)
+9. [Built-in Functions](#built-in-functions)
+10. [Grammar](#grammar)
 
 ## Lexical Structure
 
@@ -48,6 +49,9 @@ Reserved words in Rush:
 - `while` - while loop
 - `for` - for loop
 - `return` - return statement
+- `import` - import statement
+- `export` - export statement  
+- `from` - from clause in imports
 - `true` - boolean literal
 - `false` - boolean literal
 
@@ -74,6 +78,9 @@ Reserved words in Rush:
 
 #### Assignment Operator
 - `=` - assignment
+
+#### Access Operator
+- `.` - module member access
 
 ### Delimiters
 - `()` - parentheses for grouping and function calls
@@ -326,6 +333,66 @@ for (i = 0; i < 10; i = i + 1) {
   print(i)
 }
 ```
+
+## Module System
+
+The module system allows code organization through import and export statements.
+
+### Export Statements
+
+Export statements make values available to other modules:
+
+```rush
+# Export with assignment
+export add = fn(x, y) { return x + y }
+export PI = 3.14159
+
+# Export existing variable
+multiply = fn(x, y) { return x * y }
+export multiply
+```
+
+### Import Statements
+
+Import statements bring values from other modules into the current scope:
+
+```rush
+# Import specific values
+import { add, PI } from "./math"
+
+# Import multiple values
+import { func1, func2, var1 } from "./utilities"
+```
+
+### Module Paths
+
+Module paths can be:
+- **Relative**: `./module` or `../parent/module`
+- **Absolute**: `/path/to/module`
+
+The `.rush` extension is added automatically if not specified.
+
+### Module Example
+
+**math.rush:**
+```rush
+export add = fn(x, y) { return x + y }
+export subtract = fn(x, y) { return x - y }
+export PI = 3.14159
+```
+
+**main.rush:**
+```rush
+import { add, subtract, PI } from "./math"
+
+result = add(10, 5)        # 15
+diff = subtract(10, 5)     # 5
+area = PI * 4 * 4          # ~50.27
+```
+
+### Module Isolation
+
+Each module executes in its own scope. Variables not exported remain private to the module.
 
 ## Built-in Functions
 

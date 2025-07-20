@@ -42,6 +42,7 @@ const (
 	RBRACE    // }
 	LBRACKET  // [
 	RBRACKET  // ]
+	DOT       // .
 
 	// Keywords
 	FN     // fn
@@ -50,6 +51,9 @@ const (
 	FOR    // for
 	WHILE  // while
 	RETURN // return
+	IMPORT // import
+	EXPORT // export
+	FROM   // from
 )
 
 // Token represents a single token
@@ -93,12 +97,16 @@ var tokenTypeNames = map[TokenType]string{
 	RBRACE:    "}",
 	LBRACKET:  "[",
 	RBRACKET:  "]",
+	DOT:       ".",
 	FN:        "fn",
 	IF:        "if",
 	ELSE:      "else",
 	FOR:       "for",
 	WHILE:     "while",
 	RETURN:    "return",
+	IMPORT:    "import",
+	EXPORT:    "export",
+	FROM:      "from",
 }
 
 // String returns the string representation of a token type
@@ -117,6 +125,9 @@ var keywords = map[string]TokenType{
 	"for":    FOR,
 	"while":  WHILE,
 	"return": RETURN,
+	"import": IMPORT,
+	"export": EXPORT,
+	"from":   FROM,
 	"true":   TRUE,
 	"false":  FALSE,
 }

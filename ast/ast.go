@@ -357,3 +357,62 @@ func (fs *ForStatement) String() string {
 	out.WriteString(fs.Body.String())
 	return out.String()
 }
+
+// ImportStatement represents import statements like "import { func, var } from "module""
+type ImportStatement struct {
+	Token     lexer.Token   // the 'import' token
+	Names     []*Identifier // imported names
+	Module    *StringLiteral // module path
+}
+
+func (is *ImportStatement) statementNode()       {}
+func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *ImportStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("import { ")
+	names := []string{}
+	for _, name := range is.Names {
+		names = append(names, name.String())
+	}
+	out.WriteString(strings.Join(names, ", "))
+	out.WriteString(" } from ")
+	out.WriteString(is.Module.String())
+	return out.String()
+}
+
+// ExportStatement represents export statements like "export func" or "export var = 42"
+type ExportStatement struct {
+	Token     lexer.Token // the 'export' token
+	Name      *Identifier // exported name
+	Value     Expression  // exported value (can be nil for function declarations)
+}
+
+func (es *ExportStatement) statementNode()       {}
+func (es *ExportStatement) TokenLiteral() string { return es.Token.Literal }
+func (es *ExportStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("export ")
+	out.WriteString(es.Name.String())
+	if es.Value != nil {
+		out.WriteString(" = ")
+		out.WriteString(es.Value.String())
+	}
+	return out.String()
+}
+
+// ModuleAccess represents module member access like "module.function"
+type ModuleAccess struct {
+	Token  lexer.Token // the identifier token (module name)
+	Module *Identifier // module name
+	Member *Identifier // member name
+}
+
+func (ma *ModuleAccess) expressionNode()      {}
+func (ma *ModuleAccess) TokenLiteral() string { return ma.Token.Literal }
+func (ma *ModuleAccess) String() string {
+	var out bytes.Buffer
+	out.WriteString(ma.Module.String())
+	out.WriteString(".")
+	out.WriteString(ma.Member.String())
+	return out.String()
+}

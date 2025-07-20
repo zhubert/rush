@@ -1,0 +1,4 @@
+import { add, PI } from "./math_module"
+result = add(10, 5)
+print("Result:", result)
+print("PI:", PI)

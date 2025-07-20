@@ -9,11 +9,12 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 3. [Working with Data](#working-with-data)
 4. [Functions](#functions)
 5. [Control Flow](#control-flow)
-6. [Built-in Functions](#built-in-functions)
-7. [Examples](#examples)
-8. [REPL Usage](#repl-usage)
-9. [Common Patterns](#common-patterns)
-10. [Tips and Best Practices](#tips-and-best-practices)
+6. [Module System](#module-system)
+7. [Built-in Functions](#built-in-functions)
+8. [Examples](#examples)
+9. [REPL Usage](#repl-usage)
+10. [Common Patterns](#common-patterns)
+11. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
@@ -296,6 +297,85 @@ for (row = 0; row < len(matrix); row = row + 1) {
   }
 }
 ```
+
+## Module System
+
+The module system helps you organize code into reusable files. You can export values from one file and import them in another.
+
+### Creating a Module
+
+Create a module by using `export` statements:
+
+**math.rush:**
+```rush
+# Export functions
+export add = fn(x, y) {
+  return x + y
+}
+
+export subtract = fn(x, y) {
+  return x - y
+}
+
+# Export constants
+export PI = 3.14159
+
+# Private helper function (not exported)
+helper = fn(x) {
+  return x * 2
+}
+
+export square = fn(x) {
+  return helper(x) * helper(x) / 4  # Uses private helper
+}
+```
+
+### Using a Module
+
+Import values from a module using `import` statements:
+
+**calculator.rush:**
+```rush
+# Import specific functions and constants
+import { add, subtract, PI } from "./math"
+
+# Use imported functions
+result1 = add(10, 5)           # 15
+result2 = subtract(10, 5)      # 5
+
+# Use imported constants
+circumference = 2 * PI * 5     # ~31.416
+
+print("Addition:", result1)
+print("Subtraction:", result2)
+print("Circumference:", circumference)
+```
+
+### Module Paths
+
+Rush supports different types of module paths:
+
+#### Relative Paths
+```rush
+import { func } from "./same_directory"      # Same directory
+import { func } from "../parent_directory"   # Parent directory
+import { func } from "./sub/nested"         # Subdirectory
+```
+
+#### Module File Extensions
+The `.rush` extension is added automatically:
+```rush
+import { func } from "./math"        # Loads math.rush
+import { func } from "./math.rush"   # Also loads math.rush
+```
+
+### Best Practices
+
+1. **Keep modules focused**: Each module should have a single, clear purpose
+2. **Export only what's needed**: Keep internal helpers private
+3. **Use descriptive names**: Make module and export names clear
+4. **Organize by functionality**: Group related functions together
+5. **Avoid circular dependencies**: Don't have modules import each other
 
 ## Built-in Functions
 

@@ -37,6 +37,7 @@ var precedences = map[lexer.TokenType]int{
 	lexer.OR:      EQUALS,
 	lexer.LPAREN:  CALL,
 	lexer.LBRACKET: INDEX,
+	lexer.DOT:     INDEX, // module.member has same precedence as array[index]
 }
 
 // Parser parses tokens into an AST
@@ -95,6 +96,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(lexer.OR, p.parseInfixExpression)
 	p.registerInfix(lexer.LPAREN, p.parseCallExpression)
 	p.registerInfix(lexer.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(lexer.DOT, p.parseModuleAccess)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -147,6 +149,10 @@ func (p *Parser) ParseProgram() *ast.Program {
 // parseStatement parses statements
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
+	case lexer.IMPORT:
+		return p.parseImportStatement()
+	case lexer.EXPORT:
+		return p.parseExportStatement()
 	case lexer.RETURN:
 		return p.parseReturnStatement()
 	case lexer.WHILE:
@@ -608,4 +614,97 @@ func (p *Parser) parseForExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 	return stmt
+}
+
+// parseImportStatement parses import statements like "import { func, var } from "module""
+func (p *Parser) parseImportStatement() *ast.ImportStatement {
+	stmt := &ast.ImportStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	stmt.Names = []*ast.Identifier{}
+
+	if p.peekToken.Type == lexer.RBRACE {
+		p.nextToken()
+		return stmt
+	}
+
+	p.nextToken()
+
+	// Parse first identifier
+	if p.curToken.Type != lexer.IDENT {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+	stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
+
+	// Parse remaining identifiers
+	for p.peekToken.Type == lexer.COMMA {
+		p.nextToken()
+		p.nextToken()
+		if p.curToken.Type != lexer.IDENT {
+			p.noPrefixParseFnError(p.curToken.Type)
+			return nil
+		}
+		stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
+	}
+
+	if !p.expectPeek(lexer.RBRACE) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.FROM) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.STRING) {
+		return nil
+	}
+
+	stmt.Module = &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
+
+	return stmt
+}
+
+// parseExportStatement parses export statements like "export var = 42"
+func (p *Parser) parseExportStatement() *ast.ExportStatement {
+	stmt := &ast.ExportStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+
+	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	// Check if there's an assignment
+	if p.peekToken.Type == lexer.ASSIGN {
+		p.nextToken() // consume =
+		p.nextToken() // move to value
+		stmt.Value = p.parseExpression(LOWEST)
+	}
+
+	return stmt
+}
+
+// parseModuleAccess parses module member access like "module.function"
+func (p *Parser) parseModuleAccess(left ast.Expression) ast.Expression {
+	moduleAccess := &ast.ModuleAccess{Token: p.curToken}
+
+	// Left side should be an identifier (module name)
+	if ident, ok := left.(*ast.Identifier); ok {
+		moduleAccess.Module = ident
+	} else {
+		p.errors = append(p.errors, fmt.Sprintf("expected identifier before '.', got %T", left))
+		return nil
+	}
+
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+
+	moduleAccess.Member = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	return moduleAccess
 }

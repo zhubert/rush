@@ -189,6 +189,13 @@ func (l *Lexer) NextToken() Token {
 		tok = newToken(LBRACKET, l.ch, line, column)
 	case ']':
 		tok = newToken(RBRACKET, l.ch, line, column)
+	case '.':
+		// Only treat as DOT if not followed by a digit (which would be a float)
+		if !isDigit(l.peekChar()) {
+			tok = newToken(DOT, l.ch, line, column)
+		} else {
+			tok = newToken(ILLEGAL, l.ch, line, column)
+		}
 	case '"':
 		tok.Type = STRING
 		tok.Literal = l.readString()
