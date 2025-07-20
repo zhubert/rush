@@ -178,6 +178,165 @@ rush/
   - `API_REFERENCE.md` - Built-in functions documentation
   - `README.md` - Project overview and quick start guide
 
+## Phase 8: Module System
+
+**Goal**: Add import/export functionality and package management
+
+### Tasks:
+
+- [ ] Design module syntax and import/export statements
+- [ ] Implement module loading and resolution system
+- [ ] Add namespace support to prevent naming conflicts
+- [ ] Create standard library module structure
+- [ ] Implement relative and absolute module paths
+- [ ] Add circular dependency detection
+- [ ] Support for third-party package management
+
+**Milestone**: Can organize code into reusable modules with imports and exports
+
+### Planned Features:
+
+- **Import Statements**: `import { func, var } from "module"` syntax
+- **Export Statements**: `export func`, `export var` declarations
+- **Module Resolution**: Automatic module loading from file system
+- **Namespaces**: Isolated scoping for module contents
+- **Standard Modules**: Built-in modules for common functionality
+- **Package Management**: Basic package installation and dependency management
+- **Circular Dependency Handling**: Detection and resolution of circular imports
+
+## Phase 9: Error Handling
+
+**Goal**: Comprehensive error handling with try/catch mechanisms
+
+### Tasks:
+
+- [ ] Design try/catch/finally syntax
+- [ ] Implement error object types and custom errors
+- [ ] Add error propagation through call stack
+- [ ] Create error handling for built-in functions
+- [ ] Implement stack trace generation
+- [ ] Add error recovery mechanisms
+- [ ] Support for error throwing and catching
+
+**Milestone**: Robust error handling with try/catch blocks and custom error types
+
+### Planned Features:
+
+- **Try/Catch/Finally**: Exception handling blocks
+- **Custom Error Types**: User-defined error objects
+- **Error Propagation**: Automatic error bubbling through function calls
+- **Stack Traces**: Detailed error location and call stack information
+- **Error Recovery**: Graceful handling of runtime errors
+- **Throw Statements**: Ability to throw custom errors
+- **Error Object Interface**: Standardized error properties and methods
+
+## Phase 10: Object System
+
+**Goal**: Classes, inheritance, and object-oriented programming
+
+### Tasks:
+
+- [ ] Design class syntax and constructor functions
+- [ ] Implement object creation and method calls
+- [ ] Add inheritance with extends keyword
+- [ ] Create method overriding and super calls
+- [ ] Implement property access and modification
+- [ ] Add static methods and properties
+- [ ] Support for private and public members
+
+**Milestone**: Full object-oriented programming with classes and inheritance
+
+### Planned Features:
+
+- **Class Definitions**: `class Name { }` syntax with constructors
+- **Object Instantiation**: `new ClassName()` object creation
+- **Inheritance**: `class Child extends Parent` hierarchy
+- **Method Calls**: `object.method()` invocation
+- **Property Access**: `object.property` get/set operations
+- **Static Members**: Class-level methods and properties
+- **Access Control**: Private and public member visibility
+- **Method Overriding**: Child class method specialization
+
+## Phase 11: Enhanced Standard Library
+
+**Goal**: Comprehensive standard library with essential functionality
+
+### Tasks:
+
+- [ ] Add file I/O operations (read, write, append)
+- [ ] Implement JSON parsing and serialization
+- [ ] Create math library with advanced functions
+- [ ] Add regular expression support
+- [ ] Implement date and time handling
+- [ ] Create HTTP client functionality
+- [ ] Add string formatting and templating
+
+**Milestone**: Rich standard library covering common programming needs
+
+### Planned Features:
+
+- **File Operations**: Read, write, and manipulate files
+- **JSON Support**: Parse and serialize JSON data
+- **Math Library**: Advanced mathematical functions and constants
+- **Regular Expressions**: Pattern matching and text processing
+- **Date/Time**: Date creation, formatting, and manipulation
+- **HTTP Client**: Basic web request functionality
+- **String Formatting**: Template strings and formatting options
+- **Collection Utilities**: Advanced array and object manipulation
+
+## Phase 12: Performance & Compilation
+
+**Goal**: Bytecode compilation and performance optimization
+
+### Tasks:
+
+- [ ] Design bytecode instruction set
+- [ ] Implement compiler from AST to bytecode
+- [ ] Create bytecode virtual machine
+- [ ] Add optimization passes (constant folding, dead code elimination)
+- [ ] Implement performance profiling tools
+- [ ] Add memory management improvements
+- [ ] Create benchmark suite for performance testing
+
+**Milestone**: Significantly improved performance through bytecode compilation
+
+### Planned Features:
+
+- **Bytecode Compiler**: AST to bytecode transformation
+- **Virtual Machine**: Efficient bytecode execution engine
+- **Code Optimization**: Compiler optimizations for faster execution
+- **Performance Profiling**: Runtime performance analysis tools
+- **Memory Management**: Improved memory allocation and garbage collection
+- **Benchmarking**: Performance testing and measurement tools
+- **JIT Compilation**: Just-in-time compilation for hot code paths
+
+## Phase 13: Developer Tooling
+
+**Goal**: Professional development tools and IDE integration
+
+### Tasks:
+
+- [ ] Implement interactive debugger with breakpoints
+- [ ] Create language server for IDE integration
+- [ ] Add syntax highlighting definitions
+- [ ] Implement code formatter and linter
+- [ ] Create documentation generator
+- [ ] Add code completion and IntelliSense
+- [ ] Implement refactoring tools
+
+**Milestone**: Complete development environment with professional tooling
+
+### Planned Features:
+
+- **Interactive Debugger**: Step-through debugging with breakpoints
+- **Language Server Protocol**: IDE integration for VS Code, Vim, etc.
+- **Syntax Highlighting**: Editor support for Rush syntax
+- **Code Formatting**: Automatic code style enforcement
+- **Linting**: Static analysis and code quality checks
+- **Documentation Tools**: Automatic API documentation generation
+- **IntelliSense**: Code completion and type information
+- **Refactoring**: Automated code transformation tools
+
 ## Development Best Practices
 
 - Always update CLAUDE.md after completing a phase and then commit the changes.
@@ -192,7 +351,13 @@ rush/
 - Phase 5: ✅ COMPLETED - Loops and arrays working
 - Phase 6: ✅ COMPLETED - Core polish and tools
 - Phase 7: ✅ COMPLETED - Testing and documentation
-- **Project Status**: 🎉 COMPLETE - Rush is a fully functional experimental programming language
+- Phase 8: 🔄 PLANNED - Module system and imports/exports
+- Phase 9: 🔄 PLANNED - Error handling with try/catch
+- Phase 10: 🔄 PLANNED - Object system with classes and inheritance
+- Phase 11: 🔄 PLANNED - Enhanced standard library
+- Phase 12: 🔄 PLANNED - Performance and bytecode compilation
+- Phase 13: 🔄 PLANNED - Developer tooling and IDE integration
+- **Project Status**: 🚀 ACTIVE DEVELOPMENT - Core language complete, expanding with advanced features
 
 ## Testing
 

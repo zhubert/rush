@@ -1,7 +1,8 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-7%20complete-blue)](#phases)
+[![Phase](https://img.shields.io/badge/phase-7%20complete%2C%208--13%20planned-blue)](#phases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
 
@@ -244,42 +245,26 @@ go test .            # Integration tests
 
 ## 📈 Development Phases
 
-Rush was developed through a systematic 7-phase approach:
+Rush was developed through a systematic phased approach:
 
-### ✅ Phase 1: Foundation & Basic Parsing
-- Lexer for basic tokens
-- Recursive descent parser
-- AST node definitions
+### Core Language (Completed)
+- **✅ Phase 1**: Foundation & Basic Parsing
+- **✅ Phase 2**: Basic Interpreter  
+- **✅ Phase 3**: Control Flow
+- **✅ Phase 4**: Functions
+- **✅ Phase 5**: Loops & Arrays
+- **✅ Phase 6**: Core Polish & Tools
+- **✅ Phase 7**: Testing & Documentation
 
-### ✅ Phase 2: Basic Interpreter
-- Value representation
-- Environment/scope system
-- Expression evaluation
+### Advanced Features (Planned)
+- **🔄 Phase 8**: Module System - Import/export functionality
+- **🔄 Phase 9**: Error Handling - Try/catch mechanisms
+- **🔄 Phase 10**: Object System - Classes and inheritance
+- **🔄 Phase 11**: Enhanced Standard Library - File I/O, JSON, regex
+- **🔄 Phase 12**: Performance & Compilation - Bytecode optimization
+- **🔄 Phase 13**: Developer Tooling - Debugger, language server, IDE integration
 
-### ✅ Phase 3: Control Flow
-- If/else statements
-- Boolean logic operators
-- Block statements
-
-### ✅ Phase 4: Functions
-- Function definitions with `fn` keyword
-- Function calls and parameter binding
-- Return statements and recursion
-
-### ✅ Phase 5: Loops & Arrays
-- While and for loops
-- Array literals and indexing
-- Array operations
-
-### ✅ Phase 6: Core Polish & Tools
-- Interactive REPL
-- Standard library functions
-- Enhanced error handling
-
-### ✅ Phase 7: Testing & Documentation
-- Comprehensive test suite
-- Complete documentation
-- Example programs
+For detailed implementation plans, see [CLAUDE.md](CLAUDE.md).
 
 ## 🤝 Contributing
 
@@ -292,7 +277,7 @@ Rush is an experimental language built for learning and exploration. Feel free t
 
 ## 📄 License
 
-This project is available for educational and experimental use.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🎯 Design Goals
 
@@ -303,17 +288,6 @@ Rush was designed with these principles:
 3. **Consistency**: Uniform patterns throughout the language
 4. **Interactivity**: REPL-first development experience
 5. **Clarity**: Clear error messages and predictable behavior
-
-## 🔮 Future Possibilities
-
-Potential areas for expansion:
-
-- **Module System**: Import/export functionality
-- **Error Handling**: Try/catch mechanisms
-- **Object System**: Classes and inheritance
-- **Standard Library**: More built-in functions
-- **Performance**: Bytecode compilation
-- **Tooling**: Debugger and profiler
 
 ---
 
