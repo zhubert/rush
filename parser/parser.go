@@ -18,23 +18,25 @@ const (
 	PRODUCT     // *
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
+	INDEX       // array[index]
 )
 
 // precedences maps token types to their precedence
 var precedences = map[lexer.TokenType]int{
-	lexer.EQ:     EQUALS,
-	lexer.NOT_EQ: EQUALS,
-	lexer.LT:     LESSGREATER,
-	lexer.GT:     LESSGREATER,
-	lexer.LTE:    LESSGREATER,
-	lexer.GTE:    LESSGREATER,
-	lexer.PLUS:   SUM,
-	lexer.MINUS:  SUM,
-	lexer.DIV:    PRODUCT,
-	lexer.MULT:   PRODUCT,
-	lexer.AND:    EQUALS,
-	lexer.OR:     EQUALS,
-	lexer.LPAREN: CALL,
+	lexer.EQ:      EQUALS,
+	lexer.NOT_EQ:  EQUALS,
+	lexer.LT:      LESSGREATER,
+	lexer.GT:      LESSGREATER,
+	lexer.LTE:     LESSGREATER,
+	lexer.GTE:     LESSGREATER,
+	lexer.PLUS:    SUM,
+	lexer.MINUS:   SUM,
+	lexer.DIV:     PRODUCT,
+	lexer.MULT:    PRODUCT,
+	lexer.AND:     EQUALS,
+	lexer.OR:      EQUALS,
+	lexer.LPAREN:  CALL,
+	lexer.LBRACKET: INDEX,
 }
 
 // Parser parses tokens into an AST
@@ -92,6 +94,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(lexer.AND, p.parseInfixExpression)
 	p.registerInfix(lexer.OR, p.parseInfixExpression)
 	p.registerInfix(lexer.LPAREN, p.parseCallExpression)
+	p.registerInfix(lexer.LBRACKET, p.parseIndexExpression)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -146,6 +149,10 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.curToken.Type {
 	case lexer.RETURN:
 		return p.parseReturnStatement()
+	case lexer.WHILE:
+		return p.parseWhileStatement()
+	case lexer.FOR:
+		return p.parseForStatement()
 	default:
 		// Check if this is an assignment statement (identifier followed by =)
 		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
@@ -484,5 +491,120 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		p.nextToken()
 	}
 
+	return stmt
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	exp := &ast.IndexExpression{Token: p.curToken, Left: left}
+
+	p.nextToken()
+	exp.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(lexer.RBRACKET) {
+		return nil
+	}
+
+	return exp
+}
+
+func (p *Parser) parseWhileStatement() *ast.WhileStatement {
+	stmt := &ast.WhileStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	stmt.Condition = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	stmt.Body = p.parseBlockStatement()
+
+	return stmt
+}
+
+func (p *Parser) parseForStatement() *ast.ForStatement {
+	stmt := &ast.ForStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	// Parse init statement (can be assignment or expression)
+	p.nextToken()
+	if p.curToken.Type != lexer.SEMICOLON {
+		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
+			stmt.Init = p.parseForAssignmentStatement()
+		} else {
+			stmt.Init = p.parseForExpressionStatement()
+		}
+	}
+
+	if !p.expectPeek(lexer.SEMICOLON) {
+		return nil
+	}
+
+	// Parse condition
+	p.nextToken()
+	if p.curToken.Type != lexer.SEMICOLON {
+		stmt.Condition = p.parseExpression(LOWEST)
+	}
+
+	if !p.expectPeek(lexer.SEMICOLON) {
+		return nil
+	}
+
+	// Parse update statement - can be assignment or expression
+	p.nextToken()
+	if p.curToken.Type != lexer.RPAREN {
+		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
+			stmt.Update = p.parseForAssignmentStatement()
+		} else {
+			stmt.Update = p.parseForExpressionStatement()
+		}
+	}
+
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	stmt.Body = p.parseBlockStatement()
+
+	return stmt
+}
+
+func (p *Parser) parseForAssignmentStatement() *ast.AssignmentStatement {
+	stmt := &ast.AssignmentStatement{Token: p.curToken}
+
+	if p.curToken.Type != lexer.IDENT {
+		return nil
+	}
+
+	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	if !p.expectPeek(lexer.ASSIGN) {
+		return nil
+	}
+
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+
+	return stmt
+}
+
+func (p *Parser) parseForExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+	stmt.Expression = p.parseExpression(LOWEST)
 	return stmt
 }

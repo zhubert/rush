@@ -1,0 +1,23 @@
+# Test array and string indexing
+
+# Array indexing
+numbers = [10, 20, 30, 40, 50]
+first = numbers[0]
+second = numbers[1]
+last = numbers[4]
+
+# String indexing
+message = "hello"
+char1 = message[0]
+char2 = message[1]
+char5 = message[4]
+
+# Out of bounds should return null
+outOfBounds = numbers[10]
+
+# Test with expressions as indices
+index = 2
+third = numbers[index]
+fourth = numbers[index + 1]
+
+result = first + second + last

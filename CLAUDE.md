@@ -113,17 +113,27 @@ rush/
 - Proper error handling for wrong argument counts
 - Recursive function support
 
-## Phase 5: Loops & Arrays
+## Phase 5: Loops & Arrays ✅ COMPLETED
 
 **Goal**: Complete core language features
 
 ### Tasks:
 
-- Implement for loops (C-style) and while loops
-- Add array literals `[1, 2, 3]` and indexing
-- Array operations and built-ins
+- ✅ Implement for loops (C-style) and while loops
+- ✅ Add array literals `[1, 2, 3]` and indexing
+- ✅ Array operations and built-ins (basic indexing)
 
-**Milestone**: Full language feature set working
+**Milestone**: ✅ Full language feature set working
+
+### Implemented Features:
+
+- **Array Indexing**: Access array and string elements with `arr[index]` syntax
+- **While Loops**: `while (condition) { body }` with proper condition evaluation
+- **For Loops**: C-style `for (init; condition; update) { body }` loops
+- **Bounds Checking**: Safe array/string indexing with null return for out-of-bounds
+- **Nested Loops**: Support for loops within loops and complex control flow
+- **Loop Variable Scoping**: Proper variable handling within loop contexts
+- **Integration**: Loops work seamlessly with functions, arrays, and all existing features
 
 ## Phase 6: Polish & Tools
 
@@ -148,8 +158,9 @@ rush/
 - Phase 2: ✅ COMPLETED - Basic interpreter working
 - Phase 3: ✅ COMPLETED - Control flow working
 - Phase 4: ✅ COMPLETED - Functions working
-- Phase 5: 🔄 NEXT - Ready to implement loops and arrays
-- Next: Implement for/while loops and array indexing
+- Phase 5: ✅ COMPLETED - Loops and arrays working
+- Phase 6: 🔄 NEXT - Ready to implement polish and tools
+- Next: Add REPL, standard library, and comprehensive error handling
 
 ## Testing
 
@@ -210,6 +221,37 @@ fact5 = factorial(5)
 apply = fn(f, x) { return f(x) }
 square = fn(x) { return x * x }
 result = apply(square, 8)
+
+# Array indexing
+numbers = [10, 20, 30, 40, 50]
+first = numbers[0]
+last = numbers[4]
+
+# String indexing  
+message = "Hello"
+firstChar = message[0]
+
+# While loops
+i = 0
+sum = 0
+while (i < 5) {
+  sum = sum + i
+  i = i + 1
+}
+
+# For loops
+total = 0
+for (j = 0; j < 10; j = j + 1) {
+  total = total + j
+}
+
+# Nested loops with arrays
+matrix = [[1, 2], [3, 4]]
+for (row = 0; row < 2; row = row + 1) {
+  for (col = 0; col < 2; col = col + 1) {
+    element = matrix[row][col]
+  }
+}
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
@@ -242,3 +284,14 @@ Run with: `go run cmd/rush/main.go examples/test.rush`
 - Higher-order functions (functions as values)
 - Proper argument count validation
 - Nested function calls
+
+### New Phase 5 Features:
+
+- **Array Indexing**: `array[index]` and `string[index]` syntax
+- **While Loops**: `while (condition) { body }` with condition evaluation
+- **For Loops**: C-style `for (init; condition; update) { body }` loops
+- **Bounds Checking**: Safe indexing with null return for out-of-bounds access
+- **Nested Loops**: Complex control flow with loops inside loops
+- **Loop Integration**: Seamless integration with functions, arrays, and conditionals
+- **Variable Scoping**: Proper variable handling in loop contexts
+- **Performance**: Efficient loop execution and array access

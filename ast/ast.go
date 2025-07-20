@@ -290,3 +290,70 @@ func (rs *ReturnStatement) String() string {
 	out.WriteString(";")
 	return out.String()
 }
+
+// IndexExpression represents array/string indexing like "arr[1]" or "str[0]"
+type IndexExpression struct {
+	Token lexer.Token // the '[' token
+	Left  Expression  // the array or string being indexed
+	Index Expression  // the index expression
+}
+
+func (ie *IndexExpression) expressionNode()      {}
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
+	return out.String()
+}
+
+// WhileStatement represents while loop statements like "while (condition) { body }"
+type WhileStatement struct {
+	Token     lexer.Token // the 'while' token
+	Condition Expression
+	Body      *BlockStatement
+}
+
+func (ws *WhileStatement) statementNode()       {}
+func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
+func (ws *WhileStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("while")
+	out.WriteString(ws.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(ws.Body.String())
+	return out.String()
+}
+
+// ForStatement represents for loop statements like "for (init; condition; update) { body }"
+type ForStatement struct {
+	Token     lexer.Token // the 'for' token
+	Init      Statement   // initialization statement (can be assignment or expression)
+	Condition Expression  // loop condition
+	Update    Statement   // update statement (can be assignment or expression)
+	Body      *BlockStatement
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("for(")
+	if fs.Init != nil {
+		out.WriteString(fs.Init.String())
+	}
+	out.WriteString(";")
+	if fs.Condition != nil {
+		out.WriteString(fs.Condition.String())
+	}
+	out.WriteString(";")
+	if fs.Update != nil {
+		out.WriteString(fs.Update.String())
+	}
+	out.WriteString(") ")
+	out.WriteString(fs.Body.String())
+	return out.String()
+}

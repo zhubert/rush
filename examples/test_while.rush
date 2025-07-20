@@ -1,0 +1,23 @@
+# Test while loops
+
+# Simple counter
+counter = 0
+sum = 0
+
+while (counter < 5) {
+  sum = sum + counter
+  counter = counter + 1
+}
+
+# Test with array indexing
+numbers = [1, 2, 3, 4, 5]
+index = 0
+product = 1
+
+while (index < 5) {
+  product = product * numbers[index]
+  index = index + 1
+}
+
+# Final result should be sum (0+1+2+3+4 = 10) + product (1*2*3*4*5 = 120) = 130
+result = sum + product

@@ -95,6 +95,23 @@ func Eval(node ast.Node, env *Environment) Value {
 		}
 		return &ReturnValue{Value: val}
 	
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndexExpression(left, index)
+	
+	case *ast.WhileStatement:
+		return evalWhileStatement(node, env)
+	
+	case *ast.ForStatement:
+		return evalForStatement(node, env)
+	
 	default:
 		return newError("unknown node type: %T", node)
 	}
@@ -442,4 +459,111 @@ func unwrapReturnValue(val Value) Value {
 		return returnValue.Value
 	}
 	return val
+}
+
+func evalIndexExpression(left, index Value) Value {
+	switch {
+	case left.Type() == ARRAY_VALUE && index.Type() == INTEGER_VALUE:
+		return evalArrayIndexExpression(left, index)
+	case left.Type() == STRING_VALUE && index.Type() == INTEGER_VALUE:
+		return evalStringIndexExpression(left, index)
+	default:
+		return newError("index operator not supported: %s", left.Type())
+	}
+}
+
+func evalArrayIndexExpression(array, index Value) Value {
+	arrayObject := array.(*Array)
+	idx := index.(*Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+
+	if idx < 0 || idx > max {
+		return NULL
+	}
+
+	return arrayObject.Elements[idx]
+}
+
+func evalStringIndexExpression(str, index Value) Value {
+	stringObject := str.(*String)
+	idx := index.(*Integer).Value
+	max := int64(len(stringObject.Value) - 1)
+
+	if idx < 0 || idx > max {
+		return NULL
+	}
+
+	return &String{Value: string(stringObject.Value[idx])}
+}
+
+func evalWhileStatement(ws *ast.WhileStatement, env *Environment) Value {
+	var result Value = NULL
+
+	for {
+		condition := Eval(ws.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+
+		if !IsTruthy(condition) {
+			break
+		}
+
+		result = Eval(ws.Body, env)
+		if result != nil {
+			rt := result.Type()
+			if rt == RETURN_VALUE || rt == ERROR_VALUE {
+				return result
+			}
+		}
+	}
+
+	return result
+}
+
+func evalForStatement(fs *ast.ForStatement, env *Environment) Value {
+	var result Value = NULL
+	
+	// Don't create a separate scope - use the current environment
+	// This way variables are accessible and modifiable
+
+	// Execute init statement if present
+	if fs.Init != nil {
+		initResult := Eval(fs.Init, env)
+		if isError(initResult) {
+			return initResult
+		}
+	}
+
+	for {
+		// Check condition (if no condition, loop forever until break/return)
+		if fs.Condition != nil {
+			condition := Eval(fs.Condition, env)
+			if isError(condition) {
+				return condition
+			}
+			if !IsTruthy(condition) {
+				break
+			}
+		}
+
+		// Execute body
+		result = Eval(fs.Body, env)
+		if result != nil {
+			rt := result.Type()
+			if rt == RETURN_VALUE || rt == ERROR_VALUE {
+				return result
+			}
+		}
+
+		// Execute update statement if present
+		if fs.Update != nil {
+			updateResult := Eval(fs.Update, env)
+			if isError(updateResult) {
+				return updateResult
+			}
+		}
+	}
+
+	return result
 }
