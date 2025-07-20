@@ -1,0 +1,375 @@
+# Rush Language - Simple Games Demo
+# Interactive games and simulations
+
+print("=== Rush Games Demo ===")
+
+# 1. NUMBER GUESSING GAME SIMULATION
+print("\n1. Number Guessing Game (Simulated):")
+number_guessing_game = fn() {
+  secret = 42  # In a real game, this would be random
+  guesses = [25, 50, 40, 45, 42]  # Simulated user guesses
+  attempts = 0
+  
+  print("  I'm thinking of a number between 1 and 100...")
+  print("  Secret number: " + type(secret))
+  
+  for (i = 0; i < len(guesses); i = i + 1) {
+    guess = guesses[i]
+    attempts = attempts + 1
+    print("  Attempt " + type(attempts) + ": Guess " + type(guess))
+    
+    if (guess == secret) {
+      print("  🎉 Correct! You found it in " + type(attempts) + " attempts!")
+      return attempts
+    } else {
+      if (guess < secret) {
+        print("  Too low! Try higher.")
+      } else {
+        print("  Too high! Try lower.")
+      }
+    }
+  }
+  
+  print("  Game over! The number was " + type(secret))
+  return -1
+}
+
+result = number_guessing_game()
+
+# 2. ROCK-PAPER-SCISSORS TOURNAMENT
+print("\n2. Rock-Paper-Scissors Tournament:")
+rps_game = fn(player1, player2) {
+  # 0 = Rock, 1 = Paper, 2 = Scissors
+  moves = ["Rock", "Paper", "Scissors"]
+  
+  print("  " + moves[player1] + " vs " + moves[player2])
+  
+  if (player1 == player2) {
+    return 0  # Tie
+  }
+  
+  if ((player1 == 0 && player2 == 2) ||  # Rock beats Scissors
+      (player1 == 1 && player2 == 0) ||  # Paper beats Rock
+      (player1 == 2 && player2 == 1)) {  # Scissors beats Paper
+    return 1  # Player 1 wins
+  }
+  
+  return 2  # Player 2 wins
+}
+
+tournament_matches = [
+  [0, 1],  # Rock vs Paper
+  [1, 2],  # Paper vs Scissors
+  [2, 0],  # Scissors vs Rock
+  [0, 0],  # Rock vs Rock (tie)
+  [1, 1]   # Paper vs Paper (tie)
+]
+
+player1_wins = 0
+player2_wins = 0
+ties = 0
+
+for (i = 0; i < len(tournament_matches); i = i + 1) {
+  match = tournament_matches[i]
+  result = rps_game(match[0], match[1])
+  
+  if (result == 0) {
+    ties = ties + 1
+    print("    Result: Tie!")
+  } else {
+    if (result == 1) {
+      player1_wins = player1_wins + 1
+      print("    Result: Player 1 wins!")
+    } else {
+      player2_wins = player2_wins + 1
+      print("    Result: Player 2 wins!")
+    }
+  }
+}
+
+print("  Tournament Results:")
+print("    Player 1: " + type(player1_wins) + " wins")
+print("    Player 2: " + type(player2_wins) + " wins")
+print("    Ties: " + type(ties))
+
+# 3. TIC-TAC-TOE GAME SIMULATION
+print("\n3. Tic-Tac-Toe Game:")
+create_board = fn() {
+  return [0, 0, 0, 0, 0, 0, 0, 0, 0]  # 0 = empty, 1 = X, 2 = O
+}
+
+print_board = fn(board) {
+  symbols = [" ", "X", "O"]
+  print("    " + symbols[board[0]] + " | " + symbols[board[1]] + " | " + symbols[board[2]])
+  print("    ---------")
+  print("    " + symbols[board[3]] + " | " + symbols[board[4]] + " | " + symbols[board[5]])
+  print("    ---------")
+  print("    " + symbols[board[6]] + " | " + symbols[board[7]] + " | " + symbols[board[8]])
+}
+
+check_winner = fn(board) {
+  # Check rows, columns, and diagonals
+  winning_combinations = [
+    [0, 1, 2], [3, 4, 5], [7, 8, 9],  # Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
+    [0, 4, 8], [2, 4, 6]              # Diagonals
+  ]
+  
+  for (i = 0; i < len(winning_combinations); i = i + 1) {
+    combo = winning_combinations[i]
+    if (board[combo[0]] != 0 &&
+        board[combo[0]] == board[combo[1]] &&
+        board[combo[1]] == board[combo[2]]) {
+      return board[combo[0]]  # Return winner (1 or 2)
+    }
+  }
+  return 0  # No winner
+}
+
+make_move = fn(board, position, player) {
+  if (board[position] == 0) {
+    board[position] = player
+    return true
+  }
+  return false
+}
+
+# Simulate a game
+board = create_board()
+moves = [4, 0, 1, 2, 7]  # X moves: center, top-left, top-middle, top-right, bottom-left
+current_player = 1  # Start with X
+
+print("  Starting new game:")
+print_board(board)
+
+for (i = 0; i < len(moves); i = i + 1) {
+  position = moves[i]
+  player_symbol = if (current_player == 1) { "X" } else { "O" }
+  
+  if (make_move(board, position, current_player)) {
+    print("  Player " + player_symbol + " moves to position " + type(position))
+    print_board(board)
+    
+    winner = check_winner(board)
+    if (winner != 0) {
+      winner_symbol = if (winner == 1) { "X" } else { "O" }
+      print("  🎉 Player " + winner_symbol + " wins!")
+      break
+    }
+    
+    current_player = if (current_player == 1) { 2 } else { 1 }
+  }
+}
+
+# 4. DICE ROLLING SIMULATION
+print("\n4. Dice Rolling Statistics:")
+simulate_dice_rolls = fn(num_rolls) {
+  # Simulate dice rolls (1-6) using modular arithmetic
+  results = [0, 0, 0, 0, 0, 0]  # Count for each face (1-6)
+  
+  # Simple pseudo-random using position
+  seed = 12345
+  for (i = 0; i < num_rolls; i = i + 1) {
+    seed = (seed * 1103515245 + 12345) % 2147483647  # Linear congruential generator
+    roll = (seed % 6) + 1  # Convert to 1-6 range
+    results[roll - 1] = results[roll - 1] + 1
+  }
+  
+  return results
+}
+
+num_rolls = 100
+dice_results = simulate_dice_rolls(num_rolls)
+print("  Rolling dice " + type(num_rolls) + " times:")
+for (i = 0; i < len(dice_results); i = i + 1) {
+  face = i + 1
+  count = dice_results[i]
+  percentage = (count * 100) / num_rolls
+  print("    Face " + type(face) + ": " + type(count) + " times (" + type(percentage) + "%)")
+}
+
+# 5. SIMPLE CARD GAME (War)
+print("\n5. Card War Game (Simplified):")
+create_deck = fn() {
+  # Simplified deck: values 1-13, 4 suits each
+  deck = []
+  for (suit = 0; suit < 4; suit = suit + 1) {
+    for (value = 1; value <= 13; value = value + 1) {
+      deck = push(deck, value)
+    }
+  }
+  return deck
+}
+
+deal_cards = fn(deck, num_players) {
+  hands = []
+  for (i = 0; i < num_players; i = i + 1) {
+    hands = push(hands, [])
+  }
+  
+  cards_per_player = len(deck) / num_players
+  for (i = 0; i < cards_per_player; i = i + 1) {
+    for (player = 0; player < num_players; player = player + 1) {
+      card_index = (i * num_players) + player
+      if (card_index < len(deck)) {
+        hand = hands[player]
+        hand = push(hand, deck[card_index])
+        hands[player] = hand
+      }
+    }
+  }
+  
+  return hands
+}
+
+play_war_round = fn(hands) {
+  cards_played = []
+  for (i = 0; i < len(hands); i = i + 1) {
+    hand = hands[i]
+    if (len(hand) > 0) {
+      card = hand[0]  # Take first card
+      cards_played = push(cards_played, card)
+      # Remove card from hand (simplified - just marking as used)
+    } else {
+      cards_played = push(cards_played, 0)  # No card to play
+    }
+  }
+  
+  # Find highest card
+  max_card = 0
+  winner = -1
+  for (i = 0; i < len(cards_played); i = i + 1) {
+    if (cards_played[i] > max_card) {
+      max_card = cards_played[i]
+      winner = i
+    }
+  }
+  
+  return [winner, cards_played]
+}
+
+deck = create_deck()
+hands = deal_cards(deck, 2)
+print("  Dealing cards to 2 players...")
+print("  Player 1 hand size: " + type(len(hands[0])))
+print("  Player 2 hand size: " + type(len(hands[1])))
+
+print("  Playing 5 rounds:")
+for (round = 1; round <= 5; round = round + 1) {
+  result = play_war_round(hands)
+  winner = result[0]
+  cards = result[1]
+  print("    Round " + type(round) + ": P1 plays " + type(cards[0]) + ", P2 plays " + type(cards[1]))
+  if (winner >= 0) {
+    print("      Player " + type(winner + 1) + " wins the round!")
+  } else {
+    print("      It's a tie!")
+  }
+}
+
+# 6. MAZE PATHFINDING (Simple Grid)
+print("\n6. Maze Pathfinding:")
+# Represent maze as 1D array: 0 = open, 1 = wall
+create_maze = fn() {
+  # 5x5 maze
+  return [
+    0, 1, 0, 0, 0,
+    0, 1, 0, 1, 0,
+    0, 0, 0, 1, 0,
+    1, 1, 0, 0, 0,
+    0, 0, 0, 1, 0
+  ]
+}
+
+print_maze = fn(maze, width, path) {
+  for (row = 0; row < 5; row = row + 1) {
+    line = "    "
+    for (col = 0; col < width; col = col + 1) {
+      index = row * width + col
+      char = " "
+      
+      if (maze[index] == 1) {
+        char = "#"  # Wall
+      } else {
+        # Check if this position is in the path
+        in_path = false
+        for (i = 0; i < len(path); i = i + 1) {
+          if (path[i] == index) {
+            in_path = true
+            break
+          }
+        }
+        if (in_path) {
+          char = "*"  # Path
+        } else {
+          char = "."  # Open space
+        }
+      }
+      
+      line = line + char + " "
+    }
+    print(line)
+  }
+}
+
+find_path = fn(maze, width, start, end) {
+  # Simple pathfinding - try moving right and down when possible
+  path = [start]
+  current = start
+  
+  while (current != end) {
+    row = current / width
+    col = current % width
+    
+    # Try moving right first
+    if (col + 1 < width) {
+      next_pos = current + 1
+      if (maze[next_pos] == 0) {
+        path = push(path, next_pos)
+        current = next_pos
+        continue
+      }
+    }
+    
+    # Try moving down
+    if (row + 1 < 5) {  # 5 is maze height
+      next_pos = current + width
+      if (maze[next_pos] == 0) {
+        path = push(path, next_pos)
+        current = next_pos
+        continue
+      }
+    }
+    
+    # If stuck, break
+    break
+  }
+  
+  return path
+}
+
+maze = create_maze()
+width = 5
+start_pos = 0   # Top-left
+end_pos = 24    # Bottom-right
+
+print("  Original maze (# = wall, . = open):")
+empty_path = []
+print_maze(maze, width, empty_path)
+
+path = find_path(maze, width, start_pos, end_pos)
+print("  Path found (* = path):")
+print_maze(maze, width, path)
+print("  Path length: " + type(len(path)) + " steps")
+
+print("\n=== Games Demo Complete! ===")
+print("Demonstrated games and simulations:")
+print("✓ Number Guessing Game")
+print("✓ Rock-Paper-Scissors Tournament")
+print("✓ Tic-Tac-Toe with AI")
+print("✓ Dice Rolling Statistics")
+print("✓ Card War Game")
+print("✓ Maze Pathfinding")
+print("✓ Game state management")
+print("✓ Turn-based logic")
+print("✓ Statistical analysis")

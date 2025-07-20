@@ -1,0 +1,278 @@
+# Rush Language - Comprehensive Feature Demonstration
+# This program showcases all major features of the Rush programming language
+
+print("=== Rush Language Feature Demo ===")
+
+# 1. VARIABLE ASSIGNMENTS AND BASIC TYPES
+print("\n1. Variables and Basic Types:")
+name = "Rush"
+version = 1.0
+isComplete = true
+userCount = 42
+
+print("Language: " + name)
+print("Version: " + type(version) + " - " + substr("Version 1.0", 8, 3))
+print("Complete: " + type(isComplete))
+print("Users: " + type(userCount))
+
+# 2. ARITHMETIC AND EXPRESSIONS
+print("\n2. Arithmetic Operations:")
+a = 10
+b = 3
+print("a = " + type(a) + " 10")
+print("b = " + type(b) + " 3")
+print("Addition: a + b = ?")  # Will show as float due to division
+print("Subtraction: a - b = ?")
+print("Multiplication: a * b = ?") 
+print("Division: a / b = ?")  # Results in float
+print("Complex: (a + b) * 2 - 5 = ?")
+
+# 3. BOOLEAN LOGIC AND COMPARISONS
+print("\n3. Boolean Logic:")
+x = 15
+y = 20
+print("x = 15, y = 20")
+print("x < y: " + type(x < y))
+print("x == y: " + type(x == y))
+print("x != y: " + type(x != y))
+print("x <= 15: " + type(x <= 15))
+print("x >= 10: " + type(x >= 10))
+
+canVote = (x >= 18)
+hasID = true
+eligible = canVote && hasID
+print("Can vote (age >= 18): " + type(canVote))
+print("Eligible (can vote AND has ID): " + type(eligible))
+print("Either condition (can vote OR has ID): " + type(canVote || hasID))
+print("Not eligible: " + type(!eligible))
+
+# 4. CONDITIONAL STATEMENTS
+print("\n4. Conditional Logic:")
+score = 87
+grade = ""
+
+if (score >= 90) {
+  grade = "A"
+} else {
+  if (score >= 80) {
+    grade = "B"
+  } else {
+    if (score >= 70) {
+      grade = "C"
+    } else {
+      grade = "F"
+    }
+  }
+}
+print("Score: " + type(score) + ", Grade: " + grade)
+
+# Conditional expressions
+status = if (score >= 80) { "Pass" } else { "Fail" }
+print("Status: " + status)
+
+# 5. ARRAYS AND ARRAY OPERATIONS
+print("\n5. Arrays:")
+numbers = [1, 2, 3, 4, 5]
+fruits = ["apple", "banana", "cherry"]
+mixed = [42, "hello", true, [1, 2]]
+
+print("Numbers array: " + type(numbers))
+print("Length: " + type(len(numbers)))
+print("First element: " + type(numbers[0]))
+print("Last element: " + type(numbers[4]))
+
+# Array built-in functions
+extended = push(numbers, 6)
+print("After push(6): length = " + type(len(extended)))
+
+last = pop(extended)
+print("Popped element: " + type(last))
+
+subset = slice(numbers, 1, 4)
+print("Slice [1:4] length: " + type(len(subset)))
+
+# Nested arrays
+matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+center = matrix[1][1]
+print("Matrix center element: " + type(center))
+
+# 6. STRINGS AND STRING OPERATIONS
+print("\n6. String Operations:")
+greeting = "Hello, World!"
+print("Original: " + greeting)
+print("Length: " + type(len(greeting)))
+
+# String indexing
+firstChar = greeting[0]
+print("First character: " + firstChar)
+
+# String functions
+hello = substr(greeting, 0, 5)
+print("Substring [0:5]: " + hello)
+
+words = split(greeting, ", ")
+print("Split on ', ': length = " + type(len(words)))
+print("First word: " + words[0])
+print("Second word: " + words[1])
+
+# String concatenation
+fullGreeting = "Welcome to " + name + " v" + type(version)
+print("Concatenation: " + fullGreeting)
+
+# 7. FUNCTIONS
+print("\n7. Functions:")
+
+# Simple function
+add = fn(x, y) {
+  return x + y
+}
+sum = add(10, 5)
+print("add(10, 5) = " + type(sum))
+
+# Function with conditional logic
+max = fn(a, b) {
+  if (a > b) {
+    return a
+  } else {
+    return b
+  }
+}
+maximum = max(15, 23)
+print("max(15, 23) = " + type(maximum))
+
+# Function with array parameter
+sum_array = fn(arr) {
+  total = 0
+  i = 0
+  while (i < len(arr)) {
+    total = total + arr[i]
+    i = i + 1
+  }
+  return total
+}
+arraySum = sum_array([1, 2, 3, 4, 5])
+print("sum_array([1,2,3,4,5]) = " + type(arraySum))
+
+# Recursive function
+factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+fact5 = factorial(5)
+print("factorial(5) = " + type(fact5))
+
+# Higher-order function
+apply_twice = fn(f, x) {
+  return f(f(x))
+}
+square = fn(n) { return n * n }
+result = apply_twice(square, 3)  # (3^2)^2 = 81
+print("apply_twice(square, 3) = " + type(result))
+
+# 8. LOOPS
+print("\n8. Loops:")
+
+# While loop
+print("While loop - counting to 5:")
+i = 1
+while (i <= 5) {
+  print("  Count: " + type(i))
+  i = i + 1
+}
+
+# For loop
+print("For loop - sum of 1 to 10:")
+total = 0
+for (j = 1; j <= 10; j = j + 1) {
+  total = total + j
+}
+print("  Sum: " + type(total))
+
+# Nested loops with arrays
+print("Nested loops - matrix traversal:")
+grid = [[1, 2], [3, 4], [5, 6]]
+for (row = 0; row < len(grid); row = row + 1) {
+  for (col = 0; col < len(grid[row]); col = col + 1) {
+    element = grid[row][col]
+    print("  [" + type(row) + "," + type(col) + "] = " + type(element))
+  }
+}
+
+# 9. ADVANCED EXAMPLES
+print("\n9. Advanced Examples:")
+
+# Fibonacci sequence
+fibonacci = fn(n) {
+  if (n <= 1) {
+    return n
+  }
+  return fibonacci(n - 1) + fibonacci(n - 2)
+}
+print("Fibonacci(8) = " + type(fibonacci(8)))
+
+# Array filter simulation
+filter_evens = fn(arr) {
+  result = []
+  for (i = 0; i < len(arr); i = i + 1) {
+    # Simple even check: if number/2*2 equals the number, it's even
+    half = arr[i] / 2
+    doubled = half * 2
+    if (doubled == arr[i]) {
+      result = push(result, arr[i])
+    }
+  }
+  return result
+}
+evens = filter_evens([1, 2, 3, 4, 5, 6, 7, 8])
+print("Even numbers from [1..8]: length = " + type(len(evens)))
+
+# Calculator function
+calculator = fn(op, a, b) {
+  if (op == "+") {
+    return a + b
+  } else {
+    if (op == "-") {
+      return a - b
+    } else {
+      if (op == "*") {
+        return a * b
+      } else {
+        if (op == "/") {
+          return a / b
+        } else {
+          return 0  # Unknown operation
+        }
+      }
+    }
+  }
+}
+print("Calculator examples:")
+print("  5 + 3 = " + type(calculator("+", 5, 3)))
+print("  10 - 4 = " + type(calculator("-", 10, 4)))
+print("  6 * 7 = " + type(calculator("*", 6, 7)))
+print("  15 / 3 = " + type(calculator("/", 15, 3)))
+
+# 10. TYPE SYSTEM DEMONSTRATION
+print("\n10. Type System:")
+values = [42, 3.14, "text", true, [1, 2, 3], fn(x) { x }]
+for (i = 0; i < len(values); i = i + 1) {
+  value = values[i]
+  valueType = type(value)
+  print("  Type of element " + type(i) + ": " + valueType)
+}
+
+print("\n=== Demo Complete! ===")
+print("Rush language supports:")
+print("✓ Variables and basic types (Integer, Float, String, Boolean)")
+print("✓ Arithmetic and boolean expressions")
+print("✓ Conditional statements (if/else)")
+print("✓ Arrays with indexing and built-in functions")
+print("✓ String operations and manipulation")
+print("✓ Function definitions and calls")
+print("✓ Loops (while, for)")
+print("✓ Recursion and higher-order functions")
+print("✓ Dynamic typing with type introspection")
+print("✓ Interactive REPL mode")
