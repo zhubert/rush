@@ -1,8 +1,9 @@
 # Test error handling
-add = fn(x, y) { return x + y }
+a = 5
 
-# This should work
-good = add(1, 2)
+# This should cause a syntax error
+if (true {
+  print("missing closing paren")
+}
 
-# This should error - wrong number of arguments
-bad = add(1)
+c = 10

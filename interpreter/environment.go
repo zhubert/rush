@@ -9,7 +9,14 @@ type Environment struct {
 // NewEnvironment creates a new environment
 func NewEnvironment() *Environment {
 	s := make(map[string]Value)
-	return &Environment{store: s, outer: nil}
+	env := &Environment{store: s, outer: nil}
+	
+	// Add built-in functions
+	for name, builtin := range builtins {
+		env.store[name] = builtin
+	}
+	
+	return env
 }
 
 // NewEnclosedEnvironment creates a new environment that encloses an outer environment

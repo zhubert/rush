@@ -18,6 +18,7 @@ const (
 	ARRAY_VALUE    ValueType = "ARRAY"
 	NULL_VALUE     ValueType = "NULL"
 	FUNCTION_VALUE ValueType = "FUNCTION"
+	BUILTIN_VALUE  ValueType = "BUILTIN"
 	RETURN_VALUE   ValueType = "RETURN_VALUE"
 )
 
@@ -102,6 +103,14 @@ type ReturnValue struct {
 
 func (rv *ReturnValue) Type() ValueType { return RETURN_VALUE }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+// BuiltinFunction represents built-in functions
+type BuiltinFunction struct {
+	Fn func(args ...Value) Value
+}
+
+func (bf *BuiltinFunction) Type() ValueType { return BUILTIN_VALUE }
+func (bf *BuiltinFunction) Inspect() string { return "builtin function" }
 
 // IsTruthy returns whether a value is considered truthy
 func IsTruthy(val Value) bool {

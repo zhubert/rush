@@ -135,15 +135,26 @@ rush/
 - **Loop Variable Scoping**: Proper variable handling within loop contexts
 - **Integration**: Loops work seamlessly with functions, arrays, and all existing features
 
-## Phase 6: Polish & Tools
+## Phase 6: Core Polish & Tools
 
-**Goal**: Production-ready language
+**Goal**: Essential runtime features
 
 ### Tasks:
 
-- Comprehensive error handling and reporting
-- REPL (Read-Eval-Print Loop)
-- Standard library functions (print, etc.)
+- ✅ REPL (Read-Eval-Print Loop)
+- ✅ Standard library functions (print, len, type)
+- ✅ String manipulation functions (substr, split)
+- ✅ Array utility functions (push, pop, slice)
+- ✅ Enhanced error handling and reporting
+
+**Milestone**: ✅ Interactive language with built-in functions and better error handling
+
+## Phase 7: Testing & Documentation
+
+**Goal**: Experimental language with proper testing and docs
+
+### Tasks:
+
 - Test suite and example programs
 - Documentation and language specification
 
@@ -159,8 +170,9 @@ rush/
 - Phase 3: ✅ COMPLETED - Control flow working
 - Phase 4: ✅ COMPLETED - Functions working
 - Phase 5: ✅ COMPLETED - Loops and arrays working
-- Phase 6: 🔄 NEXT - Ready to implement polish and tools
-- Next: Add REPL, standard library, and comprehensive error handling
+- Phase 6: ✅ COMPLETED - Core polish and tools
+- Phase 7: 📋 PLANNED - Testing and documentation
+- Next: Test suite and documentation
 
 ## Testing
 
@@ -252,9 +264,28 @@ for (row = 0; row < 2; row = row + 1) {
     element = matrix[row][col]
   }
 }
+
+# Built-in functions (Phase 6)
+print("Hello, Rush!")
+array_length = len([1, 2, 3, 4])
+string_length = len("hello")
+value_type = type(42)
+
+# String manipulation
+greeting = "Hello, World!"
+hello = substr(greeting, 0, 5)
+words = split(greeting, ", ")
+
+# Array utilities  
+numbers = [1, 2, 3]
+extended = push(numbers, 4)
+last_element = pop(extended)
+subset = slice(extended, 1, 3)
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
+
+**REPL Mode**: Run `go run cmd/rush/main.go` (without file argument) to start interactive mode
 
 ### New Phase 2 Features:
 
@@ -295,3 +326,12 @@ Run with: `go run cmd/rush/main.go examples/test.rush`
 - **Loop Integration**: Seamless integration with functions, arrays, and conditionals
 - **Variable Scoping**: Proper variable handling in loop contexts
 - **Performance**: Efficient loop execution and array access
+
+### New Phase 6 Features:
+
+- **REPL**: Interactive Read-Eval-Print Loop with ⛤ prompt and :help/:quit commands
+- **Standard Library**: Built-in functions `print()`, `len()`, and `type()`
+- **String Functions**: `substr(str, start, length)` and `split(str, separator)`
+- **Array Functions**: `push(array, element)`, `pop(array)`, and `slice(array, start, end)`
+- **Enhanced Error Handling**: Line and column numbers in both parse and runtime errors
+- **Better Error Messages**: Contextual error information for debugging

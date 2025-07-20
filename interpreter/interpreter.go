@@ -139,7 +139,7 @@ func evalProgram(stmts []ast.Statement, env *Environment) Value {
 func evalIdentifier(node *ast.Identifier, env *Environment) Value {
 	val, ok := env.Get(node.Value)
 	if !ok {
-		return newError("identifier not found: " + node.Value)
+		return newErrorWithPosition(node.Token.Line, node.Token.Column, "identifier not found: %s", node.Value)
 	}
 	
 	return val
@@ -357,13 +357,28 @@ const ERROR_VALUE = "ERROR"
 
 type Error struct {
 	Message string
+	Line    int
+	Column  int
 }
 
 func (e *Error) Type() ValueType { return ERROR_VALUE }
-func (e *Error) Inspect() string { return "ERROR: " + e.Message }
+func (e *Error) Inspect() string {
+	if e.Line > 0 {
+		return fmt.Sprintf("ERROR at line %d:%d: %s", e.Line, e.Column, e.Message)
+	}
+	return "ERROR: " + e.Message
+}
 
 func newError(format string, a ...interface{}) *Error {
 	return &Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func newErrorWithPosition(line, column int, format string, a ...interface{}) *Error {
+	return &Error{
+		Message: fmt.Sprintf(format, a...),
+		Line:    line,
+		Column:  column,
+	}
 }
 
 func isError(val Value) bool {
@@ -439,6 +454,8 @@ func applyFunction(fn Value, args []Value) Value {
 		extendedEnv := extendFunctionEnv(fn, args)
 		evaluated := Eval(fn.Body, extendedEnv)
 		return unwrapReturnValue(evaluated)
+	case *BuiltinFunction:
+		return fn.Fn(args...)
 	default:
 		return newError("not a function: %T", fn)
 	}
