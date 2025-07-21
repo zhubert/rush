@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-7%20complete%2C%208--13%20planned-blue)](#phases)
+[![Phase](https://img.shields.io/badge/phase-9%20complete%2C%2010--13%20planned-blue)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -35,6 +35,7 @@ go run cmd/rush/main.go hello.rush
 - **Dynamic Typing**: Variables can hold any type of value
 - **First-Class Functions**: Functions are values that can be passed around
 - **Module System**: Import/export functionality for code organization
+- **Error Handling**: Try/catch/finally/throw mechanisms with type-specific catching
 - **Arrays**: Built-in support for dynamic arrays
 - **String Manipulation**: Comprehensive string operations
 - **Control Flow**: If/else, while, and for loops
@@ -122,6 +123,31 @@ import { add, PI, square } from "./math"
 result = add(10, 5)             # 15
 area = PI * square(3)           # ~28.27
 print("Result:", result, "Area:", area)
+```
+
+### Error Handling
+```rush
+# Try-catch-finally blocks
+try {
+  result = divide(10, 0)
+  print("Result:", result)
+} catch (error) {
+  print("Error occurred:", error.message)
+} finally {
+  print("Cleanup complete")
+}
+
+# Type-specific error catching
+try {
+  validateInput(data)
+} catch (ValidationError error) {
+  print("Validation failed:", error.message)
+} catch (TypeError error) {
+  print("Type error:", error.message)
+}
+
+# Throwing custom errors
+throw RuntimeError("Something went wrong")
 ```
 
 ## 🛠️ Built-in Functions
@@ -273,13 +299,13 @@ Rush was developed through a systematic phased approach:
 
 ### Advanced Features (In Progress)
 - **✅ Phase 8**: Module System - Import/export functionality
-- **🔄 Phase 9**: Error Handling - Try/catch mechanisms
+- **✅ Phase 9**: Error Handling - Try/catch/finally/throw mechanisms
 - **🔄 Phase 10**: Object System - Classes and inheritance
 - **🔄 Phase 11**: Enhanced Standard Library - File I/O, JSON, regex
 - **🔄 Phase 12**: Performance & Compilation - Bytecode optimization
 - **🔄 Phase 13**: Developer Tooling - Debugger, language server, IDE integration
 
-For detailed implementation plans, see [CLAUDE.md](CLAUDE.md).
+**📋 Development Tracking**: Phases under development are tracked in the [Initial Development GitHub Project](https://github.com/users/zhubert/projects/1).
 
 ## 🤝 Contributing
 
@@ -305,7 +331,3 @@ Rush was designed with these principles:
 5. **Clarity**: Clear error messages and predictable behavior
 
 ---
-
-**Happy coding with Rush!** 🚀
-
-*Rush - A modern programming language for the curious coder.*
