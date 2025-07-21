@@ -219,7 +219,7 @@ print(result)
         line = strings.TrimSpace(line)
         if line != "" && 
            !strings.HasPrefix(line, "Rush interpreter") && 
-           !strings.HasPrefix(line, "Result:") && 
+           line != "Result: null" && 
            !strings.HasPrefix(line, "Execution complete!") {
           printedLines = append(printedLines, line)
         }
@@ -706,8 +706,10 @@ print("Module result:", result)
   }
   defer os.Remove(mainFile)
 
-  // Run the main program
-  cmd := exec.Command("go", "run", "cmd/rush/main.go", mainFile)
+  // Run the main program from temp directory using pre-built binary
+  wd, _ := os.Getwd()
+  cmd := exec.Command(filepath.Join(wd, "main"), filepath.Base(mainFile))
+  cmd.Dir = dir // Set working directory to temp dir so relative imports work
   var out bytes.Buffer
   cmd.Stdout = &out
   cmd.Stderr = &out
@@ -1182,5 +1184,250 @@ func runIntegrationTest(t *testing.T, program, expected string) {
   output := strings.Join(printedLines, "\n")
   if output != expected {
     t.Errorf("Expected output %q, got %q (full output: %q)", expected, output, fullOutput)
+  }
+}
+
+func TestModuleImportExport(t *testing.T) {
+  tests := []struct {
+    name         string
+    moduleContent string
+    mainContent   string
+    expected      string
+  }{
+    {
+      name: "Basic Function Export and Import",
+      moduleContent: `export add = fn(x, y) { return x + y }
+export PI = 3.14159`,
+      mainContent: `import { add, PI } from "./math_module"
+result = add(10, 5)
+print("Result:", result)
+print("PI:", PI)`,
+      expected: "Result: 15\nPI: 3.14159",
+    },
+    {
+      name: "Multiple Function Exports",
+      moduleContent: `export multiply = fn(x, y) { return x * y }
+export subtract = fn(x, y) { return x - y }
+export MAX_VALUE = 100`,
+      mainContent: `import { multiply, subtract, MAX_VALUE } from "./calc_module"
+prod = multiply(6, 7)
+diff = subtract(50, 8)
+print("Product:", prod)
+print("Difference:", diff)
+print("Max:", MAX_VALUE)`,
+      expected: "Product: 42\nDifference: 42\nMax: 100",
+    },
+    {
+      name: "Higher-Order Function Export",
+      moduleContent: `export apply = fn(f, x) { return f(x) }
+export square = fn(x) { return x * x }`,
+      mainContent: `import { apply, square } from "./functional_module"
+result = apply(square, 8)
+print("Applied square:", result)`,
+      expected: "Applied square: 64",
+    },
+    {
+      name: "Module with Complex Logic",
+      moduleContent: `export factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+export fibonacci = fn(n) {
+  if (n <= 1) {
+    return n
+  } else {
+    return fibonacci(n - 1) + fibonacci(n - 2)
+  }
+}`,
+      mainContent: `import { factorial, fibonacci } from "./recursive_module"
+fact5 = factorial(5)
+fib7 = fibonacci(7)
+print("Factorial 5:", fact5)
+print("Fibonacci 7:", fib7)`,
+      expected: "Factorial 5: 120\nFibonacci 7: 13",
+    },
+    {
+      name: "Array and String Operations Module",
+      moduleContent: `export getFirst = fn(arr) { return arr[0] }
+export getLast = fn(arr) { return arr[len(arr) - 1] }
+export concat = fn(str1, str2) { return str1 + str2 }`,
+      mainContent: `import { getFirst, getLast, concat } from "./utils_module"
+numbers = [10, 20, 30, 40, 50]
+first = getFirst(numbers)
+last = getLast(numbers)
+message = concat("Hello", " World")
+print("First:", first)
+print("Last:", last)
+print("Message:", message)`,
+      expected: "First: 10\nLast: 50\nMessage: Hello World",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      // Create temporary directory for the test
+      tmpDir, err := os.MkdirTemp("", "module_integration_test")
+      if err != nil {
+        t.Fatal(err)
+      }
+      defer os.RemoveAll(tmpDir)
+
+      // Determine module filename from test name
+      var moduleFileName string
+      switch tt.name {
+      case "Basic Function Export and Import":
+        moduleFileName = "math_module.rush"
+      case "Multiple Function Exports":
+        moduleFileName = "calc_module.rush"
+      case "Higher-Order Function Export":
+        moduleFileName = "functional_module.rush"
+      case "Module with Complex Logic":
+        moduleFileName = "recursive_module.rush"
+      case "Array and String Operations Module":
+        moduleFileName = "utils_module.rush"
+      }
+
+      // Create module file
+      modulePath := filepath.Join(tmpDir, moduleFileName)
+      if err := os.WriteFile(modulePath, []byte(tt.moduleContent), 0644); err != nil {
+        t.Fatal(err)
+      }
+
+      // Create main file with adjusted import path
+      moduleNameWithoutExt := strings.TrimSuffix(moduleFileName, ".rush")
+      adjustedMainContent := strings.Replace(tt.mainContent, "./"+moduleNameWithoutExt, "./"+strings.TrimSuffix(filepath.Base(modulePath), ".rush"), 1)
+      
+      mainPath := filepath.Join(tmpDir, "main.rush")
+      if err := os.WriteFile(mainPath, []byte(adjustedMainContent), 0644); err != nil {
+        t.Fatal(err)
+      }
+
+      // Run the main program from temp directory using pre-built binary
+      wd, _ := os.Getwd()
+      cmd := exec.Command(filepath.Join(wd, "main"), "main.rush")
+      cmd.Dir = tmpDir // Set working directory to temp dir so relative imports work
+      var out bytes.Buffer
+      cmd.Stdout = &out
+      cmd.Stderr = &out
+
+      if err := cmd.Run(); err != nil {
+        t.Fatalf("Program execution failed: %v\nOutput: %s", err, out.String())
+      }
+
+      fullOutput := strings.TrimSpace(out.String())
+      
+      // Extract just the printed content
+      lines := strings.Split(fullOutput, "\n")
+      var printedLines []string
+      for _, line := range lines {
+        line = strings.TrimSpace(line)
+        if line != "" && 
+           !strings.HasPrefix(line, "Rush interpreter") && 
+           line != "Result: null" && 
+           !strings.HasPrefix(line, "Execution complete!") {
+          printedLines = append(printedLines, line)
+        }
+      }
+      
+      output := strings.Join(printedLines, "\n")
+      if output != tt.expected {
+        t.Errorf("Expected output %q, got %q (full output: %q)", tt.expected, output, fullOutput)
+      }
+    })
+  }
+}
+
+func TestModuleErrorCases(t *testing.T) {
+  errorTests := []struct {
+    name         string
+    moduleContent string
+    mainContent   string
+    hasError     bool
+  }{
+    {
+      name: "Import Non-existent Module",
+      moduleContent: "", // No module file created
+      mainContent: `import { add } from "./nonexistent_module"
+result = add(1, 2)`,
+      hasError: true,
+    },
+    {
+      name: "Import Non-existent Export",
+      moduleContent: `export multiply = fn(x, y) { return x * y }`,
+      mainContent: `import { nonexistentFunc } from "./test_module"
+result = nonexistentFunc(1, 2)`,
+      hasError: true,
+    },
+    {
+      name: "Module with Syntax Error",
+      moduleContent: `export broken = fn(x, y { return x + y`, // Missing closing parenthesis
+      mainContent: `import { broken } from "./broken_module"
+result = broken(1, 2)`,
+      hasError: true,
+    },
+    {
+      name: "Valid Module Import",
+      moduleContent: `export working = fn(x) { return x * 2 }`,
+      mainContent: `import { working } from "./valid_module"
+result = working(21)
+print("Result:", result)`,
+      hasError: false,
+    },
+  }
+
+  for _, tt := range errorTests {
+    t.Run(tt.name, func(t *testing.T) {
+      // Create temporary directory for the test
+      tmpDir, err := os.MkdirTemp("", "module_error_test")
+      if err != nil {
+        t.Fatal(err)
+      }
+      defer os.RemoveAll(tmpDir)
+
+      // Create module file only if content is provided
+      if tt.moduleContent != "" {
+        var moduleFileName string
+        switch tt.name {
+        case "Import Non-existent Export":
+          moduleFileName = "test_module.rush"
+        case "Module with Syntax Error":
+          moduleFileName = "broken_module.rush"
+        case "Valid Module Import":
+          moduleFileName = "valid_module.rush"
+        }
+
+        if moduleFileName != "" {
+          modulePath := filepath.Join(tmpDir, moduleFileName)
+          if err := os.WriteFile(modulePath, []byte(tt.moduleContent), 0644); err != nil {
+            t.Fatal(err)
+          }
+        }
+      }
+
+      // Create main file
+      mainPath := filepath.Join(tmpDir, "main.rush")
+      if err := os.WriteFile(mainPath, []byte(tt.mainContent), 0644); err != nil {
+        t.Fatal(err)
+      }
+
+      // Run the main program from temp directory using pre-built binary
+      wd, _ := os.Getwd()
+      cmd := exec.Command(filepath.Join(wd, "main"), "main.rush")
+      cmd.Dir = tmpDir // Set working directory to temp dir so relative imports work
+      var out bytes.Buffer
+      cmd.Stdout = &out
+      cmd.Stderr = &out
+
+      err = cmd.Run()
+      
+      if tt.hasError && err == nil {
+        t.Errorf("Expected error but program executed successfully. Output: %s", out.String())
+      } else if !tt.hasError && err != nil {
+        t.Errorf("Expected success but got error: %v\nOutput: %s", err, out.String())
+      }
+    })
   }
 }
