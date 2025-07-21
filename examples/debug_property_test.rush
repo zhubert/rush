@@ -1,5 +1,0 @@
-try {
-    throw ValidationError("test")
-} catch (error) {
-    msg = error.message
-}

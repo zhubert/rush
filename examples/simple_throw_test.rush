@@ -1,4 +1,0 @@
-# Simple throw test
-print("Before throw")
-throw RuntimeError("Test error")
-print("After throw")

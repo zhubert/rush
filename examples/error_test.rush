@@ -1,9 +1,0 @@
-# Test error handling
-a = 5
-
-# This should cause a syntax error
-if (true {
-  print("missing closing paren")
-}
-
-c = 10

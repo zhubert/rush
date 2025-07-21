@@ -1,7 +1,0 @@
-try {
-    throw RuntimeError("test message")
-} catch (e) {
-    print("caught error:")
-    print(e)
-    x = "handled"
-}

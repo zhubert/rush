@@ -1,6 +1,0 @@
-try {
-    print("throwing")
-    throw RuntimeError("test")
-} catch (e) {
-    print("caught:", e)
-}

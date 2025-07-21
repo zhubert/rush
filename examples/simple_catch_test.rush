@@ -1,5 +1,0 @@
-try {
-    throw RuntimeError("test")
-} catch (e) {
-    x = "caught"
-}

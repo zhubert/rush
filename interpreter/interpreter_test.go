@@ -924,3 +924,1457 @@ func testErrorObject(t *testing.T, obj Value, expectedType, expectedMessage stri
   
   return true
 }
+
+// Core language feature tests
+
+func TestBasicVariableAssignments(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Integer assignments
+    {"a = 42; a", 42},
+    {"b = -15; b", -15},
+    
+    // Float assignments
+    {"pi = 3.14; pi", 3.14},
+    {"negative = -2.5; negative", -2.5},
+    
+    // String assignments
+    {"greeting = \"hello world\"; greeting", "hello world"},
+    {"message = \"Rush programming language\"; message", "Rush programming language"},
+    
+    // Boolean assignments
+    {"isTrue = true; isTrue", true},
+    {"isFalse = false; isFalse", false},
+    
+    // Variable chaining
+    {"x = 5; y = x; y", 5},
+    {"a = 10; b = a + 5; b", 15},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestArithmeticExpressions(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Basic arithmetic
+    {"a = 5; b = a + 3; b", 8},
+    {"result = 10 * 2; result", 20},
+    {"difference = 100 - 42; difference", 58},
+    {"quotient = 20 / 4; quotient", 5.0}, // Division results in float
+    
+    // Mixed arithmetic  
+    {"sum = 42 + 10; sum", 52},
+    {"product = 3.14 * 2.5; product", 7.85},
+    
+    // Complex expressions
+    {"result = (10 + 5) * 2 - 8; result", 22},
+    {"complex = 2 * (5 + 10) / 3; complex", 10.0},
+    
+    // Mixed integer and float
+    {"pi = 3.14; area = pi * 10; area", 31.4},
+    {"mixed = 5 + 2.5; mixed", 7.5},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestStringOperations(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected string
+  }{
+    // String concatenation
+    {"greeting = \"Hello, \"; name = \"Rush\"; message = greeting + name; message", "Hello, Rush"},
+    {"part1 = \"Rush \"; part2 = \"programming \"; part3 = \"language\"; full = part1 + part2 + part3; full", "Rush programming language"},
+    
+    // String with expressions
+    {"base = \"Result: \"; num = 42; combined = base + \"Value is \" + \"42\"; combined", "Result: Value is 42"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testStringObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestBooleanOperationsBasic(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    // Basic boolean values
+    {"a = true; a", true},
+    {"b = false; b", false},
+    
+    // Boolean expressions
+    {"isGreater = 42 > 30; isGreater", true},
+    {"isEqual = 3.14 == 3.14; isEqual", true},
+    {"isLess = 5 < 10; isLess", true},
+    
+    // Negation
+    {"isTrue = true; isFalse = !isTrue; isFalse", false},
+    {"original = false; negated = !original; negated", true},
+    
+    // Comparisons
+    {"comparison = 5 > 3; comparison", true},
+    {"equality = 10 == 10; equality", true},
+    {"inequality = 7 != 8; inequality", true},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestArrayLiteralsAndBasicOperations(t *testing.T) {
+  tests := []struct {
+    input       string
+    expectedLen int
+    elements    []interface{}
+  }{
+    // Basic array literals
+    {"numbers = [1, 2, 3, 4, 5]; numbers", 5, []interface{}{1, 2, 3, 4, 5}},
+    {"mixed = [42, 3.14, \"hello\", true]; mixed", 4, []interface{}{42, 3.14, "hello", true}},
+    
+    // Arrays with variables
+    {"a = 10; b = 20; arr = [a, b, a + b]; arr", 3, []interface{}{10, 20, 30}},
+    
+    // Empty array
+    {"empty = []; empty", 0, []interface{}{}},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    array, ok := evaluated.(*Array)
+    if !ok {
+      t.Errorf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+      continue
+    }
+    
+    if len(array.Elements) != tt.expectedLen {
+      t.Errorf("array has wrong length. expected=%d, got=%d", tt.expectedLen, len(array.Elements))
+      continue
+    }
+    
+    for i, expectedElement := range tt.elements {
+      switch expected := expectedElement.(type) {
+      case int:
+        testIntegerObject(t, array.Elements[i], int64(expected))
+      case float64:
+        testFloatObject(t, array.Elements[i], expected)
+      case string:
+        testStringObject(t, array.Elements[i], expected)
+      case bool:
+        testBooleanObject(t, array.Elements[i], expected)
+      }
+    }
+  }
+}
+
+func TestMixedTypeOperations(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Mixed number operations
+    {"intVal = 5; floatVal = 2.5; result = intVal + floatVal; result", 7.5},
+    {"mixed = 10 * 1.5; mixed", 15.0},
+    
+    // Complex mixed operations
+    {"a = 5; pi = 3.14; area = pi * a; area", 15.7},
+    {"base = 10; height = 2.5; area = base * height; area", 25.0},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestVariableScoping(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Basic scoping
+    {"outer = 10; if (true) { inner = 20; outer = outer + inner }; outer", 30},
+    
+    // Variable shadowing in blocks
+    {"x = 5; if (true) { x = 10 }; x", 10},
+    
+    // Multiple assignments
+    {"a = 1; b = 2; c = 3; result = a + b + c; result", 6},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+// Boolean logic and conditional tests
+
+func TestBooleanLogicOperators(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    // Basic AND operations
+    {"a = true; b = false; andResult = a && b; andResult", false},
+    {"a = true; b = true; andResult = a && b; andResult", true},
+    {"a = false; b = false; andResult = a && b; andResult", false},
+    {"a = false; b = true; andResult = a && b; andResult", false},
+    
+    // Basic OR operations  
+    {"a = true; b = false; orResult = a || b; orResult", true},
+    {"a = true; b = true; orResult = a || b; orResult", true},
+    {"a = false; b = false; orResult = a || b; orResult", false},
+    {"a = false; b = true; orResult = a || b; orResult", true},
+    
+    // Negation operations
+    {"a = true; notA = !a; notA", false},
+    {"b = false; notB = !b; notB", true},
+    
+    // Complex boolean expressions
+    {"complexAnd = (5 > 3) && (10 < 20); complexAnd", true},
+    {"complexOr = (5 < 3) || (10 > 20); complexOr", false},
+    {"complexMixed = (5 > 3) || (10 > 20); complexMixed", true},
+    
+    // Nested boolean expressions  
+    {"result = (true && false) || (true && true); result", true},
+    {"result = (false || true) && (true || false); result", true},
+    {"result = !(false && true) && (true || false); result", true},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestSimpleConditionals(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Basic if statements
+    {"x = 15; if (x > 10) { result = \"greater\" } else { result = \"smaller\" }; result", "greater"},
+    {"x = 5; if (x > 10) { result = \"greater\" } else { result = \"smaller\" }; result", "smaller"},
+    
+    // Boolean operators in conditionals
+    {"a = true; b = false; if (a && b) { result = \"both true\" } else { result = \"not both\" }; result", "not both"},
+    {"a = true; b = false; if (a || b) { result = \"at least one\" } else { result = \"none\" }; result", "at least one"},
+    
+    // Numeric comparisons
+    {"age = 25; if (age >= 18) { status = \"adult\" } else { status = \"minor\" }; status", "adult"},
+    {"age = 16; if (age >= 18) { status = \"adult\" } else { status = \"minor\" }; status", "minor"},
+    
+    // Complex boolean conditions
+    {"age = 25; hasLicense = true; if ((age >= 16) && hasLicense) { canDrive = true } else { canDrive = false }; canDrive", true},
+    {"age = 15; hasLicense = true; if ((age >= 16) && hasLicense) { canDrive = true } else { canDrive = false }; canDrive", false},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestComplexBooleanExpressions(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    // Short-circuit evaluation
+    {"false && (5 / 0)", false}, // Should not evaluate 5/0
+    {"true || (5 / 0)", true},   // Should not evaluate 5/0
+    
+    // Multiple operators
+    {"(5 > 3) && (10 < 20) && (7 == 7)", true},
+    {"(5 > 3) || (10 > 20) || (7 != 7)", true},
+    {"(5 < 3) && (10 < 20) && (7 == 7)", false},
+    
+    // Combination with arithmetic
+    {"x = 10; y = 5; (x + y > 12) && (x - y < 8)", true},
+    {"a = 8; b = 3; (a * b > 20) || (a / b < 3)", true},
+    
+    // Nested parentheses
+    {"((5 > 3) && (10 < 20)) || ((2 > 5) && (1 < 0))", true},
+    {"((5 < 3) || (10 > 20)) && ((2 < 5) || (1 > 0))", true},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestBooleanComparisonOperators(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    // Equality comparisons
+    {"5 == 5", true},
+    {"5 == 7", false},
+    {"3.14 == 3.14", true},
+    {"true == true", true},
+    {"false == false", true},
+    {"true == false", false},
+    
+    // Inequality comparisons
+    {"5 != 7", true},
+    {"5 != 5", false},
+    {"true != false", true},
+    {"true != true", false},
+    
+    // Relational comparisons
+    {"10 > 5", true},
+    {"5 > 10", false},
+    {"10 < 15", true},
+    {"15 < 10", false},
+    {"10 >= 10", true},
+    {"10 >= 5", true},
+    {"5 >= 10", false},
+    {"10 <= 10", true},
+    {"5 <= 10", true},
+    {"10 <= 5", false},
+    
+    // Mixed type comparisons
+    {"5.0 == 5", true},
+    {"3.5 > 3", true},
+    {"2.0 < 3", true},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+// Control flow tests
+
+func TestAdvancedControlFlow(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Basic if/else with variable assignment
+    {`
+x = 10
+if (x > 5) {
+  result = "x is greater than 5"
+} else {
+  result = "x is not greater than 5"
+}
+result`, "x is greater than 5"},
+    
+    // Nested if statements
+    {`
+score = 85
+if (score >= 90) {
+  grade = "A"
+} else {
+  if (score >= 80) {
+    grade = "B"
+  } else {
+    grade = "C"
+  }
+}
+grade`, "B"},
+    
+    // Complex nested conditions with different scores
+    {`
+score = 95
+if (score >= 90) {
+  grade = "A"
+} else {
+  if (score >= 80) {
+    grade = "B"
+  } else {
+    if (score >= 70) {
+      grade = "C"
+    } else {
+      grade = "F"
+    }
+  }
+}
+grade`, "A"},
+    
+    {`
+score = 75
+if (score >= 90) {
+  grade = "A"
+} else {
+  if (score >= 80) {
+    grade = "B"
+  } else {
+    if (score >= 70) {
+      grade = "C"
+    } else {
+      grade = "F"
+    }
+  }
+}
+grade`, "C"},
+    
+    {`
+score = 65
+if (score >= 90) {
+  grade = "A"
+} else {
+  if (score >= 80) {
+    grade = "B"
+  } else {
+    if (score >= 70) {
+      grade = "C"
+    } else {
+      grade = "F"
+    }
+  }
+}
+grade`, "F"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+func TestComplexConditionalLogic(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Multiple condition combinations
+    {`
+age = 25
+hasLicense = true
+canDrive = (age >= 16) && hasLicense
+canDrive`, true},
+    
+    {`
+age = 15
+hasLicense = true
+canDrive = (age >= 16) && hasLicense
+canDrive`, false},
+    
+    {`
+age = 25
+hasLicense = false
+canDrive = (age >= 16) && hasLicense
+canDrive`, false},
+    
+    // Complex decision making
+    {`
+temperature = 75
+humidity = 60
+if ((temperature > 70) && (humidity < 80)) {
+  comfort = "comfortable"
+} else {
+  if (temperature > 85) {
+    comfort = "too hot"
+  } else {
+    if (humidity > 90) {
+      comfort = "too humid"
+    } else {
+      comfort = "not ideal"
+    }
+  }
+}
+comfort`, "comfortable"},
+    
+    // Multiple boolean variables
+    {`
+isWeekend = true
+isRaining = false
+hasWork = false
+if (isWeekend && !isRaining && !hasWork) {
+  activity = "go hiking"
+} else {
+  if (isRaining) {
+    activity = "stay inside"
+  } else {
+    activity = "normal day"
+  }
+}
+activity`, "go hiking"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+func TestControlFlowWithArithmetic(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Arithmetic in conditions
+    {`
+a = 10
+b = 5
+if ((a + b) > 12) {
+  result = "sum is large"
+} else {
+  result = "sum is small"
+}
+result`, "sum is large"},
+    
+    // Multiple arithmetic comparisons
+    {`
+x = 8
+y = 3
+if ((x * y) > 20) {
+  category = "high"
+} else {
+  if ((x + y) > 10) {
+    category = "medium"
+  } else {
+    category = "low"
+  }
+}
+category`, "high"},
+    
+    // Complex arithmetic in nested conditions
+    {`
+price = 50
+discount = 10
+tax = 5
+finalPrice = price - discount + tax
+if (finalPrice < 40) {
+  affordability = "cheap"
+} else {
+  if (finalPrice < 60) {
+    affordability = "reasonable"
+  } else {
+    affordability = "expensive"
+  }
+}
+affordability`, "reasonable"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case string:
+      testStringObject(t, evaluated, expected)
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+func TestControlFlowScoping(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Variable modifications in conditional blocks
+    {`
+counter = 0
+if (true) {
+  counter = counter + 10
+  inner = 5
+}
+counter`, 10},
+    
+    // Nested scoping
+    {`
+outer = 1
+if (true) {
+  outer = outer + 1
+  if (true) {
+    outer = outer + 1
+    if (true) {
+      outer = outer + 1
+    }
+  }
+}
+outer`, 4},
+    
+    // Multiple variable assignments in conditions
+    {`
+status = "unknown"
+level = 0
+value = 15
+if (value > 10) {
+  status = "high"
+  level = 3
+} else {
+  status = "low"
+  level = 1
+}
+status + ":" + type(level)`, "high:INTEGER"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case string:
+      testStringObject(t, evaluated, expected)
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+// Loop tests
+
+func TestForLoops(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Basic for loop - sum
+    {`
+sum = 0
+for (i = 0; i < 5; i = i + 1) {
+  sum = sum + i
+}
+sum`, 10}, // 0+1+2+3+4 = 10
+    
+    // For loop with array access
+    {`
+numbers = [2, 4, 6, 8, 10]
+product = 1
+for (j = 0; j < 5; j = j + 1) {
+  product = product * numbers[j]
+}
+product`, 3840}, // 2*4*6*8*10 = 3840
+    
+    // For loop that modifies outer scope variable
+    {`
+counter = 100
+for (k = 0; k < 3; k = k + 1) {
+  counter = counter + 10
+}
+counter`, 130}, // 100 + 3*10 = 130
+    
+    // Combined result matching original test
+    {`
+sum = 0
+for (i = 0; i < 5; i = i + 1) {
+  sum = sum + i
+}
+numbers = [2, 4, 6, 8, 10]
+product = 1
+for (j = 0; j < 5; j = j + 1) {
+  product = product * numbers[j]
+}
+counter = 100
+for (k = 0; k < 3; k = k + 1) {
+  counter = counter + 10
+}
+result = sum + product + counter
+result`, 3980}, // 10 + 3840 + 130 = 3980
+    
+    // For loop with different step
+    {`
+total = 0
+for (x = 0; x < 10; x = x + 2) {
+  total = total + x
+}
+total`, 20}, // 0+2+4+6+8 = 20
+    
+    // Nested for loops
+    {`
+total = 0
+for (i = 1; i <= 3; i = i + 1) {
+  for (j = 1; j <= 2; j = j + 1) {
+    total = total + (i * j)
+  }
+}
+total`, 18}, // (1*1 + 1*2) + (2*1 + 2*2) + (3*1 + 3*2) = 3 + 6 + 9 = 18
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestWhileLoops(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Simple counter while loop
+    {`
+counter = 0
+sum = 0
+while (counter < 5) {
+  sum = sum + counter
+  counter = counter + 1
+}
+sum`, 10}, // 0+1+2+3+4 = 10
+    
+    // While loop with array indexing
+    {`
+numbers = [1, 2, 3, 4, 5]
+index = 0
+product = 1
+while (index < 5) {
+  product = product * numbers[index]
+  index = index + 1
+}
+product`, 120}, // 1*2*3*4*5 = 120
+    
+    // Combined result matching original test
+    {`
+counter = 0
+sum = 0
+while (counter < 5) {
+  sum = sum + counter
+  counter = counter + 1
+}
+numbers = [1, 2, 3, 4, 5]
+index = 0
+product = 1
+while (index < 5) {
+  product = product * numbers[index]
+  index = index + 1
+}
+result = sum + product
+result`, 130}, // 10 + 120 = 130
+    
+    // While loop with condition change
+    {`
+value = 1
+count = 0
+while (value < 100) {
+  value = value * 2
+  count = count + 1
+}
+count`, 7}, // 1->2->4->8->16->32->64->128 (7 iterations)
+    
+    // While loop with break-like condition
+    {`
+total = 0
+num = 10
+while (num > 0) {
+  total = total + num
+  num = num - 2
+}
+total`, 30}, // 10+8+6+4+2 = 30
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestNestedLoops(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Nested for loops with 2D calculation
+    {`
+total = 0
+for (row = 0; row < 3; row = row + 1) {
+  for (col = 0; col < 3; col = col + 1) {
+    total = total + (row * col)
+  }
+}
+total`, 9}, // (0*0+0*1+0*2) + (1*0+1*1+1*2) + (2*0+2*1+2*2) = 0 + 3 + 6 = 9
+    
+    // Nested loops with arrays
+    {`
+matrix = [[1, 2], [3, 4]]
+sum = 0
+for (i = 0; i < 2; i = i + 1) {
+  for (j = 0; j < 2; j = j + 1) {
+    sum = sum + matrix[i][j]
+  }
+}
+sum`, 10}, // 1+2+3+4 = 10
+    
+    // Mixed for and while loops
+    {`
+result = 0
+for (outer = 1; outer <= 2; outer = outer + 1) {
+  inner = 1
+  while (inner <= 3) {
+    result = result + (outer * inner)
+    inner = inner + 1
+  }
+}
+result`, 18}, // (1*1+1*2+1*3) + (2*1+2*2+2*3) = 6 + 12 = 18
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestLoopScoping(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Loop variable scoping
+    {`
+outerVar = 5
+for (i = 0; i < 3; i = i + 1) {
+  outerVar = outerVar + i
+  loopVar = i * 2
+}
+outerVar`, 8}, // 5 + 0 + 1 + 2 = 8
+    
+    // Multiple loop variables
+    {`
+x = 0
+y = 0
+for (a = 1; a <= 2; a = a + 1) {
+  for (b = 1; b <= 2; b = b + 1) {
+    x = x + a
+    y = y + b
+  }
+}
+x + y`, 12}, // x: (1+1) + (2+2) = 6, y: (1+2) + (1+2) = 6, total = 12
+    
+    // Loop modifying multiple outer variables
+    {`
+sum1 = 0
+sum2 = 0
+counter = 1
+while (counter <= 4) {
+  sum1 = sum1 + counter
+  sum2 = sum2 + (counter * counter)
+  counter = counter + 1
+}
+sum1 + sum2`, 40}, // sum1: 1+2+3+4=10, sum2: 1+4+9+16=30, total=40
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+// Advanced function tests
+
+func TestComprehensiveFunctionFeatures(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Simple function call
+    {`
+test1 = fn() { return 42 }
+result1 = test1()
+result1`, 42},
+    
+    // Function with parameters
+    {`
+test2 = fn(x) { return x * 2 }
+result2 = test2(21)
+result2`, 42}, // 21 * 2 = 42
+    
+    // Function with multiple parameters
+    {`
+test3 = fn(a, b, c) { return a + b + c }
+result3 = test3(1, 2, 3)
+result3`, 6}, // 1 + 2 + 3 = 6
+    
+    // Function with local scope
+    {`
+test4 = fn(x) {
+  local = x + 10
+  return local
+}
+result4 = test4(5)
+result4`, 15}, // 5 + 10 = 15
+    
+    // Recursive function (factorial)
+    {`
+factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+result5 = factorial(5)
+result5`, 120}, // 5! = 120
+    
+    // Higher-order function
+    {`
+apply = fn(f, x) {
+  return f(x)
+}
+square = fn(x) { return x * x }
+result6 = apply(square, 7)
+result6`, 49}, // 7 * 7 = 49
+    
+    // Combined result matching original test
+    {`
+test1 = fn() { return 42 }
+result1 = test1()
+
+test2 = fn(x) { return x * 2 }
+result2 = test2(21)
+
+test3 = fn(a, b, c) { return a + b + c }
+result3 = test3(1, 2, 3)
+
+test4 = fn(x) {
+  local = x + 10
+  return local
+}
+result4 = test4(5)
+
+factorial = fn(n) {
+  if (n <= 1) {
+    return 1
+  } else {
+    return n * factorial(n - 1)
+  }
+}
+result5 = factorial(5)
+
+apply = fn(f, x) {
+  return f(x)
+}
+square = fn(x) { return x * x }
+result6 = apply(square, 7)
+
+final = result1 + result2 + result3 + result4 + result5 + result6
+final`, 274}, // 42 + 42 + 6 + 15 + 120 + 49 = 274
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestAdvancedFunctionScoping(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Simple function with parameter
+    {`
+simpleFunc = fn(x) {
+  return x * 2
+}
+result = simpleFunc(5)
+result`, 10}, // 5 * 2 = 10
+    
+    // Function accessing outer scope
+    {`
+outerVar = 10
+testFunc = fn(x) {
+  return x + outerVar
+}
+result = testFunc(5)
+result`, 15}, // 5 + 10 = 15
+    
+    // Function with arithmetic operations
+    {`
+calculate = fn(a, b) {
+  return (a + b) * 2
+}
+result = calculate(3, 7)
+result`, 20}, // (3 + 7) * 2 = 20
+    
+    // Function with conditional
+    {`
+maxValue = fn(a, b) {
+  if (a > b) {
+    return a
+  } else {
+    return b
+  }
+}
+result = maxValue(8, 5)
+result`, 8}, // max(8, 5) = 8
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestFunctionTypesAndPatterns(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Function returning different types
+    {`
+getString = fn() { return "hello" }
+result = getString()
+result`, "hello"},
+    
+    {`
+getBool = fn(x) { return x > 5 }
+result = getBool(10)
+result`, true},
+    
+    // Function with array operations
+    {`
+sumArray = fn(arr) {
+  total = 0
+  for (i = 0; i < len(arr); i = i + 1) {
+    total = total + arr[i]
+  }
+  return total
+}
+result = sumArray([1, 2, 3, 4, 5])
+result`, 15},
+    
+    // Function composition
+    {`
+double = fn(x) { return x * 2 }
+addTen = fn(x) { return x + 10 }
+compose = fn(f, g, x) {
+  return f(g(x))
+}
+result = compose(double, addTen, 5)
+result`, 30}, // double(addTen(5)) = double(15) = 30
+    
+    // Recursive with different base cases
+    {`
+fibonacci = fn(n) {
+  if (n <= 1) {
+    return n
+  } else {
+    return fibonacci(n - 1) + fibonacci(n - 2)
+  }
+}
+result = fibonacci(7)
+result`, 13}, // fib(7) = 13
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestHigherOrderFunctions(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Map-like function
+    {`
+mapFunc = fn(arr, func) {
+  result = []
+  for (i = 0; i < len(arr); i = i + 1) {
+    result = push(result, func(arr[i]))
+  }
+  return result
+}
+double = fn(x) { return x * 2 }
+mapped = mapFunc([1, 2, 3], double)
+sum = mapped[0] + mapped[1] + mapped[2]
+sum`, 12}, // [2, 4, 6] sum = 12
+    
+    // Filter-like function
+    {`
+filterFunc = fn(arr, predicate) {
+  result = []
+  for (i = 0; i < len(arr); i = i + 1) {
+    if (predicate(arr[i])) {
+      result = push(result, arr[i])
+    }
+  }
+  return result
+}
+isGreaterThan3 = fn(x) { return x > 3 }
+filtered = filterFunc([1, 2, 3, 4, 5, 6], isGreaterThan3)
+sum = 0
+for (i = 0; i < len(filtered); i = i + 1) {
+  sum = sum + filtered[i]
+}
+sum`, 15}, // [4, 5, 6] sum = 15
+    
+    // Reduce-like function
+    {`
+reduceFunc = fn(arr, func, initial) {
+  accumulator = initial
+  for (i = 0; i < len(arr); i = i + 1) {
+    accumulator = func(accumulator, arr[i])
+  }
+  return accumulator
+}
+add = fn(a, b) { return a + b }
+result = reduceFunc([1, 2, 3, 4, 5], add, 0)
+result`, 15}, // 0+1+2+3+4+5 = 15
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+// Array and string indexing tests (Phase 9 compatible)
+
+func TestArrayIndexingWithExceptionHandling(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Valid array indexing
+    {`
+numbers = [10, 20, 30, 40, 50]
+first = numbers[0]
+first`, 10},
+    
+    {`
+numbers = [10, 20, 30, 40, 50]
+second = numbers[1]
+second`, 20},
+    
+    {`
+numbers = [10, 20, 30, 40, 50]
+last = numbers[4]
+last`, 50},
+    
+    // Array indexing with expressions
+    {`
+numbers = [10, 20, 30, 40, 50]
+index = 2
+third = numbers[index]
+third`, 30},
+    
+    {`
+numbers = [10, 20, 30, 40, 50]
+index = 2
+fourth = numbers[index + 1]
+fourth`, 40},
+    
+    // Combined valid indexing result matching original test
+    {`
+numbers = [10, 20, 30, 40, 50]
+first = numbers[0]
+second = numbers[1]
+last = numbers[4]
+index = 2
+third = numbers[index]
+fourth = numbers[index + 1]
+result = first + second + last
+result`, 80}, // 10 + 20 + 50 = 80
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    }
+  }
+}
+
+func TestStringIndexingWithExceptionHandling(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected string
+  }{
+    // Valid string indexing
+    {`
+message = "hello"
+char1 = message[0]
+char1`, "h"},
+    
+    {`
+message = "hello"
+char2 = message[1]
+char2`, "e"},
+    
+    {`
+message = "hello"
+char5 = message[4]
+char5`, "o"},
+    
+    // String indexing with variables
+    {`
+message = "world"
+index = 1
+char = message[index]
+char`, "o"},
+    
+    // Complex string operations
+    {`
+word1 = "Rush"
+word2 = "Lang"
+combined = word1[0] + word2[0]
+combined`, "RL"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testStringObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestIndexingExceptionHandling(t *testing.T) {
+  tests := []struct {
+    input         string
+    expectedCatch bool
+  }{
+    // Array out of bounds - positive index
+    {`
+caught = false
+numbers = [10, 20, 30]
+try {
+  outOfBounds = numbers[10]
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+    
+    // Array out of bounds - negative index  
+    {`
+caught = false
+numbers = [10, 20, 30]
+try {
+  outOfBounds = numbers[-1]
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+    
+    // String out of bounds - positive index
+    {`
+caught = false
+message = "hello"
+try {
+  outOfBounds = message[20]
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+    
+    // String out of bounds - negative index
+    {`
+caught = false
+message = "hello"
+try {
+  outOfBounds = message[-5]
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+    
+    // Array bounds checking with expressions
+    {`
+caught = false
+arr = [1, 2, 3]
+maxIndex = len(arr)
+try {
+  value = arr[maxIndex]
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+    
+    // Nested array indexing with exception
+    {`
+caught = false
+matrix = [[1, 2], [3, 4]]
+try {
+  value = matrix[2][0]  # First access should fail
+} catch (IndexError error) {
+  caught = true
+}
+caught`, true},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expectedCatch)
+  }
+}
+
+func TestIndexingWithDifferentTypes(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    // Array of different types
+    {`
+mixed = [42, "hello", true, 3.14]
+first = mixed[0]
+first`, 42},
+    
+    {`
+mixed = [42, "hello", true, 3.14]
+second = mixed[1]
+second`, "hello"},
+    
+    {`
+mixed = [42, "hello", true, 3.14]
+third = mixed[2]
+third`, true},
+    
+    // Nested arrays
+    {`
+nested = [[1, 2], [3, 4], [5, 6]]
+element = nested[1][0]
+element`, 3},
+    
+    {`
+nested = [["a", "b"], ["c", "d"]]
+element = nested[0][1]
+element`, "b"},
+    
+    // Array of strings with string indexing
+    {`
+words = ["hello", "world", "rush"]
+firstWord = words[0]
+firstChar = firstWord[0]
+firstChar`, "h"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestIndexingInLoopsAndFunctions(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    // Indexing in for loops
+    {`
+numbers = [1, 2, 3, 4, 5]
+sum = 0
+for (i = 0; i < len(numbers); i = i + 1) {
+  sum = sum + numbers[i]
+}
+sum`, 15}, // 1+2+3+4+5 = 15
+    
+    // Function with array indexing
+    {`
+getElement = fn(arr, index) {
+  return arr[index]
+}
+data = [10, 20, 30]
+result = getElement(data, 1)
+result`, 20},
+    
+    // Function with safe indexing
+    {`
+safeGet = fn(arr, index) {
+  try {
+    return arr[index]
+  } catch (IndexError error) {
+    return -1
+  }
+}
+data = [10, 20, 30]
+valid = safeGet(data, 1)
+invalid = safeGet(data, 10)
+valid + invalid`, 19}, // 20 + (-1) = 19
+    
+    // Complex indexing with nested structures
+    {`
+matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+total = 0
+for (row = 0; row < 3; row = row + 1) {
+  for (col = 0; col < 3; col = col + 1) {
+    total = total + matrix[row][col]
+  }
+}
+total`, 45}, // 1+2+3+4+5+6+7+8+9 = 45
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}

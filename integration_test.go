@@ -738,3 +738,449 @@ print("Module result:", result)
     t.Errorf("Expected module error handling output %q, got %q", expectedOutput, output)
   }
 }
+
+// Integration tests for converted example features
+
+func TestConvertedBasicLanguageFeatures(t *testing.T) {
+  tests := []struct {
+    name     string
+    program  string
+    expected string
+  }{
+    {
+      name: "Basic Variable Assignments and Arithmetic",
+      program: `
+# Basic variable assignments
+a = 42
+b = 3.14
+c = "hello world"
+d = true
+e = false
+
+# Array literal
+numbers = [1, 2, 3, 4, 5]
+
+# Arithmetic expressions
+sum = a + 10
+product = b * 2.5
+difference = 100 - a
+
+# Boolean expressions
+isGreater = a > 30
+isEqual = b == 3.14
+
+# String assignment
+message = "Rush programming language"
+
+print("Sum:", sum)
+print("Product:", product)
+print("IsGreater:", isGreater)
+print("Array length:", len(numbers))
+`,
+      expected: "Sum: 52\nProduct: 7.8500000000000005\nIsGreater: true\nArray length: 5",
+    },
+    {
+      name: "Mixed Type Operations and String Concatenation",
+      program: `
+# Mixed number types
+pi = 3.14
+area = pi * 10
+
+# String operations
+greeting = "Hello, "
+name = "Rush"
+message = greeting + name
+
+# Boolean operations
+isTrue = true
+isFalse = !isTrue
+comparison = 5 > 3
+
+# Array with mixed types
+numbers = [1, 2, 3, 10, 16]
+
+# Final calculations
+final = area + 100
+
+print("Area:", area)
+print("Message:", message)
+print("Is False:", isFalse)
+print("Comparison:", comparison)
+print("Final:", final)
+`,
+      expected: "Area: 31.400000000000002\nMessage: Hello, Rush\nIs False: false\nComparison: true\nFinal: 131.4",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      runIntegrationTest(t, tt.program, tt.expected)
+    })
+  }
+}
+
+func TestConvertedBooleanLogicFeatures(t *testing.T) {
+  tests := []struct {
+    name     string
+    program  string
+    expected string
+  }{
+    {
+      name: "Simple Conditionals",
+      program: `
+# Test basic if/else
+x = 15
+if (x > 10) {
+    result = "greater"
+} else {
+    result = "smaller"
+}
+
+# Test boolean operators
+a = true
+b = false
+andTest = a && b
+orTest = a || b
+
+print("Result:", result)
+print("And test:", andTest)
+print("Or test:", orTest)
+`,
+      expected: "Result: greater\nAnd test: false\nOr test: true",
+    },
+    {
+      name: "Complex Boolean Logic",
+      program: `
+# Advanced boolean expressions
+age = 25
+hasLicense = true
+isWeekend = false
+
+canDrive = (age >= 16) && hasLicense
+shouldStayHome = isWeekend || (age < 18)
+complexLogic = ((age > 20) && hasLicense) || (isWeekend && (age >= 16))
+
+# Nested boolean conditions
+score = 85
+if (score >= 90) {
+    grade = "A"
+} else {
+    if (score >= 80) {
+        grade = "B"
+    } else {
+        grade = "C"
+    }
+}
+
+print("Can drive:", canDrive)
+print("Should stay home:", shouldStayHome)
+print("Complex logic:", complexLogic)
+print("Grade:", grade)
+`,
+      expected: "Can drive: true\nShould stay home: false\nComplex logic: true\nGrade: B",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      runIntegrationTest(t, tt.program, tt.expected)
+    })
+  }
+}
+
+func TestConvertedLoopFeatures(t *testing.T) {
+  tests := []struct {
+    name     string
+    program  string
+    expected string
+  }{
+    {
+      name: "For Loop Operations",
+      program: `
+# Basic for loop
+sum = 0
+for (i = 0; i < 5; i = i + 1) {
+    sum = sum + i
+}
+
+# For loop with array access
+numbers = [2, 4, 6, 8, 10]
+product = 1
+for (j = 0; j < 5; j = j + 1) {
+    product = product * numbers[j]
+}
+
+# Nested for loops
+nestedSum = 0
+for (x = 1; x <= 3; x = x + 1) {
+    for (y = 1; y <= 2; y = y + 1) {
+        nestedSum = nestedSum + (x * y)
+    }
+}
+
+print("Sum:", sum)
+print("Product:", product)
+print("Nested sum:", nestedSum)
+`,
+      expected: "Sum: 10\nProduct: 3840\nNested sum: 18",
+    },
+    {
+      name: "While Loop Operations",
+      program: `
+# Simple while loop
+counter = 0
+sum = 0
+while (counter < 5) {
+    sum = sum + counter
+    counter = counter + 1
+}
+
+# While loop with array indexing
+numbers = [1, 2, 3, 4, 5]
+index = 0
+product = 1
+while (index < 5) {
+    product = product * numbers[index]
+    index = index + 1
+}
+
+# Conditional while loop
+value = 1
+iterations = 0
+while (value < 100) {
+    value = value * 2
+    iterations = iterations + 1
+}
+
+print("Sum:", sum)
+print("Product:", product)
+print("Iterations:", iterations)
+`,
+      expected: "Sum: 10\nProduct: 120\nIterations: 7",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      runIntegrationTest(t, tt.program, tt.expected)
+    })
+  }
+}
+
+func TestConvertedFunctionFeatures(t *testing.T) {
+  tests := []struct {
+    name     string
+    program  string
+    expected string
+  }{
+    {
+      name: "Comprehensive Function Tests",
+      program: `
+# Simple function
+test1 = fn() { return 42 }
+result1 = test1()
+
+# Function with parameters
+test2 = fn(x) { return x * 2 }
+result2 = test2(21)
+
+# Multiple parameter function
+test3 = fn(a, b, c) { return a + b + c }
+result3 = test3(1, 2, 3)
+
+# Recursive function (factorial)
+factorial = fn(n) {
+    if (n <= 1) {
+        return 1
+    } else {
+        return n * factorial(n - 1)
+    }
+}
+result4 = factorial(5)
+
+# Higher-order function
+apply = fn(f, x) { return f(x) }
+square = fn(x) { return x * x }
+result5 = apply(square, 7)
+
+print("Simple:", result1)
+print("Double:", result2)
+print("Add three:", result3)
+print("Factorial:", result4)
+print("Higher-order:", result5)
+`,
+      expected: "Simple: 42\nDouble: 42\nAdd three: 6\nFactorial: 120\nHigher-order: 49",
+    },
+    {
+      name: "Advanced Function Patterns",
+      program: `
+# Simple arithmetic function
+add = fn(a, b) { return a + b }
+multiply = fn(a, b) { return a * b }
+mathResult = add(multiply(2, 3), 4)
+
+# Function composition
+double = fn(x) { return x * 2 }
+addTen = fn(x) { return x + 10 }
+compose = fn(f, g, x) { return f(g(x)) }
+composed = compose(double, addTen, 5)
+
+# Array processing function
+sumArray = fn(arr) {
+    total = 0
+    for (i = 0; i < len(arr); i = i + 1) {
+        total = total + arr[i]
+    }
+    return total
+}
+arraySum = sumArray([1, 2, 3, 4, 5])
+
+print("Math result:", mathResult)
+print("Composed:", composed)
+print("Array sum:", arraySum)
+`,
+      expected: "Math result: 10\nComposed: 30\nArray sum: 15",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      runIntegrationTest(t, tt.program, tt.expected)
+    })
+  }
+}
+
+func TestConvertedIndexingFeatures(t *testing.T) {
+  tests := []struct {
+    name     string
+    program  string
+    expected string
+  }{
+    {
+      name: "Array and String Indexing",
+      program: `
+# Array indexing
+numbers = [10, 20, 30, 40, 50]
+first = numbers[0]
+second = numbers[1]
+last = numbers[4]
+
+# String indexing
+message = "hello"
+char1 = message[0]
+char2 = message[1]
+char5 = message[4]
+
+# Expression-based indexing
+index = 2
+third = numbers[index]
+fourth = numbers[index + 1]
+
+result = first + second + last
+
+print("Array result:", result)
+print("String chars:", char1 + char2 + char5)
+print("Third:", third)
+print("Fourth:", fourth)
+`,
+      expected: "Array result: 80\nString chars: heo\nThird: 30\nFourth: 40",
+    },
+    {
+      name: "Indexing with Exception Handling",
+      program: `
+# Valid array access
+numbers = [1, 2, 3]
+validAccess = numbers[1]
+
+# Exception handling for out-of-bounds
+caught1 = false
+try {
+    outOfBounds = numbers[10]
+} catch (IndexError error) {
+    caught1 = true
+}
+
+# String bounds checking
+message = "hello"
+caught2 = false
+try {
+    badChar = message[20]
+} catch (IndexError error) {
+    caught2 = true
+}
+
+# Safe indexing function
+safeGet = fn(arr, index) {
+    try {
+        return arr[index]
+    } catch (IndexError error) {
+        return -1
+    }
+}
+
+safeValue = safeGet(numbers, 1)
+invalidValue = safeGet(numbers, 10)
+
+print("Valid access:", validAccess)
+print("Caught array:", caught1)
+print("Caught string:", caught2)
+print("Safe valid:", safeValue)
+print("Safe invalid:", invalidValue)
+`,
+      expected: "Valid access: 2\nCaught array: true\nCaught string: true\nSafe valid: 2\nSafe invalid: -1",
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      runIntegrationTest(t, tt.program, tt.expected)
+    })
+  }
+}
+
+// Helper function for running integration tests
+func runIntegrationTest(t *testing.T, program, expected string) {
+  // Create a temporary file with the program
+  tmpfile, err := os.CreateTemp("", "rush_integration_test_*.rush")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer os.Remove(tmpfile.Name())
+
+  if _, err := tmpfile.Write([]byte(program)); err != nil {
+    t.Fatal(err)
+  }
+  if err := tmpfile.Close(); err != nil {
+    t.Fatal(err)
+  }
+
+  // Run the Rush interpreter
+  cmd := exec.Command("go", "run", "cmd/rush/main.go", tmpfile.Name())
+  var out bytes.Buffer
+  cmd.Stdout = &out
+  cmd.Stderr = &out
+
+  if err := cmd.Run(); err != nil {
+    t.Fatalf("Program execution failed: %v\nOutput: %s", err, out.String())
+  }
+
+  fullOutput := strings.TrimSpace(out.String())
+  
+  // Extract just the printed content
+  lines := strings.Split(fullOutput, "\n")
+  var printedLines []string
+  for _, line := range lines {
+    line = strings.TrimSpace(line)
+    if line != "" && 
+       !strings.HasPrefix(line, "Rush interpreter") && 
+       line != "Result: null" && 
+       !strings.HasPrefix(line, "Execution complete!") {
+      printedLines = append(printedLines, line)
+    }
+  }
+  
+  output := strings.Join(printedLines, "\n")
+  if output != expected {
+    t.Errorf("Expected output %q, got %q (full output: %q)", expected, output, fullOutput)
+  }
+}
