@@ -588,3 +588,23 @@ func (ne *NewExpression) String() string {
   out.WriteString(")")
   return out.String()
 }
+
+// SuperExpression represents super() calls to parent methods
+type SuperExpression struct {
+  Token     lexer.Token  // the 'super' token
+  Arguments []Expression
+}
+
+func (se *SuperExpression) expressionNode()      {}
+func (se *SuperExpression) TokenLiteral() string { return se.Token.Literal }
+func (se *SuperExpression) String() string {
+  var out bytes.Buffer
+  args := []string{}
+  for _, a := range se.Arguments {
+    args = append(args, a.String())
+  }
+  out.WriteString("super(")
+  out.WriteString(strings.Join(args, ", "))
+  out.WriteString(")")
+  return out.String()
+}

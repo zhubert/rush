@@ -80,6 +80,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.IF, p.parseIfExpression)
 	p.registerPrefix(lexer.FN, p.parseFunctionLiteral)
 	p.registerPrefix(lexer.INSTANCE_VAR, p.parseInstanceVariable)
+	p.registerPrefix(lexer.SUPER, p.parseSuperExpression)
 
 	// Initialize infix parse functions
 	p.infixParseFns = make(map[lexer.TokenType]infixParseFn)
@@ -960,6 +961,18 @@ func (p *Parser) parseInstanceVariable() ast.Expression {
 
   inst.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
   return inst
+}
+
+// parseSuperExpression parses super() calls to parent methods
+func (p *Parser) parseSuperExpression() ast.Expression {
+  expr := &ast.SuperExpression{Token: p.curToken}
+
+  if !p.expectPeek(lexer.LPAREN) {
+    return nil
+  }
+
+  expr.Arguments = p.parseExpressionList(lexer.RPAREN)
+  return expr
 }
 
 // parseMethodDeclaration parses method declarations like "fn methodName() { body }"

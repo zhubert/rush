@@ -136,10 +136,11 @@ func Eval(node ast.Node, env *Environment) Value {
 			// Check if object is an instance with methods
 			if obj, ok := object.(*Object); ok {
 				methodName := propAccess.Property.Value
-				if method, exists := obj.Class.Methods[methodName]; exists {
+				if method := resolveMethod(obj.Class, methodName); method != nil {
 					// Set up method call environment with 'self' and parameters
 					methodEnv := NewEnclosedEnvironment(method.Env)
 					methodEnv.Set("self", obj)
+					methodEnv.Set("__current_method__", &String{Value: methodName})
 					
 					// Evaluate arguments
 					args := evalExpressions(node.Arguments, env)
@@ -226,6 +227,9 @@ func Eval(node ast.Node, env *Environment) Value {
 	
 	case *ast.NewExpression:
 		return evalNewExpression(node, env)
+	
+	case *ast.SuperExpression:
+		return evalSuperExpression(node, env)
 	
 	default:
 		return newError("unknown node type: %T", node)
@@ -1135,4 +1139,77 @@ func evalNewExpression(node *ast.NewExpression, env *Environment) Value {
   }
 
   return obj
+}
+
+// resolveMethod walks up the inheritance chain to find a method
+func resolveMethod(class *Class, methodName string) *Function {
+  current := class
+  for current != nil {
+    if method, exists := current.Methods[methodName]; exists {
+      return method
+    }
+    current = current.SuperClass
+  }
+  return nil
+}
+
+// evalSuperExpression evaluates super() calls to parent methods
+func evalSuperExpression(node *ast.SuperExpression, env *Environment) Value {
+  // Get the current object (self)
+  self, exists := env.Get("self")
+  if !exists {
+    return newError("super() can only be used within a method")
+  }
+  
+  obj, ok := self.(*Object)
+  if !ok {
+    return newError("super() can only be used within a method")
+  }
+
+  // Get the current method name by walking up the call stack
+  // For now, we'll assume it's stored in a special environment variable
+  currentMethodNameVal, exists := env.Get("__current_method__")
+  if !exists {
+    return newError("super() can only be used within a method")
+  }
+  
+  currentMethodName, ok := currentMethodNameVal.(*String)
+  if !ok {
+    return newError("invalid method context for super()")
+  }
+
+  // Find the parent class method
+  if obj.Class.SuperClass == nil {
+    return newError("super() called but no superclass exists")
+  }
+  
+  method := resolveMethod(obj.Class.SuperClass, currentMethodName.Value)
+  if method == nil {
+    return newError("super method %s not found", currentMethodName.Value)
+  }
+
+  // Evaluate arguments
+  args := evalExpressions(node.Arguments, env)
+  if len(args) == 1 && isError(args[0]) {
+    return args[0]
+  }
+
+  // Check argument count
+  if len(args) != len(method.Parameters) {
+    return newError("wrong number of arguments for super(): want=%d, got=%d", len(method.Parameters), len(args))
+  }
+
+  // Set up method call environment with 'self' and parameters
+  methodEnv := NewEnclosedEnvironment(method.Env)
+  methodEnv.Set("self", obj)
+  methodEnv.Set("__current_method__", currentMethodName)
+
+  // Set up parameters in method environment
+  for paramIdx, param := range method.Parameters {
+    methodEnv.Set(param.Value, args[paramIdx])
+  }
+
+  // Evaluate method body with proper environment
+  result := Eval(method.Body, methodEnv)
+  return unwrapReturnValue(result)
 }

@@ -371,6 +371,235 @@ class Dog < Animal {
 	}
 }
 
+func TestMethodResolutionOrder(t *testing.T) {
+  input := `
+  class Animal {
+    fn speak() {
+      return "generic sound"
+    }
+    
+    fn move() {
+      return "moving"
+    }
+  }
+  
+  class Dog < Animal {
+    fn speak() {
+      return "woof"
+    }
+    
+    fn wagTail() {
+      return "wagging"
+    }
+  }
+  
+  d = Dog.new()
+  speak_result = d.speak()
+  move_result = d.move()
+  wag_result = d.wagTail()
+  `
+
+  l := lexer.New(input)
+  p := parser.New(l)
+  program := p.ParseProgram()
+  env := NewEnvironment()
+
+  result := Eval(program, env)
+  if isError(result) {
+    t.Fatalf("evaluation failed: %s", result.Inspect())
+  }
+
+  // Test overridden method
+  speakResult, exists := env.Get("speak_result")
+  if !exists {
+    t.Fatal("speak_result variable not found")
+  }
+  if speakResult.Inspect() != `woof` {
+    t.Errorf("expected speak_result to be 'woof', got %s", speakResult.Inspect())
+  }
+
+  // Test inherited method
+  moveResult, exists := env.Get("move_result")
+  if !exists {
+    t.Fatal("move_result variable not found")
+  }
+  if moveResult.Inspect() != `moving` {
+    t.Errorf("expected move_result to be 'moving', got %s", moveResult.Inspect())
+  }
+
+  // Test child-specific method
+  wagResult, exists := env.Get("wag_result")
+  if !exists {
+    t.Fatal("wag_result variable not found")
+  }
+  if wagResult.Inspect() != `wagging` {
+    t.Errorf("expected wag_result to be 'wagging', got %s", wagResult.Inspect())
+  }
+}
+
+func TestMultiLevelInheritance(t *testing.T) {
+  input := `
+  class Animal {
+    fn speak() {
+      return "generic sound"
+    }
+    
+    fn breathe() {
+      return "breathing"
+    }
+  }
+  
+  class Mammal < Animal {
+    fn speak() {
+      return "mammal sound"
+    }
+    
+    fn nurture() {
+      return "nursing young"
+    }
+  }
+  
+  class Dog < Mammal {
+    fn speak() {
+      return "woof"
+    }
+    
+    fn wagTail() {
+      return "wagging"
+    }
+  }
+  
+  d = Dog.new()
+  speak_result = d.speak()
+  breathe_result = d.breathe()
+  nurture_result = d.nurture()
+  wag_result = d.wagTail()
+  `
+
+  l := lexer.New(input)
+  p := parser.New(l)
+  program := p.ParseProgram()
+  env := NewEnvironment()
+
+  result := Eval(program, env)
+  if isError(result) {
+    t.Fatalf("evaluation failed: %s", result.Inspect())
+  }
+
+  tests := []struct {
+    varName  string
+    expected string
+  }{
+    {"speak_result", `woof`},      // overridden in Dog
+    {"breathe_result", `breathing`}, // inherited from Animal
+    {"nurture_result", `nursing young`}, // inherited from Mammal
+    {"wag_result", `wagging`},     // Dog-specific method
+  }
+
+  for _, tt := range tests {
+    result, exists := env.Get(tt.varName)
+    if !exists {
+      t.Fatalf("%s variable not found", tt.varName)
+    }
+    if result.Inspect() != tt.expected {
+      t.Errorf("expected %s to be %s, got %s", tt.varName, tt.expected, result.Inspect())
+    }
+  }
+}
+
+func TestSuperMethodCalls(t *testing.T) {
+  input := `
+  class Animal {
+    fn speak() {
+      return "generic sound"
+    }
+    
+    fn move() {
+      return "moving"
+    }
+  }
+  
+  class Dog < Animal {
+    fn speak() {
+      return super() + " - but woof!"
+    }
+    
+    fn move() {
+      return super() + " quickly"
+    }
+  }
+  
+  d = Dog.new()
+  speak_result = d.speak()
+  move_result = d.move()
+  `
+
+  l := lexer.New(input)
+  p := parser.New(l)
+  program := p.ParseProgram()
+  env := NewEnvironment()
+
+  result := Eval(program, env)
+  if isError(result) {
+    t.Fatalf("evaluation failed: %s", result.Inspect())
+  }
+
+  // Test super call in overridden method
+  speakResult, exists := env.Get("speak_result")
+  if !exists {
+    t.Fatal("speak_result variable not found")
+  }
+  if speakResult.Inspect() != `generic sound - but woof!` {
+    t.Errorf("expected speak_result to be 'generic sound - but woof!', got %s", speakResult.Inspect())
+  }
+
+  // Test super call in another method
+  moveResult, exists := env.Get("move_result")
+  if !exists {
+    t.Fatal("move_result variable not found")
+  }
+  if moveResult.Inspect() != `moving quickly` {
+    t.Errorf("expected move_result to be 'moving quickly', got %s", moveResult.Inspect())
+  }
+}
+
+func TestSuperWithArguments(t *testing.T) {
+  input := `
+  class Animal {
+    fn speak(sound) {
+      return "Animal says: " + sound
+    }
+  }
+  
+  class Dog < Animal {
+    fn speak(sound) {
+      return super(sound) + " loudly!"
+    }
+  }
+  
+  d = Dog.new()
+  result = d.speak("woof")
+  `
+
+  l := lexer.New(input)
+  p := parser.New(l)
+  program := p.ParseProgram()
+  env := NewEnvironment()
+
+  evalResult := Eval(program, env)
+  if isError(evalResult) {
+    t.Fatalf("evaluation failed: %s", evalResult.Inspect())
+  }
+
+  result, exists := env.Get("result")
+  if !exists {
+    t.Fatal("result variable not found")
+  }
+  if result.Inspect() != `Animal says: woof loudly!` {
+    t.Errorf("expected result to be 'Animal says: woof loudly!', got %s", result.Inspect())
+  }
+}
+
 // Helper function for testing classes
 func testEvalClass(input string) Value {
 	l := lexer.New(input)
