@@ -386,11 +386,11 @@ func TestArrayIndexExpressions(t *testing.T) {
       2,
     },
     {
-      "[1, 2, 3][3]",
+      "arr = [1, 2, 3]; try { arr[3] } catch (IndexError error) { if (false) { 1 } }",
       nil,
     },
     {
-      "[1, 2, 3][-1]",
+      "arr = [1, 2, 3]; try { arr[-1] } catch (IndexError error) { if (false) { 1 } }",
       nil,
     },
   }
@@ -424,11 +424,11 @@ func TestStringIndexing(t *testing.T) {
       "o",
     },
     {
-      `"hello"[5]`,
+      `str = "hello"; try { str[5] } catch (IndexError error) { if (false) { 1 } }`,
       nil,
     },
     {
-      `"hello"[-1]`,
+      `str = "hello"; try { str[-1] } catch (IndexError error) { if (false) { 1 } }`,
       nil,
     },
   }
@@ -548,5 +548,379 @@ func testStringObject(t *testing.T, obj Value, expected string) bool {
     return false
   }
 
+  return true
+}
+
+// Error handling tests
+
+func TestBasicTryCatch(t *testing.T) {
+  input := `
+caught = false
+try {
+  throw RuntimeError("test error")
+} catch (error) {
+  caught = true
+}
+caught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestTypeSpecificCatch(t *testing.T) {
+  input := `
+validationCaught = false
+runtimeCaught = false
+try {
+  throw ValidationError("validation failed")
+} catch (ValidationError error) {
+  validationCaught = true
+} catch (RuntimeError error) {
+  runtimeCaught = true
+}
+validationCaught && !runtimeCaught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestMultipleCatchBlocks(t *testing.T) {
+  input := `
+typeErrorCaught = false
+try {
+  throw TypeError("wrong type")
+} catch (ValidationError error) {
+  # Should not catch ValidationError
+} catch (TypeError error) {
+  typeErrorCaught = true
+} catch (error) {
+  # Should not reach generic catch
+}
+typeErrorCaught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestFinallyBlockExecution(t *testing.T) {
+  input := `
+finallyRan = false
+try {
+  throw RuntimeError("error")
+} catch (error) {
+  # Exception caught
+} finally {
+  finallyRan = true
+}
+finallyRan
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestFinallyBlockWithoutException(t *testing.T) {
+  input := `
+finallyRan = false
+result = 0
+try {
+  result = 42
+} finally {
+  finallyRan = true
+}
+finallyRan && (result == 42)
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestErrorPropertyAccess(t *testing.T) {
+  input := `
+errorType = ""
+errorMessage = ""
+try {
+  throw ValidationError("invalid data")
+} catch (error) {
+  errorType = error.type
+  errorMessage = error.message
+}
+(errorType == "ValidationError") && (errorMessage == "invalid data")
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestStackTraceGeneration(t *testing.T) {
+  input := `
+stackGenerated = false
+
+innerFunc = fn() {
+  throw RuntimeError("inner error")
+}
+
+try {
+  innerFunc()
+} catch (error) {
+  stackGenerated = len(error.stack) > 0
+}
+stackGenerated
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestArrayIndexException(t *testing.T) {
+  input := `
+caught = false
+arr = [1, 2, 3]
+try {
+  value = arr[10]
+} catch (IndexError error) {
+  caught = true
+}
+caught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestStringIndexException(t *testing.T) {
+  input := `
+caught = false
+str = "hello"
+try {
+  char = str[20]
+} catch (IndexError error) {
+  caught = true
+}
+caught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestPopEmptyArrayException(t *testing.T) {
+  input := `
+caught = false
+emptyArr = []
+try {
+  value = pop(emptyArr)
+} catch (IndexError error) {
+  caught = true
+}
+caught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestNestedTryCatch(t *testing.T) {
+  input := `
+outerCaught = false
+
+try {
+  try {
+    throw ValidationError("inner error")
+  } catch (TypeError error) {
+    # Should not catch TypeError, will propagate to outer
+  }
+} catch (ValidationError error) {
+  outerCaught = true
+}
+outerCaught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestExceptionPropagationThroughFunctions(t *testing.T) {
+  input := `
+caught = false
+
+deepFunc = fn() {
+  throw RuntimeError("deep error")
+}
+
+middleFunc = fn() {
+  deepFunc()
+}
+
+try {
+  middleFunc()
+} catch (RuntimeError error) {
+  caught = true
+}
+caught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestAllBuiltinErrorTypes(t *testing.T) {
+  tests := []struct {
+    errorType string
+    input     string
+  }{
+    {"Error", `
+try {
+  throw Error("test")
+} catch (error) {
+  error.type
+}
+`},
+    {"ValidationError", `
+try {
+  throw ValidationError("test")
+} catch (error) {
+  error.type
+}
+`},
+    {"TypeError", `
+try {
+  throw TypeError("test")
+} catch (error) {
+  error.type
+}
+`},
+    {"IndexError", `
+try {
+  throw IndexError("test")
+} catch (error) {
+  error.type
+}
+`},
+    {"ArgumentError", `
+try {
+  throw ArgumentError("test")
+} catch (error) {
+  error.type
+}
+`},
+    {"RuntimeError", `
+try {
+  throw RuntimeError("test")
+} catch (error) {
+  error.type
+}
+`},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testStringObject(t, evaluated, tt.errorType)
+  }
+}
+
+func TestUncaughtExceptionPropagation(t *testing.T) {
+  input := `throw RuntimeError("uncaught error")`
+  
+  evaluated := testEval(input)
+  
+  // Should return an Exception value
+  exception, ok := evaluated.(*Exception)
+  if !ok {
+    t.Errorf("Expected Exception, got %T", evaluated)
+    return
+  }
+  
+  // The wrapped error should be an Error
+  errorObj, ok := exception.Error.(*Error)
+  if !ok {
+    t.Errorf("Expected Error inside Exception, got %T", exception.Error)
+    return
+  }
+  
+  if errorObj.ErrorType != "RuntimeError" {
+    t.Errorf("Expected RuntimeError, got %s", errorObj.ErrorType)
+  }
+  
+  if errorObj.Message != "uncaught error" {
+    t.Errorf("Expected 'uncaught error', got %s", errorObj.Message)
+  }
+}
+
+func TestErrorLineAndColumnNumbers(t *testing.T) {
+  input := `
+errorLine = 0
+errorCol = 0
+try {
+  throw RuntimeError("positioned error")
+} catch (error) {
+  errorLine = error.line
+  errorCol = error.column
+}
+errorLine >= 0
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestCatchVariableScope(t *testing.T) {
+  input := `
+message = ""
+try {
+  throw ValidationError("scoped error")
+} catch (error) {
+  message = error.message
+}
+message == "scoped error"
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+func TestThrowInCatchBlock(t *testing.T) {
+  input := `
+innerCaught = false
+outerCaught = false
+
+try {
+  try {
+    throw ValidationError("first error")
+  } catch (error) {
+    innerCaught = true
+    throw RuntimeError("second error")
+  }
+} catch (RuntimeError error) {
+  outerCaught = true
+}
+innerCaught && outerCaught
+`
+  
+  evaluated := testEval(input)
+  testBooleanObject(t, evaluated, true)
+}
+
+// Helper function to test error objects
+func testErrorObject(t *testing.T, obj Value, expectedType, expectedMessage string) bool {
+  errorObj, ok := obj.(*Error)
+  if !ok {
+    t.Errorf("object is not Error. got=%T (%+v)", obj, obj)
+    return false
+  }
+  
+  if errorObj.ErrorType != expectedType {
+    t.Errorf("wrong error type. got=%s, want=%s", errorObj.ErrorType, expectedType)
+    return false
+  }
+  
+  if errorObj.Message != expectedMessage {
+    t.Errorf("wrong error message. got=%s, want=%s", errorObj.Message, expectedMessage)
+    return false
+  }
+  
   return true
 }

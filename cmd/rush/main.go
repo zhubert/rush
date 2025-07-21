@@ -55,7 +55,7 @@ func main() {
 	result := interpreter.Eval(program, env)
 	
 	if result != nil {
-		if result.Type() == "ERROR" {
+		if result.Type() == "ERROR" || result.Type() == "EXCEPTION" {
 			fmt.Printf("Runtime error: %s\n", result.Inspect())
 			os.Exit(1)
 		}
@@ -140,7 +140,7 @@ func evaluateInput(input string, env *interpreter.Environment) {
 	result := interpreter.Eval(program, env)
 	
 	if result != nil {
-		if result.Type() == "ERROR" {
+		if result.Type() == "ERROR" || result.Type() == "EXCEPTION" {
 			fmt.Printf("Error: %s\n", result.Inspect())
 		} else if result.Type() != "NULL" {
 			fmt.Printf("%s\n", result.Inspect())

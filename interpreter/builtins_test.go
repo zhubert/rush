@@ -242,7 +242,7 @@ func TestPopFunction(t *testing.T) {
     {"pop([1, 2, 3])", 3},
     {"pop([42])", 42},
     {"pop([\"hello\", \"world\"])", "world"},
-    {"pop([])", nil},
+    {"try { pop([]) } catch (IndexError error) { if (false) { 1 } }", nil},
     {"pop(42)", "argument to `pop` must be ARRAY, got INTEGER"},
     {"pop([1, 2, 3], 1)", "wrong number of arguments. got=2, want=1"},
     {"pop()", "wrong number of arguments. got=0, want=1"},
