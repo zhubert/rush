@@ -166,14 +166,12 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseThrowStatement()
 	case lexer.CLASS:
 		return p.parseClassDeclaration()
+	case lexer.INSTANCE_VAR:
+		return p.parseInstanceVariableStatement()
 	default:
-		// Check if this is an assignment statement (identifier followed by =)
+		// Check if this is an assignment statement (identifier = value)
 		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
 			return p.parseAssignmentStatement()
-		}
-		// Check if this is an instance variable assignment (@var = value)
-		if p.curToken.Type == lexer.INSTANCE_VAR {
-			return p.parseInstanceVariableAssignment()
 		}
 		// Otherwise, parse as expression statement
 		return p.parseExpressionStatement()
@@ -189,13 +187,12 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
 	}
 
 	stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-
+	
 	if !p.expectPeek(lexer.ASSIGN) {
 		return nil
 	}
 
 	p.nextToken()
-
 	stmt.Value = p.parseExpression(LOWEST)
 
 	// Optional semicolon or newline
@@ -204,6 +201,47 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
 	}
 
 	return stmt
+}
+
+// parseInstanceVariableStatement parses instance variable statements like "@name" or "@name = value"
+func (p *Parser) parseInstanceVariableStatement() ast.Statement {
+	// Parse the @name part first
+	instVarExpr := p.parseInstanceVariable()
+	if instVarExpr == nil {
+		return nil
+	}
+
+	// Cast to InstanceVariable type
+	instVar, ok := instVarExpr.(*ast.InstanceVariable)
+	if !ok {
+		return nil
+	}
+
+	// Check if this is an assignment (@name = value)
+	if p.peekToken.Type == lexer.ASSIGN {
+		// Convert to assignment statement
+		p.nextToken() // consume =
+		p.nextToken() // move to value
+		
+		stmt := &ast.AssignmentStatement{
+			Token: instVar.Token,
+			Name: &ast.Identifier{Token: instVar.Token, Value: "@" + instVar.Name.Value},
+			Value: p.parseExpression(LOWEST),
+		}
+		
+		// Optional semicolon or newline
+		if p.peekToken.Type == lexer.SEMICOLON {
+			p.nextToken()
+		}
+		
+		return stmt
+	} else {
+		// Just an expression statement (@name)
+		return &ast.ExpressionStatement{
+			Token: instVar.Token,
+			Expression: instVar,
+		}
+	}
 }
 
 // parseExpressionStatement parses expression statements
@@ -363,6 +401,7 @@ func (p *Parser) peekPrecedence() int {
 	}
 	return LOWEST
 }
+
 
 func (p *Parser) expectPeek(t lexer.TokenType) bool {
 	if p.peekToken.Type == t {
@@ -955,33 +994,6 @@ func (p *Parser) parseMethodDeclaration() ast.Statement {
   return method
 }
 
-// parseInstanceVariableAssignment parses instance variable assignments like "@name = value"
-func (p *Parser) parseInstanceVariableAssignment() ast.Statement {
-  stmt := &ast.AssignmentStatement{Token: p.curToken}
-
-  // Create an instance variable expression for the left side
-  instVar := &ast.InstanceVariable{Token: p.curToken}
-
-  if !p.expectPeek(lexer.IDENT) {
-    return nil
-  }
-
-  instVar.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
-  stmt.Name = &ast.Identifier{Token: p.curToken, Value: "@" + p.curToken.Literal}
-
-  if !p.expectPeek(lexer.ASSIGN) {
-    return nil
-  }
-
-  p.nextToken()
-  stmt.Value = p.parseExpression(LOWEST)
-
-  if p.peekToken.Type == lexer.SEMICOLON {
-    p.nextToken()
-  }
-
-  return stmt
-}
 
 // parseNewExpression is handled by parsePropertyAccess when it encounters "ClassName.new"
 // This is called from the property access parsing when we see ".new("
