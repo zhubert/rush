@@ -389,3 +389,143 @@ func testAssignStatement(t *testing.T, s ast.Statement, name string) bool {
 
   return true
 }
+
+func TestClassDeclaration(t *testing.T) {
+  input := `class Animal {
+    fn speak() {
+      return "sound"
+    }
+  }`
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(program.Statements) != 1 {
+    t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+      len(program.Statements))
+  }
+
+  stmt, ok := program.Statements[0].(*ast.ClassDeclaration)
+  if !ok {
+    t.Fatalf("program.Statements[0] is not ast.ClassDeclaration. got=%T",
+      program.Statements[0])
+  }
+
+  if stmt.Name.Value != "Animal" {
+    t.Errorf("stmt.Name.Value not 'Animal'. got=%s", stmt.Name.Value)
+  }
+
+  if stmt.SuperClass != nil {
+    t.Errorf("stmt.SuperClass should be nil for base class. got=%v", stmt.SuperClass)
+  }
+
+  if len(stmt.Body.Statements) != 1 {
+    t.Errorf("stmt.Body does not contain 1 statement. got=%d",
+      len(stmt.Body.Statements))
+  }
+}
+
+func TestClassInheritance(t *testing.T) {
+  input := `class Dog < Animal {
+    fn bark() {
+      return "woof"
+    }
+  }`
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(program.Statements) != 1 {
+    t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+      len(program.Statements))
+  }
+
+  stmt, ok := program.Statements[0].(*ast.ClassDeclaration)
+  if !ok {
+    t.Fatalf("program.Statements[0] is not ast.ClassDeclaration. got=%T",
+      program.Statements[0])
+  }
+
+  if stmt.Name.Value != "Dog" {
+    t.Errorf("stmt.Name.Value not 'Dog'. got=%s", stmt.Name.Value)
+  }
+
+  if stmt.SuperClass == nil {
+    t.Fatalf("stmt.SuperClass should not be nil for inherited class")
+  }
+
+  if stmt.SuperClass.Value != "Animal" {
+    t.Errorf("stmt.SuperClass.Value not 'Animal'. got=%s", stmt.SuperClass.Value)
+  }
+
+  if len(stmt.Body.Statements) != 1 {
+    t.Errorf("stmt.Body does not contain 1 statement. got=%d",
+      len(stmt.Body.Statements))
+  }
+}
+
+func TestMultiLevelInheritance(t *testing.T) {
+  input := `
+  class Animal {
+    fn move() { return "moving" }
+  }
+  
+  class Dog < Animal {
+    fn bark() { return "woof" }
+  }
+  
+  class GermanShepherd < Dog {
+    fn guard() { return "guarding" }
+  }
+  `
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(program.Statements) != 3 {
+    t.Fatalf("program.Statements does not contain 3 statements. got=%d",
+      len(program.Statements))
+  }
+
+  tests := []struct {
+    className   string
+    superClass  *string
+  }{
+    {"Animal", nil},
+    {"Dog", stringPtr("Animal")},
+    {"GermanShepherd", stringPtr("Dog")},
+  }
+
+  for i, tt := range tests {
+    stmt, ok := program.Statements[i].(*ast.ClassDeclaration)
+    if !ok {
+      t.Fatalf("program.Statements[%d] is not ast.ClassDeclaration. got=%T",
+        i, program.Statements[i])
+    }
+
+    if stmt.Name.Value != tt.className {
+      t.Errorf("stmt.Name.Value not '%s'. got=%s", tt.className, stmt.Name.Value)
+    }
+
+    if tt.superClass == nil {
+      if stmt.SuperClass != nil {
+        t.Errorf("stmt.SuperClass should be nil for %s. got=%v", tt.className, stmt.SuperClass)
+      }
+    } else {
+      if stmt.SuperClass == nil {
+        t.Fatalf("stmt.SuperClass should not be nil for %s", tt.className)
+      }
+      if stmt.SuperClass.Value != *tt.superClass {
+        t.Errorf("stmt.SuperClass.Value not '%s' for %s. got=%s", 
+          *tt.superClass, tt.className, stmt.SuperClass.Value)
+      }
+    }
+  }
+}
+
+func stringPtr(s string) *string {
+  return &s
+}

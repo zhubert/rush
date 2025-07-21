@@ -60,6 +60,7 @@ const (
 	THROW   // throw
 	CLASS   // class
 	INITIALIZE // initialize
+	SUPER   // super
 	INSTANCE_VAR // @
 )
 
@@ -120,6 +121,7 @@ var tokenTypeNames = map[TokenType]string{
 	THROW:     "throw",
 	CLASS:     "class",
 	INITIALIZE: "initialize",
+	SUPER:     "super",
 	INSTANCE_VAR: "@",
 }
 
@@ -148,6 +150,7 @@ var keywords = map[string]TokenType{
 	"throw":   THROW,
 	"class":   CLASS,
 	"initialize": INITIALIZE,
+	"super":   SUPER,
 	"true":    TRUE,
 	"false":   FALSE,
 }
