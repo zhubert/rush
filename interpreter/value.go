@@ -22,7 +22,7 @@ const (
 	RETURN_VALUE    ValueType = "RETURN_VALUE"
 	EXCEPTION_VALUE ValueType = "EXCEPTION"
 	CLASS_VALUE     ValueType = "CLASS"
-	OBJECT_VALUE    ValueType = "OBJECT"
+	INSTANCE_VALUE  ValueType = "INSTANCE"
 )
 
 // Value represents a value in the Rush language
@@ -141,7 +141,7 @@ type Object struct {
   Env              *Environment
 }
 
-func (o *Object) Type() ValueType { return OBJECT_VALUE }
+func (o *Object) Type() ValueType { return INSTANCE_VALUE }
 func (o *Object) Inspect() string { return fmt.Sprintf("#<%s:0x%p>", o.Class.Name, o) }
 
 // IsTruthy returns whether a value is considered truthy
