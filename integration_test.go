@@ -698,18 +698,16 @@ print("Module result:", result)
   dir := filepath.Dir(moduleFile.Name())
   mainFile := filepath.Join(dir, "main_test.rush")
   
-  // Update import path in main content
-  adjustedMainContent := strings.Replace(mainContent, "./test_module", "./"+strings.TrimSuffix(filepath.Base(moduleFile.Name()), ".rush"), 1)
+  // Update import path in main content to use absolute path
+  adjustedMainContent := strings.Replace(mainContent, "./test_module", strings.TrimSuffix(moduleFile.Name(), ".rush"), 1)
   
   if err := os.WriteFile(mainFile, []byte(adjustedMainContent), 0644); err != nil {
     t.Fatal(err)
   }
   defer os.Remove(mainFile)
 
-  // Run the main program from temp directory using pre-built binary
-  wd, _ := os.Getwd()
-  cmd := exec.Command(filepath.Join(wd, "main"), filepath.Base(mainFile))
-  cmd.Dir = dir // Set working directory to temp dir so relative imports work
+  // Run the main program using go run from project root
+  cmd := exec.Command("go", "run", "cmd/rush/main.go", mainFile)
   var out bytes.Buffer
   cmd.Stdout = &out
   cmd.Stderr = &out
@@ -1296,19 +1294,17 @@ print("Message:", message)`,
         t.Fatal(err)
       }
 
-      // Create main file with adjusted import path
+      // Create main file with adjusted import path using absolute module path
       moduleNameWithoutExt := strings.TrimSuffix(moduleFileName, ".rush")
-      adjustedMainContent := strings.Replace(tt.mainContent, "./"+moduleNameWithoutExt, "./"+strings.TrimSuffix(filepath.Base(modulePath), ".rush"), 1)
+      adjustedMainContent := strings.Replace(tt.mainContent, "./"+moduleNameWithoutExt, strings.TrimSuffix(modulePath, ".rush"), 1)
       
       mainPath := filepath.Join(tmpDir, "main.rush")
       if err := os.WriteFile(mainPath, []byte(adjustedMainContent), 0644); err != nil {
         t.Fatal(err)
       }
 
-      // Run the main program from temp directory using pre-built binary
-      wd, _ := os.Getwd()
-      cmd := exec.Command(filepath.Join(wd, "main"), "main.rush")
-      cmd.Dir = tmpDir // Set working directory to temp dir so relative imports work
+      // Run the main program using go run from project root
+      cmd := exec.Command("go", "run", "cmd/rush/main.go", mainPath)
       var out bytes.Buffer
       cmd.Stdout = &out
       cmd.Stderr = &out
@@ -1407,16 +1403,34 @@ print("Result:", result)`,
         }
       }
 
-      // Create main file
+      // Create main file with adjusted import paths
+      adjustedMainContent := tt.mainContent
+      // Replace relative import paths with absolute paths for existing modules
+      if tt.moduleContent != "" {
+        var moduleFileName string
+        switch tt.name {
+        case "Import Non-existent Export":
+          moduleFileName = "test_module.rush"
+          modulePath := filepath.Join(tmpDir, moduleFileName)
+          adjustedMainContent = strings.Replace(adjustedMainContent, "./test_module", strings.TrimSuffix(modulePath, ".rush"), 1)
+        case "Module with Syntax Error":
+          moduleFileName = "broken_module.rush"
+          modulePath := filepath.Join(tmpDir, moduleFileName)
+          adjustedMainContent = strings.Replace(adjustedMainContent, "./broken_module", strings.TrimSuffix(modulePath, ".rush"), 1)
+        case "Valid Module Import":
+          moduleFileName = "valid_module.rush"
+          modulePath := filepath.Join(tmpDir, moduleFileName)
+          adjustedMainContent = strings.Replace(adjustedMainContent, "./valid_module", strings.TrimSuffix(modulePath, ".rush"), 1)
+        }
+      }
+      
       mainPath := filepath.Join(tmpDir, "main.rush")
-      if err := os.WriteFile(mainPath, []byte(tt.mainContent), 0644); err != nil {
+      if err := os.WriteFile(mainPath, []byte(adjustedMainContent), 0644); err != nil {
         t.Fatal(err)
       }
 
-      // Run the main program from temp directory using pre-built binary
-      wd, _ := os.Getwd()
-      cmd := exec.Command(filepath.Join(wd, "main"), "main.rush")
-      cmd.Dir = tmpDir // Set working directory to temp dir so relative imports work
+      // Run the main program using go run from project root
+      cmd := exec.Command("go", "run", "cmd/rush/main.go", mainPath)
       var out bytes.Buffer
       cmd.Stdout = &out
       cmd.Stderr = &out
