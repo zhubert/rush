@@ -17,9 +17,10 @@ const (
 	BOOLEAN_VALUE  ValueType = "BOOLEAN"
 	ARRAY_VALUE    ValueType = "ARRAY"
 	NULL_VALUE     ValueType = "NULL"
-	FUNCTION_VALUE ValueType = "FUNCTION"
-	BUILTIN_VALUE  ValueType = "BUILTIN"
-	RETURN_VALUE   ValueType = "RETURN_VALUE"
+	FUNCTION_VALUE  ValueType = "FUNCTION"
+	BUILTIN_VALUE   ValueType = "BUILTIN"
+	RETURN_VALUE    ValueType = "RETURN_VALUE"
+	EXCEPTION_VALUE ValueType = "EXCEPTION"
 )
 
 // Value represents a value in the Rush language
@@ -112,6 +113,14 @@ type BuiltinFunction struct {
 func (bf *BuiltinFunction) Type() ValueType { return BUILTIN_VALUE }
 func (bf *BuiltinFunction) Inspect() string { return "builtin function" }
 
+// Exception wraps errors to signal exception propagation
+type Exception struct {
+	Error Value // Can be any error value
+}
+
+func (ex *Exception) Type() ValueType { return EXCEPTION_VALUE }
+func (ex *Exception) Inspect() string { return ex.Error.Inspect() }
+
 // IsTruthy returns whether a value is considered truthy
 func IsTruthy(val Value) bool {
 	switch val {
@@ -132,3 +141,8 @@ var (
 	TRUE  = &Boolean{Value: true}
 	FALSE = &Boolean{Value: false}
 )
+
+// NewException creates a new exception for error propagation
+func NewException(error Value) *Exception {
+	return &Exception{Error: error}
+}

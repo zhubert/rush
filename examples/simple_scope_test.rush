@@ -1,0 +1,30 @@
+# Test variable scope in try-catch
+
+print("Testing variable scope...")
+
+# Test 1: Basic variable setting in catch
+result1 = "not set"
+try {
+    throw RuntimeError("test")
+} catch (error) {
+    result1 = "set in catch"
+}
+print("Result 1:", result1)
+
+# Test 2: Boolean flag
+flag = false
+try {
+    throw RuntimeError("test")  
+} catch (error) {
+    flag = true
+}
+print("Flag:", flag)
+
+# Test 3: Check error properties
+errorType = ""
+try {
+    throw ValidationError("test message")
+} catch (error) {
+    errorType = error.type
+}
+print("Error type:", errorType)

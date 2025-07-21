@@ -1,0 +1,8 @@
+# Simple try-catch test
+print("Before try")
+try {
+    print("In try")
+} catch (error) {
+    print("In catch")
+}
+print("After try")

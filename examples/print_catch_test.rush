@@ -1,0 +1,6 @@
+try {
+    throw RuntimeError("test")
+} catch (e) {
+    print("caught error")
+    x = "success"
+}

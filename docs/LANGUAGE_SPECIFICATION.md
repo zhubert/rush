@@ -13,9 +13,10 @@ Rush is a dynamically-typed, interpreted programming language with clean syntax 
 5. [Statements](#statements)
 6. [Functions](#functions)
 7. [Control Flow](#control-flow)
-8. [Module System](#module-system)
-9. [Built-in Functions](#built-in-functions)
-10. [Grammar](#grammar)
+8. [Error Handling](#error-handling)
+9. [Module System](#module-system)
+10. [Built-in Functions](#built-in-functions)
+11. [Grammar](#grammar)
 
 ## Lexical Structure
 
@@ -52,6 +53,10 @@ Reserved words in Rush:
 - `import` - import statement
 - `export` - export statement  
 - `from` - from clause in imports
+- `try` - try block for error handling
+- `catch` - catch block for error handling
+- `finally` - finally block for cleanup
+- `throw` - throw statement for raising errors
 - `true` - boolean literal
 - `false` - boolean literal
 
@@ -166,6 +171,21 @@ add = fn(x, y) { return x + y }
 greet = fn(name) { return "Hello, " + name }
 ```
 
+### Error
+
+Error objects represent exceptional conditions:
+
+```rush
+error = ValidationError("Invalid input")
+```
+
+Error objects have properties:
+- `type` - the error type name (string)
+- `message` - descriptive error message (string)
+- `stack` - stack trace information (string)
+- `line` - line number where error occurred (integer)
+- `column` - column number where error occurred (integer)
+
 ### Null
 
 Represents absence of value. Returned by:
@@ -268,6 +288,31 @@ return expression
 return  # Returns null
 ```
 
+### Throw Statement
+```rush
+throw ErrorType("Error message")
+throw expression  # Any value can be thrown
+```
+
+### Try-Catch-Finally Statement
+```rush
+try {
+  # Code that might throw an error
+} catch (error) {
+  # Handle error
+}
+
+try {
+  # Code that might throw an error
+} catch (ValidationError error) {
+  # Handle specific error type
+} catch (error) {
+  # Handle any other error
+} finally {
+  # Always executed cleanup code
+}
+```
+
 ## Functions
 
 ### Function Definition
@@ -333,6 +378,158 @@ for (i = 0; i < 10; i = i + 1) {
   print(i)
 }
 ```
+
+## Error Handling
+
+Rush provides comprehensive error handling through try/catch/finally blocks and throw statements.
+
+### Basic Try-Catch
+
+```rush
+try {
+  result = divide(10, 0)
+  print("Result:", result)
+} catch (error) {
+  print("Error occurred:", error.message)
+}
+```
+
+### Try-Catch-Finally
+
+The `finally` block always executes, regardless of whether an error occurs:
+
+```rush
+file = null
+try {
+  file = open("data.txt")
+  content = read(file)
+  process(content)
+} catch (error) {
+  print("Failed to process file:", error.message)
+} finally {
+  if (file != null) {
+    close(file)
+  }
+}
+```
+
+### Multiple Catch Blocks
+
+Different error types can be handled separately:
+
+```rush
+try {
+  data = validateAndProcess(input)
+} catch (ValidationError error) {
+  print("Validation failed:", error.message)
+  showValidationHelp()
+} catch (NetworkError error) {
+  print("Network issue:", error.message)
+  retryConnection()
+} catch (error) {
+  print("Unexpected error:", error.message)
+  logError(error)
+}
+```
+
+### Throwing Errors
+
+Use `throw` to raise errors:
+
+```rush
+validateAge = fn(age) {
+  if (age < 0) {
+    throw ValidationError("Age cannot be negative")
+  }
+  if (age > 150) {
+    throw ValidationError("Age seems unrealistic")
+  }
+  return age
+}
+
+processUser = fn(userData) {
+  try {
+    age = validateAge(userData.age)
+    return createUser(userData)
+  } catch (ValidationError error) {
+    return { error: error.message }
+  }
+}
+```
+
+### Built-in Error Types
+
+- `Error` - Base error type
+- `ValidationError` - Input validation failures
+- `TypeError` - Type-related errors
+- `IndexError` - Array/string index out of bounds
+- `ArgumentError` - Function argument errors
+- `RuntimeError` - General runtime errors
+
+### Custom Error Types
+
+Create custom error types by calling them as constructors:
+
+```rush
+# Throwing custom errors
+throw CustomError("Something went wrong")
+throw DatabaseError("Connection failed")
+
+# Catching custom errors
+try {
+  connectToDatabase()
+} catch (DatabaseError error) {
+  print("Database error:", error.message)
+} catch (error) {
+  print("Other error:", error.message)
+}
+```
+
+### Error Object Properties
+
+All error objects have these properties:
+
+```rush
+try {
+  riskyOperation()
+} catch (error) {
+  print("Error type:", error.type)        # e.g., "ValidationError"
+  print("Message:", error.message)        # e.g., "Invalid input"
+  print("Stack trace:", error.stack)      # Function call stack
+  print("Line:", error.line)              # Line number where error occurred
+  print("Column:", error.column)          # Column number where error occurred
+}
+```
+
+### Error Propagation
+
+Errors automatically propagate up the call stack until caught:
+
+```rush
+deepFunction = fn() {
+  throw RuntimeError("Deep error")
+}
+
+middleFunction = fn() {
+  deepFunction()  # Error propagates through here
+}
+
+topFunction = fn() {
+  try {
+    middleFunction()
+  } catch (error) {
+    print("Caught error from deep function:", error.message)
+  }
+}
+```
+
+### Best Practices
+
+1. **Use specific error types** for different failure modes
+2. **Always handle errors** that might occur in your code
+3. **Use finally blocks** for cleanup that must always happen
+4. **Include descriptive error messages** for debugging
+5. **Don't catch and ignore errors** without good reason
 
 ## Module System
 
@@ -489,7 +686,9 @@ statement = assignmentStatement
           | ifStatement
           | whileStatement
           | forStatement
-          | returnStatement ;
+          | returnStatement
+          | throwStatement
+          | tryStatement ;
 
 assignmentStatement = identifier "=" expression ;
 
@@ -504,6 +703,14 @@ whileStatement = "while" "(" expression ")" blockStatement ;
 forStatement = "for" "(" assignmentStatement ";" expression ";" assignmentStatement ")" blockStatement ;
 
 returnStatement = "return" [ expression ] ;
+
+throwStatement = "throw" expression ;
+
+tryStatement = "try" blockStatement { catchClause } [ finallyClause ] ;
+
+catchClause = "catch" "(" [ identifier ] identifier ")" blockStatement ;
+
+finallyClause = "finally" blockStatement ;
 
 expression = logicalOrExpression ;
 

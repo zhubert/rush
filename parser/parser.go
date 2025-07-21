@@ -96,7 +96,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(lexer.OR, p.parseInfixExpression)
 	p.registerInfix(lexer.LPAREN, p.parseCallExpression)
 	p.registerInfix(lexer.LBRACKET, p.parseIndexExpression)
-	p.registerInfix(lexer.DOT, p.parseModuleAccess)
+	p.registerInfix(lexer.DOT, p.parsePropertyAccess)
 
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -159,6 +159,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseWhileStatement()
 	case lexer.FOR:
 		return p.parseForStatement()
+	case lexer.TRY:
+		return p.parseTryStatement()
+	case lexer.THROW:
+		return p.parseThrowStatement()
 	default:
 		// Check if this is an assignment statement (identifier followed by =)
 		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
@@ -707,4 +711,115 @@ func (p *Parser) parseModuleAccess(left ast.Expression) ast.Expression {
 	moduleAccess.Member = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 
 	return moduleAccess
+}
+
+// parsePropertyAccess parses property access like "object.property"
+func (p *Parser) parsePropertyAccess(left ast.Expression) ast.Expression {
+	propertyAccess := &ast.PropertyAccess{
+		Token:  p.curToken, // the '.' token
+		Object: left,       // any expression can be on the left
+	}
+
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+
+	propertyAccess.Property = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	return propertyAccess
+}
+
+// parseThrowStatement parses throw statements like "throw ErrorType("message")"
+func (p *Parser) parseThrowStatement() *ast.ThrowStatement {
+	stmt := &ast.ThrowStatement{Token: p.curToken}
+
+	p.nextToken()
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	// Optional semicolon
+	if p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+// parseTryStatement parses try-catch-finally blocks
+func (p *Parser) parseTryStatement() *ast.TryStatement {
+	stmt := &ast.TryStatement{Token: p.curToken}
+
+	// Parse try block
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	stmt.TryBlock = p.parseBlockStatement()
+
+	// Parse catch clauses (there can be multiple)
+	stmt.CatchClauses = []*ast.CatchClause{}
+	for p.peekToken.Type == lexer.CATCH {
+		p.nextToken() // consume catch token
+		catchClause := p.parseCatchClause()
+		if catchClause != nil {
+			stmt.CatchClauses = append(stmt.CatchClauses, catchClause)
+		}
+	}
+
+	// Parse optional finally block
+	if p.peekToken.Type == lexer.FINALLY {
+		p.nextToken() // consume finally token
+		if !p.expectPeek(lexer.LBRACE) {
+			return nil
+		}
+		stmt.FinallyBlock = p.parseBlockStatement()
+	}
+
+	// Must have at least one catch clause or a finally block
+	if len(stmt.CatchClauses) == 0 && stmt.FinallyBlock == nil {
+		p.errors = append(p.errors, "try statement must have at least one catch clause or a finally block")
+		return nil
+	}
+
+	return stmt
+}
+
+// parseCatchClause parses catch clauses like "catch (ErrorType error) { ... }"
+func (p *Parser) parseCatchClause() *ast.CatchClause {
+	clause := &ast.CatchClause{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	// Check if we have an error type followed by variable name
+	// catch (ErrorType error) or catch (error)
+	if !p.expectPeek(lexer.IDENT) {
+		return nil
+	}
+
+	firstIdent := &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+	// Check if there's a second identifier (error variable)
+	if p.peekToken.Type == lexer.IDENT {
+		// First identifier is the error type, second is the variable
+		clause.ErrorType = firstIdent
+		p.nextToken()
+		clause.ErrorVar = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	} else {
+		// Only one identifier, it's the error variable
+		clause.ErrorVar = firstIdent
+	}
+
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	clause.Body = p.parseBlockStatement()
+
+	return clause
 }

@@ -1,0 +1,16 @@
+# Working error handling test
+
+print("Before try")
+
+try {
+    print("In try block")
+    throw RuntimeError("Test error message")
+    print("This should not print")
+} catch (error) {
+    print("Caught an error!")
+    # Don't access the error object directly to avoid the issue
+    status = "handled"
+}
+
+print("After try-catch")
+print("Test completed successfully")

@@ -1,0 +1,14 @@
+# Try-catch-finally test
+
+print("Before try")
+
+try {
+    print("In try block")
+    throw ValidationError("Validation failed")
+} catch (ValidationError error) {
+    print("Caught validation error")
+} finally {
+    print("Finally block executed")
+}
+
+print("After try-catch-finally")

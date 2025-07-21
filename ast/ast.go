@@ -400,7 +400,26 @@ func (es *ExportStatement) String() string {
 	return out.String()
 }
 
-// ModuleAccess represents module member access like "module.function"
+// PropertyAccess represents property access like "object.property" or "module.function"
+type PropertyAccess struct {
+	Token  lexer.Token // the dot token
+	Object Expression  // the object being accessed (can be any expression)
+	Property *Identifier // property name
+}
+
+func (pa *PropertyAccess) expressionNode()      {}
+func (pa *PropertyAccess) TokenLiteral() string { return pa.Token.Literal }
+func (pa *PropertyAccess) String() string {
+	var out bytes.Buffer
+	out.WriteString("(")
+	out.WriteString(pa.Object.String())
+	out.WriteString(".")
+	out.WriteString(pa.Property.String())
+	out.WriteString(")")
+	return out.String()
+}
+
+// ModuleAccess represents module member access like "module.function" (deprecated, use PropertyAccess)
 type ModuleAccess struct {
 	Token  lexer.Token // the identifier token (module name)
 	Module *Identifier // module name
@@ -414,5 +433,72 @@ func (ma *ModuleAccess) String() string {
 	out.WriteString(ma.Module.String())
 	out.WriteString(".")
 	out.WriteString(ma.Member.String())
+	return out.String()
+}
+
+// ThrowStatement represents throw statements like "throw ErrorType("message")"
+type ThrowStatement struct {
+	Token      lexer.Token // the 'throw' token
+	Expression Expression  // the expression to throw
+}
+
+func (ts *ThrowStatement) statementNode()       {}
+func (ts *ThrowStatement) TokenLiteral() string { return ts.Token.Literal }
+func (ts *ThrowStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(ts.TokenLiteral() + " ")
+	if ts.Expression != nil {
+		out.WriteString(ts.Expression.String())
+	}
+	return out.String()
+}
+
+// CatchClause represents catch clauses like "catch (ErrorType error) { ... }"
+type CatchClause struct {
+	Token     lexer.Token     // the 'catch' token
+	ErrorType *Identifier     // optional error type filter (can be nil)
+	ErrorVar  *Identifier     // error variable name
+	Body      *BlockStatement // catch block body
+}
+
+func (cc *CatchClause) TokenLiteral() string { return cc.Token.Literal }
+func (cc *CatchClause) String() string {
+	var out bytes.Buffer
+	out.WriteString("catch (")
+	if cc.ErrorType != nil {
+		out.WriteString(cc.ErrorType.String())
+		out.WriteString(" ")
+	}
+	out.WriteString(cc.ErrorVar.String())
+	out.WriteString(") ")
+	out.WriteString(cc.Body.String())
+	return out.String()
+}
+
+// TryStatement represents try-catch-finally blocks
+type TryStatement struct {
+	Token        lexer.Token      // the 'try' token
+	TryBlock     *BlockStatement  // try block
+	CatchClauses []*CatchClause   // catch clauses (can be multiple)
+	FinallyBlock *BlockStatement  // finally block (optional)
+}
+
+func (ts *TryStatement) statementNode()       {}
+func (ts *TryStatement) TokenLiteral() string { return ts.Token.Literal }
+func (ts *TryStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("try ")
+	out.WriteString(ts.TryBlock.String())
+	
+	for _, catchClause := range ts.CatchClauses {
+		out.WriteString(" ")
+		out.WriteString(catchClause.String())
+	}
+	
+	if ts.FinallyBlock != nil {
+		out.WriteString(" finally ")
+		out.WriteString(ts.FinallyBlock.String())
+	}
+	
 	return out.String()
 }

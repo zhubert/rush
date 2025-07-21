@@ -135,7 +135,8 @@ var builtins = map[string]*BuiltinFunction{
 			}
 
 			if len(arr.Elements) == 0 {
-				return NULL
+				errorObj := newTypedError("IndexError", "pop from empty array", 0, 0)
+				return NewException(errorObj)
 			}
 
 			return arr.Elements[len(arr.Elements)-1]
@@ -179,6 +180,79 @@ var builtins = map[string]*BuiltinFunction{
 			copy(newElements, arr.Elements[start.Value:endIdx])
 
 			return &Array{Elements: newElements}
+		},
+	},
+	// Error constructors
+	"Error": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to Error constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("Error", msg.Value, 0, 0)
+		},
+	},
+	"ValidationError": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to ValidationError constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("ValidationError", msg.Value, 0, 0)
+		},
+	},
+	"TypeError": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to TypeError constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("TypeError", msg.Value, 0, 0)
+		},
+	},
+	"IndexError": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to IndexError constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("IndexError", msg.Value, 0, 0)
+		},
+	},
+	"ArgumentError": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to ArgumentError constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("ArgumentError", msg.Value, 0, 0)
+		},
+	},
+	"RuntimeError": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			msg, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to RuntimeError constructor must be STRING, got %s", args[0].Type())
+			}
+			return newTypedError("RuntimeError", msg.Value, 0, 0)
 		},
 	},
 }

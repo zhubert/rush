@@ -1,0 +1,24 @@
+# Test basic error handling
+
+# Simple try-catch
+try {
+    print("In try block")
+    throw RuntimeError("Test error")
+    print("This should not print")
+} catch (error) {
+    print("Caught error:", error)
+}
+
+print("After try-catch")
+
+# Try-catch-finally
+try {
+    print("In second try block")
+    throw ValidationError("Validation failed")
+} catch (ValidationError error) {
+    print("Caught validation error:", error)
+} finally {
+    print("Finally block executed")
+}
+
+print("Program completed")

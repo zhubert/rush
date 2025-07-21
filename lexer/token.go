@@ -51,9 +51,13 @@ const (
 	FOR    // for
 	WHILE  // while
 	RETURN // return
-	IMPORT // import
-	EXPORT // export
-	FROM   // from
+	IMPORT  // import
+	EXPORT  // export
+	FROM    // from
+	TRY     // try
+	CATCH   // catch
+	FINALLY // finally
+	THROW   // throw
 )
 
 // Token represents a single token
@@ -107,6 +111,10 @@ var tokenTypeNames = map[TokenType]string{
 	IMPORT:    "import",
 	EXPORT:    "export",
 	FROM:      "from",
+	TRY:       "try",
+	CATCH:     "catch",
+	FINALLY:   "finally",
+	THROW:     "throw",
 }
 
 // String returns the string representation of a token type
@@ -125,11 +133,15 @@ var keywords = map[string]TokenType{
 	"for":    FOR,
 	"while":  WHILE,
 	"return": RETURN,
-	"import": IMPORT,
-	"export": EXPORT,
-	"from":   FROM,
-	"true":   TRUE,
-	"false":  FALSE,
+	"import":  IMPORT,
+	"export":  EXPORT,
+	"from":    FROM,
+	"try":     TRY,
+	"catch":   CATCH,
+	"finally": FINALLY,
+	"throw":   THROW,
+	"true":    TRUE,
+	"false":   FALSE,
 }
 
 // LookupIdent checks if an identifier is a keyword

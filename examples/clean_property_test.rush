@@ -1,0 +1,15 @@
+# Test error object property access
+
+status = "starting"
+
+try {
+    throw ValidationError("Invalid input data")
+} catch (error) {
+    print("Error type:", error.type)
+    print("Error message:", error.message)
+    print("Error line:", error.line) 
+    print("Error column:", error.column)
+    status = "success"
+}
+
+print("Property access test completed:", status)

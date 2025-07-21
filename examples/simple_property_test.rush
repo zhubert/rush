@@ -1,0 +1,6 @@
+# Test if property access parsing works
+try {
+    throw ValidationError("test")
+} catch (error) {
+    print("caught error")
+}

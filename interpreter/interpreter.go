@@ -87,7 +87,7 @@ func Eval(node ast.Node, env *Environment) Value {
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
-		return applyFunction(function, args)
+		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue, env)
@@ -119,8 +119,17 @@ func Eval(node ast.Node, env *Environment) Value {
 	case *ast.ExportStatement:
 		return evalExportStatement(node, env)
 	
+	case *ast.PropertyAccess:
+		return evalPropertyAccess(node, env)
+	
 	case *ast.ModuleAccess:
 		return evalModuleAccess(node, env)
+	
+	case *ast.TryStatement:
+		return evalTryStatement(node, env)
+	
+	case *ast.ThrowStatement:
+		return evalThrowStatement(node, env)
 	
 	default:
 		return newError("unknown node type: %T", node)
@@ -137,7 +146,7 @@ func evalProgram(stmts []ast.Statement, env *Environment) Value {
 			if result.Type() == RETURN_VALUE {
 				return result.(*ReturnValue).Value
 			}
-			if result.Type() == ERROR_VALUE {
+			if result.Type() == ERROR_VALUE || result.Type() == EXCEPTION_VALUE {
 				return result
 			}
 		}
@@ -366,34 +375,67 @@ func nativeBoolToBooleanValue(input bool) *Boolean {
 const ERROR_VALUE = "ERROR"
 
 type Error struct {
-	Message string
-	Line    int
-	Column  int
+	ErrorType string // e.g., "ValidationError", "RuntimeError"
+	Message   string
+	Stack     string
+	Line      int
+	Column    int
 }
 
 func (e *Error) Type() ValueType { return ERROR_VALUE }
 func (e *Error) Inspect() string {
-	if e.Line > 0 {
-		return fmt.Sprintf("ERROR at line %d:%d: %s", e.Line, e.Column, e.Message)
+	errorType := e.ErrorType
+	if errorType == "" {
+		errorType = "Error"
 	}
-	return "ERROR: " + e.Message
+	if e.Line > 0 {
+		return fmt.Sprintf("%s at line %d:%d: %s", errorType, e.Line, e.Column, e.Message)
+	}
+	return fmt.Sprintf("%s: %s", errorType, e.Message)
 }
 
 func newError(format string, a ...interface{}) *Error {
-	return &Error{Message: fmt.Sprintf(format, a...)}
+	return &Error{
+		ErrorType: "RuntimeError",
+		Message:   fmt.Sprintf(format, a...),
+		Stack:     "", // Will be populated when thrown
+	}
 }
 
 func newErrorWithPosition(line, column int, format string, a ...interface{}) *Error {
 	return &Error{
-		Message: fmt.Sprintf(format, a...),
-		Line:    line,
-		Column:  column,
+		ErrorType: "RuntimeError",
+		Message:   fmt.Sprintf(format, a...),
+		Stack:     "", // Will be populated when thrown
+		Line:      line,
+		Column:    column,
 	}
+}
+
+// newTypedError creates a new error with a specific type
+func newTypedError(errorType, message string, line, column int) *Error {
+	return &Error{
+		ErrorType: errorType,
+		Message:   message,
+		Stack:     "", // Will be populated when thrown
+		Line:      line,
+		Column:    column,
+	}
+}
+
+// Built-in error constructor functions
+var ErrorConstructors = map[string]func(string, int, int) *Error{
+	"Error":           func(msg string, line, col int) *Error { return newTypedError("Error", msg, line, col) },
+	"ValidationError": func(msg string, line, col int) *Error { return newTypedError("ValidationError", msg, line, col) },
+	"TypeError":       func(msg string, line, col int) *Error { return newTypedError("TypeError", msg, line, col) },
+	"IndexError":      func(msg string, line, col int) *Error { return newTypedError("IndexError", msg, line, col) },
+	"ArgumentError":   func(msg string, line, col int) *Error { return newTypedError("ArgumentError", msg, line, col) },
+	"RuntimeError":    func(msg string, line, col int) *Error { return newTypedError("RuntimeError", msg, line, col) },
 }
 
 func isError(val Value) bool {
 	if val != nil {
-		return val.Type() == ERROR_VALUE
+		return val.Type() == ERROR_VALUE || val.Type() == EXCEPTION_VALUE
 	}
 	return false
 }
@@ -421,7 +463,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *Environment) Value {
 
 		if result != nil {
 			rt := result.Type()
-			if rt == RETURN_VALUE || rt == ERROR_VALUE {
+			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
 				return result
 			}
 		}
@@ -455,16 +497,36 @@ func evalBooleanInfixExpression(operator string, left, right Value) Value {
 	}
 }
 
-func applyFunction(fn Value, args []Value) Value {
+func applyFunction(fn Value, args []Value, callNode *ast.CallExpression, env *Environment) Value {
+	// Get function name for stack trace
+	var functionName string
+	if ident, ok := callNode.Function.(*ast.Identifier); ok {
+		functionName = ident.Value
+	} else {
+		functionName = "<anonymous>"
+	}
+	
 	switch fn := fn.(type) {
 	case *Function:
 		if len(args) != len(fn.Parameters) {
 			return newError("wrong number of arguments: want=%d, got=%d", len(fn.Parameters), len(args))
 		}
+		
+		// Push function call onto stack
+		env.PushCall(functionName, callNode.Token.Line, callNode.Token.Column)
+		
 		extendedEnv := extendFunctionEnv(fn, args)
+		// Inherit the call stack
+		extendedEnv.callStack = env.callStack
+		
 		evaluated := Eval(fn.Body, extendedEnv)
+		
+		// Pop function call from stack
+		env.PopCall()
+		
 		return unwrapReturnValue(evaluated)
 	case *BuiltinFunction:
+		// Don't track built-in function calls in stack trace
 		return fn.Fn(args...)
 	default:
 		return newError("not a function: %T", fn)
@@ -485,6 +547,7 @@ func unwrapReturnValue(val Value) Value {
 	if returnValue, ok := val.(*ReturnValue); ok {
 		return returnValue.Value
 	}
+	// Don't unwrap exceptions - they should propagate as-is
 	return val
 }
 
@@ -505,7 +568,8 @@ func evalArrayIndexExpression(array, index Value) Value {
 	max := int64(len(arrayObject.Elements) - 1)
 
 	if idx < 0 || idx > max {
-		return NULL
+		errorObj := newTypedError("IndexError", fmt.Sprintf("array index %d out of range [0:%d]", idx, max+1), 0, 0)
+		return NewException(errorObj)
 	}
 
 	return arrayObject.Elements[idx]
@@ -517,7 +581,8 @@ func evalStringIndexExpression(str, index Value) Value {
 	max := int64(len(stringObject.Value) - 1)
 
 	if idx < 0 || idx > max {
-		return NULL
+		errorObj := newTypedError("IndexError", fmt.Sprintf("string index %d out of range [0:%d]", idx, max+1), 0, 0)
+		return NewException(errorObj)
 	}
 
 	return &String{Value: string(stringObject.Value[idx])}
@@ -539,7 +604,7 @@ func evalWhileStatement(ws *ast.WhileStatement, env *Environment) Value {
 		result = Eval(ws.Body, env)
 		if result != nil {
 			rt := result.Type()
-			if rt == RETURN_VALUE || rt == ERROR_VALUE {
+			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
 				return result
 			}
 		}
@@ -578,7 +643,7 @@ func evalForStatement(fs *ast.ForStatement, env *Environment) Value {
 		result = Eval(fs.Body, env)
 		if result != nil {
 			rt := result.Type()
-			if rt == RETURN_VALUE || rt == ERROR_VALUE {
+			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
 				return result
 			}
 		}
@@ -682,4 +747,164 @@ func evalModuleAccess(node *ast.ModuleAccess, env *Environment) Value {
 	
 	return newError("module access not yet fully implemented: %s.%s", 
 		node.Module.Value, node.Member.Value)
+}
+
+// evalPropertyAccess handles property access like "object.property"
+func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
+	// Evaluate the object expression
+	object := Eval(node.Object, env)
+	
+	// Check if it's an error object and handle property access
+	if errorObj, ok := object.(*Error); ok {
+		return getErrorProperty(errorObj, node.Property.Value)
+	}
+	
+	// Check if it's a runtime error (Exception)
+	if isError(object) {
+		return object
+	}
+	
+	// For other objects, try module access (backward compatibility)
+	if ident, ok := node.Object.(*ast.Identifier); ok {
+		// This looks like module.member access
+		return newError("module access not yet fully implemented: %s.%s", 
+			ident.Value, node.Property.Value)
+	}
+	
+	return newError("property access not supported for type %s", object.Type())
+}
+
+// getErrorProperty returns the specified property of an error object
+func getErrorProperty(errorObj *Error, propertyName string) Value {
+	switch propertyName {
+	case "type":
+		return &String{Value: errorObj.ErrorType}
+	case "message":
+		return &String{Value: errorObj.Message}
+	case "stack":
+		return &String{Value: errorObj.Stack}
+	case "line":
+		return &Integer{Value: int64(errorObj.Line)}
+	case "column":
+		return &Integer{Value: int64(errorObj.Column)}
+	default:
+		return newError("error object has no property '%s'", propertyName)
+	}
+}
+
+// evalThrowStatement handles throw statements
+func evalThrowStatement(node *ast.ThrowStatement, env *Environment) Value {
+	// Evaluate the expression being thrown
+	value := Eval(node.Expression, env)
+	
+	// Check if evaluation resulted in a runtime error (not an Error object value)
+	if value.Type() == ERROR_VALUE {
+		errorObj, ok := value.(*Error)
+		if ok && (errorObj.ErrorType == "RuntimeError" || errorObj.ErrorType == "") {
+			// This could be either a runtime error or an Error object value
+			// If the expression was a function call to an error constructor, treat it as a value
+			if call, ok := node.Expression.(*ast.CallExpression); ok {
+				if ident, ok := call.Function.(*ast.Identifier); ok {
+					// Check if it's one of our error constructors
+					if _, exists := builtins[ident.Value]; exists {
+						// This is an Error object value from a constructor, wrap it in Exception
+						// Populate stack trace
+						errorObj.Stack = env.GetStackTrace()
+						return NewException(errorObj)
+					}
+				}
+			}
+			// Otherwise, it's a runtime error that should be propagated
+			return value
+		}
+		// For other error types, wrap in Exception
+		errorObj.Stack = env.GetStackTrace()
+		return NewException(value.(*Error))
+	}
+	
+	// If not an error object, throw the value as-is wrapped in a generic error
+	errorObj := newTypedError("Error", value.Inspect(), node.Token.Line, node.Token.Column)
+	errorObj.Stack = env.GetStackTrace()
+	return NewException(errorObj)
+}
+
+// evalTryStatement handles try-catch-finally blocks
+func evalTryStatement(node *ast.TryStatement, env *Environment) Value {
+	var result Value = NULL
+	var exception *Exception
+	
+	// Execute the try block
+	tryResult := evalBlockStatement(node.TryBlock, env)
+	
+	// Check if an exception occurred
+	if ex, ok := tryResult.(*Exception); ok {
+		exception = ex
+	} else {
+		result = tryResult
+	}
+	
+	// If there's an exception, try to handle it with catch clauses
+	if exception != nil {
+		handled := false
+		
+		for _, catchClause := range node.CatchClauses {
+			// Check if this catch clause matches the error type
+			if shouldCatchError(exception.Error, catchClause) {
+				// Bind the error variable in the current environment
+				env.Set(catchClause.ErrorVar.Value, exception.Error)
+				
+				// Execute the catch block in the current environment
+				catchResult := evalBlockStatement(catchClause.Body, env)
+				
+				// If catch block throws another exception, propagate it
+				if ex, ok := catchResult.(*Exception); ok {
+					exception = ex
+					result = exception
+				} else {
+					// Exception was handled
+					exception = nil
+					result = catchResult
+					handled = true
+				}
+				break
+			}
+		}
+		
+		// If no catch clause handled the exception, it will be propagated
+		if !handled {
+			result = exception
+		}
+	}
+	
+	// Execute finally block if present
+	if node.FinallyBlock != nil {
+		finallyResult := evalBlockStatement(node.FinallyBlock, env)
+		
+		// If finally block throws an exception, it overrides any previous exception
+		if ex, ok := finallyResult.(*Exception); ok {
+			return ex
+		}
+		
+		// If finally block returns a value, it overrides the try/catch result
+		if returnVal, ok := finallyResult.(*ReturnValue); ok {
+			return returnVal
+		}
+	}
+	
+	return result
+}
+
+// shouldCatchError determines if a catch clause should handle an error
+func shouldCatchError(error Value, catchClause *ast.CatchClause) bool {
+	// If no error type specified, catch all errors
+	if catchClause.ErrorType == nil {
+		return true
+	}
+	
+	// Check if the error type matches
+	if errorObj, ok := error.(*Error); ok {
+		return errorObj.ErrorType == catchClause.ErrorType.Value
+	}
+	
+	return false
 }

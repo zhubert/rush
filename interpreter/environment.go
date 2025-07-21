@@ -1,8 +1,18 @@
 package interpreter
 
 import (
+	"fmt"
+	"strings"
+	
 	"rush/module"
 )
+
+// CallFrame represents a single function call in the call stack
+type CallFrame struct {
+	FunctionName string
+	Line         int
+	Column       int
+}
 
 // Environment represents a scope for variable storage
 type Environment struct {
@@ -11,6 +21,7 @@ type Environment struct {
 	moduleResolver *module.ModuleResolver
 	currentDir     string // current directory for module resolution
 	exports        map[string]Value // for tracking exports in modules
+	callStack      []CallFrame // for tracking function calls
 }
 
 // NewEnvironment creates a new environment
@@ -22,6 +33,7 @@ func NewEnvironment() *Environment {
 		moduleResolver: module.NewModuleResolver(),
 		currentDir:     ".",
 		exports:        make(map[string]Value),
+		callStack:      make([]CallFrame, 0),
 	}
 	
 	// Add built-in functions
@@ -40,6 +52,9 @@ func NewEnclosedEnvironment(outer *Environment) *Environment {
 	if outer != nil {
 		env.moduleResolver = outer.moduleResolver
 		env.currentDir = outer.currentDir
+		// Inherit call stack from outer environment
+		env.callStack = make([]CallFrame, len(outer.callStack))
+		copy(env.callStack, outer.callStack)
 	}
 	return env
 }
@@ -89,4 +104,46 @@ func (e *Environment) AddExport(name string, value Value) {
 // GetExports returns the exports map
 func (e *Environment) GetExports() map[string]Value {
 	return e.exports
+}
+
+// PushCall adds a function call to the call stack
+func (e *Environment) PushCall(functionName string, line, column int) {
+	frame := CallFrame{
+		FunctionName: functionName,
+		Line:         line,
+		Column:       column,
+	}
+	e.callStack = append(e.callStack, frame)
+}
+
+// PopCall removes the most recent function call from the call stack
+func (e *Environment) PopCall() {
+	if len(e.callStack) > 0 {
+		e.callStack = e.callStack[:len(e.callStack)-1]
+	}
+}
+
+// GetStackTrace returns a formatted stack trace string
+func (e *Environment) GetStackTrace() string {
+	if len(e.callStack) == 0 {
+		return ""
+	}
+	
+	var frames []string
+	for i := len(e.callStack) - 1; i >= 0; i-- {
+		frame := e.callStack[i]
+		if frame.Line > 0 {
+			frames = append(frames, fmt.Sprintf("  at %s (line %d:%d)", frame.FunctionName, frame.Line, frame.Column))
+		} else {
+			frames = append(frames, fmt.Sprintf("  at %s", frame.FunctionName))
+		}
+	}
+	return strings.Join(frames, "\n")
+}
+
+// GetCallStack returns a copy of the current call stack
+func (e *Environment) GetCallStack() []CallFrame {
+	stack := make([]CallFrame, len(e.callStack))
+	copy(stack, e.callStack)
+	return stack
 }

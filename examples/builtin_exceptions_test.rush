@@ -1,0 +1,35 @@
+# Test built-in functions throwing exceptions
+
+print("=== Built-in Exception Test ===")
+
+# Test 1: Array index out of bounds
+print("\nTest 1: Array indexing")
+arr = [1, 2, 3]
+try {
+    value = arr[5]  # Should throw IndexError
+    print("Should not reach here")
+} catch (IndexError error) {
+    print("Caught IndexError:", error.message)
+}
+
+# Test 2: String index out of bounds  
+print("\nTest 2: String indexing")
+str = "hello"
+try {
+    char = str[10]  # Should throw IndexError
+    print("Should not reach here")
+} catch (IndexError error) {
+    print("Caught IndexError:", error.message)
+}
+
+# Test 3: Pop from empty array
+print("\nTest 3: Pop from empty array")
+emptyArray = []
+try {
+    value = pop(emptyArray)  # Should throw IndexError
+    print("Should not reach here")
+} catch (IndexError error) {
+    print("Caught IndexError:", error.message)
+}
+
+print("\n=== All tests completed ===")

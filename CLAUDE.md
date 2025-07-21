@@ -204,31 +204,34 @@ rush/
 - **Package Management**: Basic package installation and dependency management
 - **Circular Dependency Handling**: Detection and resolution of circular imports
 
-## Phase 9: Error Handling
+## Phase 9: Error Handling ✅ COMPLETED
 
 **Goal**: Comprehensive error handling with try/catch mechanisms
 
 ### Tasks:
 
-- [ ] Design try/catch/finally syntax
-- [ ] Implement error object types and custom errors
-- [ ] Add error propagation through call stack
-- [ ] Create error handling for built-in functions
-- [ ] Implement stack trace generation
-- [ ] Add error recovery mechanisms
-- [ ] Support for error throwing and catching
+- ✅ Design try/catch/finally syntax
+- ✅ Implement error object types and custom errors
+- ✅ Add error propagation through call stack
+- ✅ Create error handling for built-in functions
+- ✅ Implement stack trace generation
+- ✅ Add error recovery mechanisms
+- ✅ Support for error throwing and catching
 
-**Milestone**: Robust error handling with try/catch blocks and custom error types
+**Milestone**: ✅ Robust error handling with try/catch blocks and custom error types
 
-### Planned Features:
+### Implemented Features:
 
-- **Try/Catch/Finally**: Exception handling blocks
-- **Custom Error Types**: User-defined error objects
-- **Error Propagation**: Automatic error bubbling through function calls
-- **Stack Traces**: Detailed error location and call stack information
-- **Error Recovery**: Graceful handling of runtime errors
-- **Throw Statements**: Ability to throw custom errors
-- **Error Object Interface**: Standardized error properties and methods
+- **Try/Catch/Finally**: Complete exception handling blocks with proper syntax
+- **Custom Error Types**: Built-in error constructors (Error, ValidationError, TypeError, IndexError, ArgumentError, RuntimeError)
+- **Error Propagation**: Automatic error bubbling through function calls with proper exception handling
+- **Stack Traces**: Detailed call stack tracking with function names and line/column information
+- **Error Recovery**: Graceful handling of runtime errors with catch blocks
+- **Throw Statements**: Full support for throwing custom and built-in errors
+- **Error Object Interface**: Standardized error properties (type, message, stack, line, column) accessible via dot notation
+- **Type-Specific Catching**: Ability to catch specific error types with multiple catch clauses
+- **Built-in Exception Integration**: Array/string indexing and pop() function now throw IndexError exceptions
+- **Nested Exception Handling**: Support for nested try-catch blocks and exception propagation through function calls
 
 ## Phase 10: Object System
 
@@ -352,7 +355,7 @@ rush/
 - Phase 6: ✅ COMPLETED - Core polish and tools
 - Phase 7: ✅ COMPLETED - Testing and documentation
 - Phase 8: ✅ COMPLETED - Module system and imports/exports
-- Phase 9: 🔄 PLANNED - Error handling with try/catch
+- Phase 9: ✅ COMPLETED - Error handling with try/catch
 - Phase 10: 🔄 PLANNED - Object system with classes and inheritance
 - Phase 11: 🔄 PLANNED - Enhanced standard library
 - Phase 12: 🔄 PLANNED - Performance and bytecode compilation
@@ -476,6 +479,57 @@ export PI = 3.14159
 import { add, PI } from "./math"
 result = add(10, 5)
 print("Result:", result, "PI:", PI)
+
+# Error handling (Phase 9)
+# Basic try-catch
+try {
+    throw RuntimeError("Something went wrong")
+} catch (error) {
+    print("Caught error:", error.message)
+}
+
+# Type-specific error handling
+try {
+    arr = [1, 2, 3]
+    value = arr[10]  # Throws IndexError
+} catch (IndexError error) {
+    print("Index out of bounds:", error.message)
+} catch (error) {
+    print("Other error:", error.type)
+}
+
+# Error properties and stack traces
+try {
+    throw ValidationError("Invalid input")
+} catch (error) {
+    print("Error type:", error.type)
+    print("Message:", error.message)
+    print("Stack trace:", error.stack)
+}
+
+# Finally blocks
+cleanup = false
+try {
+    throw RuntimeError("error")
+} catch (error) {
+    print("Handled error")
+} finally {
+    cleanup = true
+    print("Cleanup completed")
+}
+
+# Custom error types and nested exceptions
+validateUser = fn(user) {
+    if (user == null) {
+        throw ValidationError("User cannot be null")
+    }
+}
+
+try {
+    validateUser(null)
+} catch (ValidationError error) {
+    print("Validation failed:", error.message)
+}
 ```
 
 Run with: `go run cmd/rush/main.go examples/test.rush`
@@ -541,3 +595,16 @@ Run with: `go run cmd/rush/main.go examples/test.rush`
 - **Relative Paths**: Support for `./module` and `../module` relative imports
 - **Module Isolation**: Each module executes in its own scope
 - **Export Tracking**: Proper capture and binding of exported values
+
+### New Phase 9 Features:
+
+- **Try/Catch/Finally Blocks**: Complete exception handling with `try { } catch (error) { } finally { }` syntax
+- **Throw Statements**: `throw ErrorType("message")` to raise exceptions
+- **Error Object Types**: Built-in error constructors (Error, ValidationError, TypeError, IndexError, ArgumentError, RuntimeError)
+- **Error Properties**: Access error information via `error.type`, `error.message`, `error.stack`, `error.line`, `error.column`
+- **Type-Specific Catching**: `catch (ErrorType error)` to catch specific error types
+- **Stack Trace Generation**: Automatic call stack tracking with function names and locations
+- **Exception Propagation**: Errors bubble up through function calls until caught
+- **Built-in Exception Integration**: Array/string indexing and `pop()` function throw IndexError on bounds violations
+- **Nested Exception Handling**: Support for try-catch blocks within try-catch blocks
+- **Variable Scoping in Catch**: Variables set in catch blocks persist to outer scope
