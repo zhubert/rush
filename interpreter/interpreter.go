@@ -54,6 +54,37 @@ func Eval(node ast.Node, env *Environment) Value {
 		if isError(left) {
 			return left
 		}
+		
+		// Handle short-circuit evaluation for boolean operators
+		if node.Operator == "&&" {
+			if !IsTruthy(left) {
+				return FALSE
+			}
+			right := Eval(node.Right, env)
+			if isError(right) {
+				return right
+			}
+			if !IsTruthy(right) {
+				return FALSE
+			}
+			return TRUE
+		}
+		
+		if node.Operator == "||" {
+			if IsTruthy(left) {
+				return TRUE
+			}
+			right := Eval(node.Right, env)
+			if isError(right) {
+				return right
+			}
+			if IsTruthy(right) {
+				return TRUE
+			}
+			return FALSE
+		}
+		
+		// For all other operators, evaluate right side normally
 		right := Eval(node.Right, env)
 		if isError(right) {
 			return right
@@ -751,6 +782,11 @@ func evalModuleAccess(node *ast.ModuleAccess, env *Environment) Value {
 
 // evalPropertyAccess handles property access like "object.property"
 func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
+	// Check for nil property
+	if node.Property == nil {
+		return newError("property name is missing in property access")
+	}
+	
 	// Evaluate the object expression
 	object := Eval(node.Object, env)
 	
@@ -850,11 +886,14 @@ func evalTryStatement(node *ast.TryStatement, env *Environment) Value {
 		for _, catchClause := range node.CatchClauses {
 			// Check if this catch clause matches the error type
 			if shouldCatchError(exception.Error, catchClause) {
-				// Bind the error variable in the current environment
-				env.Set(catchClause.ErrorVar.Value, exception.Error)
+				// Create a new environment for the catch block to shadow variables
+				catchEnv := NewEnclosedEnvironment(env)
 				
-				// Execute the catch block in the current environment
-				catchResult := evalBlockStatement(catchClause.Body, env)
+				// Bind the error variable in the catch environment (force local shadowing)
+				catchEnv.SetLocal(catchClause.ErrorVar.Value, exception.Error)
+				
+				// Execute the catch block in the new environment
+				catchResult := evalBlockStatement(catchClause.Body, catchEnv)
 				
 				// If catch block throws another exception, propagate it
 				if ex, ok := catchResult.(*Exception); ok {

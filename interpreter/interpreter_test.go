@@ -504,13 +504,23 @@ func testFloatObject(t *testing.T, obj Value, expected float64) bool {
     t.Errorf("object is not Float. got=%T (%+v)", obj, obj)
     return false
   }
-  if result.Value != expected {
+  
+  // Use tolerance-based comparison for floating-point numbers
+  tolerance := 1e-9
+  if abs(result.Value - expected) > tolerance {
     t.Errorf("object has wrong value. got=%f, want=%f",
       result.Value, expected)
     return false
   }
 
   return true
+}
+
+func abs(x float64) float64 {
+  if x < 0 {
+    return -x
+  }
+  return x
 }
 
 func testBooleanObject(t *testing.T, obj Value, expected bool) bool {
@@ -1245,12 +1255,14 @@ func TestComplexBooleanExpressions(t *testing.T) {
     
     // Nested parentheses
     {"((5 > 3) && (10 < 20)) || ((2 > 5) && (1 < 0))", true},
-    {"((5 < 3) || (10 > 20)) && ((2 < 5) || (1 > 0))", true},
+    {"((5 < 3) || (10 > 20)) && ((2 < 5) || (1 > 0))", false},
   }
 
   for _, tt := range tests {
     evaluated := testEval(tt.input)
-    testBooleanObject(t, evaluated, tt.expected)
+    if !testBooleanObject(t, evaluated, tt.expected) {
+      t.Errorf("Test failed for input: %s", tt.input)
+    }
   }
 }
 

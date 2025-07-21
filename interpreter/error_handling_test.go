@@ -365,11 +365,7 @@ try {
 }
 
 # Check all properties are accessible and correct
-(properties[0] == "TypeError") &&
-(properties[1] == "complex error") &&
-(properties[2] == true) &&
-(properties[3] == true) &&
-(properties[4] == true)
+(properties[0] == "TypeError") && (properties[1] == "complex error") && (properties[2] == true) && (properties[3] == true) && (properties[4] == true)
 `
   
   evaluated := testEval(input)

@@ -76,7 +76,31 @@ func (e *Environment) Get(name string) (Value, bool) {
 }
 
 // Set stores a value in the environment
+// If the variable exists in an outer scope, it updates it there
+// Otherwise, it creates a new variable in the current scope
 func (e *Environment) Set(name string, val Value) Value {
+	// Check if the variable exists in the current environment
+	if _, exists := e.store[name]; exists {
+		e.store[name] = val
+		return val
+	}
+	
+	// Check if the variable exists in outer environments
+	if e.outer != nil {
+		if _, exists := e.outer.Get(name); exists {
+			// Update the variable in the outer environment
+			return e.outer.Set(name, val)
+		}
+	}
+	
+	// Variable doesn't exist anywhere, create it in current scope
+	e.store[name] = val
+	return val
+}
+
+// SetLocal always creates/updates a variable in the current environment only
+// This is used for variable shadowing (like catch variables)
+func (e *Environment) SetLocal(name string, val Value) Value {
 	e.store[name] = val
 	return val
 }
