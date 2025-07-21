@@ -79,6 +79,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(lexer.IF, p.parseIfExpression)
 	p.registerPrefix(lexer.FN, p.parseFunctionLiteral)
+	p.registerPrefix(lexer.INSTANCE_VAR, p.parseInstanceVariable)
 
 	// Initialize infix parse functions
 	p.infixParseFns = make(map[lexer.TokenType]infixParseFn)
@@ -163,10 +164,16 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseTryStatement()
 	case lexer.THROW:
 		return p.parseThrowStatement()
+	case lexer.CLASS:
+		return p.parseClassDeclaration()
 	default:
 		// Check if this is an assignment statement (identifier followed by =)
 		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
 			return p.parseAssignmentStatement()
+		}
+		// Check if this is an instance variable assignment (@var = value)
+		if p.curToken.Type == lexer.INSTANCE_VAR {
+			return p.parseInstanceVariableAssignment()
 		}
 		// Otherwise, parse as expression statement
 		return p.parseExpressionStatement()
@@ -713,18 +720,38 @@ func (p *Parser) parseModuleAccess(left ast.Expression) ast.Expression {
 	return moduleAccess
 }
 
-// parsePropertyAccess parses property access like "object.property"
+// parsePropertyAccess parses property access like "object.property" or class instantiation like "ClassName.new()"
 func (p *Parser) parsePropertyAccess(left ast.Expression) ast.Expression {
-	propertyAccess := &ast.PropertyAccess{
-		Token:  p.curToken, // the '.' token
-		Object: left,       // any expression can be on the left
-	}
+	dotToken := p.curToken // store the '.' token
 
 	if !p.expectPeek(lexer.IDENT) {
 		return nil
 	}
 
-	propertyAccess.Property = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	propertyName := p.curToken.Literal
+
+	// Check if this is a "new" method call for class instantiation
+	if propertyName == "new" && p.peekToken.Type == lexer.LPAREN {
+		// This is class instantiation like "ClassName.new()"
+		if className, ok := left.(*ast.Identifier); ok {
+			newExpr := &ast.NewExpression{
+				Token:     dotToken,
+				ClassName: className,
+			}
+
+			// Parse the arguments
+			p.nextToken() // move to '('
+			newExpr.Arguments = p.parseExpressionList(lexer.RPAREN)
+			return newExpr
+		}
+	}
+
+	// Regular property access
+	propertyAccess := &ast.PropertyAccess{
+		Token:  dotToken,
+		Object: left,
+		Property: &ast.Identifier{Token: p.curToken, Value: propertyName},
+	}
 
 	return propertyAccess
 }
@@ -823,3 +850,138 @@ func (p *Parser) parseCatchClause() *ast.CatchClause {
 
 	return clause
 }
+
+// parseClassDeclaration parses class declarations like "class ClassName < SuperClass { methods... }"
+func (p *Parser) parseClassDeclaration() ast.Statement {
+  stmt := &ast.ClassDeclaration{Token: p.curToken}
+
+  if !p.expectPeek(lexer.IDENT) {
+    return nil
+  }
+
+  stmt.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+
+  // Check for inheritance (optional)
+  if p.peekToken.Type == lexer.LT {
+    p.nextToken() // consume '<'
+    if !p.expectPeek(lexer.IDENT) {
+      return nil
+    }
+    stmt.SuperClass = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+  }
+
+  if !p.expectPeek(lexer.LBRACE) {
+    return nil
+  }
+
+  stmt.Body = p.parseClassBody()
+  return stmt
+}
+
+// parseClassBody parses class body with special handling for method declarations
+func (p *Parser) parseClassBody() *ast.BlockStatement {
+  block := &ast.BlockStatement{Token: p.curToken}
+  block.Statements = []ast.Statement{}
+
+  p.nextToken()
+
+  for p.curToken.Type != lexer.RBRACE && p.curToken.Type != lexer.EOF {
+    // Skip comments and newlines
+    if p.curToken.Type == lexer.COMMENT || p.curToken.Type == lexer.SEMICOLON {
+      p.nextToken()
+      continue
+    }
+
+    var stmt ast.Statement
+    
+    // Handle fn as method declarations within class body
+    if p.curToken.Type == lexer.FN {
+      stmt = p.parseMethodDeclaration()
+    } else {
+      // Parse other statements normally
+      stmt = p.parseStatement()
+    }
+    
+    if stmt != nil {
+      block.Statements = append(block.Statements, stmt)
+    }
+    p.nextToken()
+  }
+
+  return block
+}
+
+// parseInstanceVariable parses instance variables like "@variable"
+func (p *Parser) parseInstanceVariable() ast.Expression {
+  inst := &ast.InstanceVariable{Token: p.curToken}
+
+  if !p.expectPeek(lexer.IDENT) {
+    return nil
+  }
+
+  inst.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+  return inst
+}
+
+// parseMethodDeclaration parses method declarations like "fn methodName() { body }"
+func (p *Parser) parseMethodDeclaration() ast.Statement {
+  method := &ast.MethodDeclaration{Token: p.curToken}
+
+  // Method name can be IDENT or INITIALIZE keyword
+  if p.curToken.Type != lexer.FN {
+    return nil
+  }
+  
+  p.nextToken() // Move past 'fn'
+  
+  if p.curToken.Type == lexer.IDENT || p.curToken.Type == lexer.INITIALIZE {
+    method.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+  } else {
+    return nil
+  }
+
+  if !p.expectPeek(lexer.LPAREN) {
+    return nil
+  }
+
+  method.Parameters = p.parseFunctionParameters()
+
+  if !p.expectPeek(lexer.LBRACE) {
+    return nil
+  }
+
+  method.Body = p.parseBlockStatement()
+
+  return method
+}
+
+// parseInstanceVariableAssignment parses instance variable assignments like "@name = value"
+func (p *Parser) parseInstanceVariableAssignment() ast.Statement {
+  stmt := &ast.AssignmentStatement{Token: p.curToken}
+
+  // Create an instance variable expression for the left side
+  instVar := &ast.InstanceVariable{Token: p.curToken}
+
+  if !p.expectPeek(lexer.IDENT) {
+    return nil
+  }
+
+  instVar.Name = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+  stmt.Name = &ast.Identifier{Token: p.curToken, Value: "@" + p.curToken.Literal}
+
+  if !p.expectPeek(lexer.ASSIGN) {
+    return nil
+  }
+
+  p.nextToken()
+  stmt.Value = p.parseExpression(LOWEST)
+
+  if p.peekToken.Type == lexer.SEMICOLON {
+    p.nextToken()
+  }
+
+  return stmt
+}
+
+// parseNewExpression is handled by parsePropertyAccess when it encounters "ClassName.new"
+// This is called from the property access parsing when we see ".new("

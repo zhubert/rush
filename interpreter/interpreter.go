@@ -20,6 +20,21 @@ func Eval(node ast.Node, env *Environment) Value {
 		if isError(val) {
 			return val
 		}
+		
+		// Check if this is an instance variable assignment (@variable)
+		if len(node.Name.Value) > 0 && node.Name.Value[0] == '@' {
+			// Look for the current object (self) in the environment
+			if self, exists := env.Get("self"); exists {
+				if obj, ok := self.(*Object); ok {
+					// Remove @ prefix for storage in instance variables
+					varName := node.Name.Value[1:]
+					obj.InstanceVars[varName] = val
+					return val
+				}
+			}
+			return newError("instance variable %s used outside of object context", node.Name.Value)
+		}
+		
 		env.Set(node.Name.Value, val)
 		return val
 	
@@ -110,6 +125,47 @@ func Eval(node ast.Node, env *Environment) Value {
 		return &Function{Parameters: params, Env: env, Body: body}
 	
 	case *ast.CallExpression:
+		// Check if this is a method call (object.method())
+		if propAccess, ok := node.Function.(*ast.PropertyAccess); ok {
+			// Evaluate the object
+			object := Eval(propAccess.Object, env)
+			if isError(object) {
+				return object
+			}
+			
+			// Check if object is an instance with methods
+			if obj, ok := object.(*Object); ok {
+				methodName := propAccess.Property.Value
+				if method, exists := obj.Class.Methods[methodName]; exists {
+					// Set up method call environment with 'self' and parameters
+					methodEnv := NewEnclosedEnvironment(method.Env)
+					methodEnv.Set("self", obj)
+					
+					// Evaluate arguments
+					args := evalExpressions(node.Arguments, env)
+					if len(args) == 1 && isError(args[0]) {
+						return args[0]
+					}
+					
+					// Check argument count
+					if len(args) != len(method.Parameters) {
+						return newError("wrong number of arguments: want=%d, got=%d", len(method.Parameters), len(args))
+					}
+					
+					// Set up parameters in method environment
+					for paramIdx, param := range method.Parameters {
+						methodEnv.Set(param.Value, args[paramIdx])
+					}
+					
+					// Evaluate method body with proper environment
+					result := Eval(method.Body, methodEnv)
+					return unwrapReturnValue(result)
+				}
+				return newError("undefined method %s for class %s", methodName, obj.Class.Name)
+			}
+		}
+		
+		// Regular function call
 		function := Eval(node.Function, env)
 		if isError(function) {
 			return function
@@ -161,6 +217,15 @@ func Eval(node ast.Node, env *Environment) Value {
 	
 	case *ast.ThrowStatement:
 		return evalThrowStatement(node, env)
+	
+	case *ast.ClassDeclaration:
+		return evalClassDeclaration(node, env)
+	
+	case *ast.InstanceVariable:
+		return evalInstanceVariable(node, env)
+	
+	case *ast.NewExpression:
+		return evalNewExpression(node, env)
 	
 	default:
 		return newError("unknown node type: %T", node)
@@ -800,6 +865,17 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		return object
 	}
 	
+	// Check if it's an object instance and return method
+	if obj, ok := object.(*Object); ok {
+		methodName := node.Property.Value
+		if method, exists := obj.Class.Methods[methodName]; exists {
+			// Return a bound method (for now, just return the function)
+			// In a full implementation, we'd create a bound method that includes 'self'
+			return method
+		}
+		return newError("undefined method %s for class %s", methodName, obj.Class.Name)
+	}
+	
 	// For other objects, try module access (backward compatibility)
 	if ident, ok := node.Object.(*ast.Identifier); ok {
 		// This looks like module.member access
@@ -946,4 +1022,117 @@ func shouldCatchError(error Value, catchClause *ast.CatchClause) bool {
 	}
 	
 	return false
+}
+
+// evalClassDeclaration evaluates class declarations
+func evalClassDeclaration(node *ast.ClassDeclaration, env *Environment) Value {
+  class := &Class{
+    Name:    node.Name.Value,
+    Methods: make(map[string]*Function),
+    Env:     NewEnclosedEnvironment(env),
+  }
+
+  // Handle inheritance
+  if node.SuperClass != nil {
+    superVal := Eval(node.SuperClass, env)
+    if isError(superVal) {
+      return superVal
+    }
+    if superClass, ok := superVal.(*Class); ok {
+      class.SuperClass = superClass
+    } else {
+      return newError("super class must be a class, got %T", superVal)
+    }
+  }
+
+  // Parse methods from the class body
+  if node.Body != nil {
+    for _, stmt := range node.Body.Statements {
+      if method, ok := stmt.(*ast.MethodDeclaration); ok {
+        methodFunc := &Function{
+          Parameters: method.Parameters,
+          Body:       method.Body,
+          Env:        class.Env,
+        }
+        class.Methods[method.Name.Value] = methodFunc
+      }
+    }
+  }
+
+  // Store the class in the environment
+  env.Set(node.Name.Value, class)
+  return class
+}
+
+// evalInstanceVariable evaluates instance variable access like "@variable"
+func evalInstanceVariable(node *ast.InstanceVariable, env *Environment) Value {
+  // Look for the current object (self) in the environment
+  if self, exists := env.Get("self"); exists {
+    if obj, ok := self.(*Object); ok {
+      if value, exists := obj.InstanceVars[node.Name.Value]; exists {
+        return value
+      }
+      return NULL // Instance variable not set yet
+    }
+  }
+  return newError("instance variable %s used outside of object context", node.Name.Value)
+}
+
+// evalNewExpression evaluates object instantiation like "ClassName.new()"
+func evalNewExpression(node *ast.NewExpression, env *Environment) Value {
+  // Get the class
+  classVal := Eval(node.ClassName, env)
+  if isError(classVal) {
+    return classVal
+  }
+
+  class, ok := classVal.(*Class)
+  if !ok {
+    return newError("not a class: %T", classVal)
+  }
+
+  // Create new object instance
+  obj := &Object{
+    Class:        class,
+    InstanceVars: make(map[string]Value),
+    Env:          NewEnclosedEnvironment(class.Env),
+  }
+
+  // Set self in the object's environment
+  obj.Env.Set("self", obj)
+
+  // Call initialize method if it exists
+  if initMethod, exists := class.Methods["initialize"]; exists {
+    // Evaluate arguments
+    args := []Value{}
+    for _, arg := range node.Arguments {
+      evaluated := Eval(arg, env)
+      if isError(evaluated) {
+        return evaluated
+      }
+      args = append(args, evaluated)
+    }
+
+    // Set up method call environment with 'self' and parameters
+    initEnv := NewEnclosedEnvironment(initMethod.Env)
+    initEnv.Set("self", obj)
+    
+    // Check argument count
+    if len(args) != len(initMethod.Parameters) {
+      return newError("wrong number of arguments for initialize: want=%d, got=%d", len(initMethod.Parameters), len(args))
+    }
+    
+    // Set up parameters in method environment
+    for paramIdx, param := range initMethod.Parameters {
+      initEnv.Set(param.Value, args[paramIdx])
+    }
+    
+    // Evaluate method body with proper environment
+    result := Eval(initMethod.Body, initEnv)
+    if isError(result) {
+      return result
+    }
+  }
+
+  return obj
 }

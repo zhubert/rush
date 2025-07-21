@@ -201,6 +201,8 @@ func (l *Lexer) NextToken() Token {
 		tok.Literal = l.readString()
 		tok.Line = line
 		tok.Column = column
+	case '@':
+		tok = newToken(INSTANCE_VAR, l.ch, line, column)
 	case '#':
 		tok.Type = COMMENT
 		tok.Literal = l.readComment()

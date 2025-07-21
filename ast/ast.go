@@ -502,3 +502,89 @@ func (ts *TryStatement) String() string {
 	
 	return out.String()
 }
+
+// ClassDeclaration represents class definitions like "class ClassName { methods... }"
+type ClassDeclaration struct {
+  Token      lexer.Token // the 'class' token
+  Name       *Identifier
+  SuperClass *Identifier     // optional superclass (can be nil)
+  Methods    []*MethodDeclaration
+  Body       *BlockStatement // class body containing methods and instance variables
+}
+
+func (cd *ClassDeclaration) statementNode()       {}
+func (cd *ClassDeclaration) TokenLiteral() string { return cd.Token.Literal }
+func (cd *ClassDeclaration) String() string {
+  var out bytes.Buffer
+  out.WriteString("class ")
+  out.WriteString(cd.Name.String())
+  if cd.SuperClass != nil {
+    out.WriteString(" < ")
+    out.WriteString(cd.SuperClass.String())
+  }
+  out.WriteString(" ")
+  out.WriteString(cd.Body.String())
+  return out.String()
+}
+
+// MethodDeclaration represents method definitions like "fn methodName() { body }"
+type MethodDeclaration struct {
+  Token      lexer.Token // the 'fn' token
+  Name       *Identifier
+  Parameters []*Identifier
+  Body       *BlockStatement
+}
+
+func (md *MethodDeclaration) statementNode()       {}
+func (md *MethodDeclaration) TokenLiteral() string { return md.Token.Literal }
+func (md *MethodDeclaration) String() string {
+  var out bytes.Buffer
+  params := []string{}
+  for _, p := range md.Parameters {
+    params = append(params, p.String())
+  }
+  out.WriteString("fn ")
+  out.WriteString(md.Name.String())
+  out.WriteString("(")
+  out.WriteString(strings.Join(params, ", "))
+  out.WriteString(") ")
+  out.WriteString(md.Body.String())
+  return out.String()
+}
+
+// InstanceVariable represents instance variables like "@variable"
+type InstanceVariable struct {
+  Token lexer.Token // the '@' token
+  Name  *Identifier
+}
+
+func (iv *InstanceVariable) expressionNode()      {}
+func (iv *InstanceVariable) TokenLiteral() string { return iv.Token.Literal }
+func (iv *InstanceVariable) String() string {
+  var out bytes.Buffer
+  out.WriteString("@")
+  out.WriteString(iv.Name.String())
+  return out.String()
+}
+
+// NewExpression represents object instantiation like "ClassName.new()"
+type NewExpression struct {
+  Token     lexer.Token  // the identifier token (class name)
+  ClassName *Identifier
+  Arguments []Expression
+}
+
+func (ne *NewExpression) expressionNode()      {}
+func (ne *NewExpression) TokenLiteral() string { return ne.Token.Literal }
+func (ne *NewExpression) String() string {
+  var out bytes.Buffer
+  args := []string{}
+  for _, a := range ne.Arguments {
+    args = append(args, a.String())
+  }
+  out.WriteString(ne.ClassName.String())
+  out.WriteString(".new(")
+  out.WriteString(strings.Join(args, ", "))
+  out.WriteString(")")
+  return out.String()
+}

@@ -58,6 +58,9 @@ const (
 	CATCH   // catch
 	FINALLY // finally
 	THROW   // throw
+	CLASS   // class
+	INITIALIZE // initialize
+	INSTANCE_VAR // @
 )
 
 // Token represents a single token
@@ -115,6 +118,9 @@ var tokenTypeNames = map[TokenType]string{
 	CATCH:     "catch",
 	FINALLY:   "finally",
 	THROW:     "throw",
+	CLASS:     "class",
+	INITIALIZE: "initialize",
+	INSTANCE_VAR: "@",
 }
 
 // String returns the string representation of a token type
@@ -140,6 +146,8 @@ var keywords = map[string]TokenType{
 	"catch":   CATCH,
 	"finally": FINALLY,
 	"throw":   THROW,
+	"class":   CLASS,
+	"initialize": INITIALIZE,
 	"true":    TRUE,
 	"false":   FALSE,
 }

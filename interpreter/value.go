@@ -21,6 +21,8 @@ const (
 	BUILTIN_VALUE   ValueType = "BUILTIN"
 	RETURN_VALUE    ValueType = "RETURN_VALUE"
 	EXCEPTION_VALUE ValueType = "EXCEPTION"
+	CLASS_VALUE     ValueType = "CLASS"
+	OBJECT_VALUE    ValueType = "OBJECT"
 )
 
 // Value represents a value in the Rush language
@@ -120,6 +122,27 @@ type Exception struct {
 
 func (ex *Exception) Type() ValueType { return EXCEPTION_VALUE }
 func (ex *Exception) Inspect() string { return ex.Error.Inspect() }
+
+// Class represents a class definition
+type Class struct {
+  Name       string
+  SuperClass *Class
+  Methods    map[string]*Function
+  Env        *Environment
+}
+
+func (c *Class) Type() ValueType { return CLASS_VALUE }
+func (c *Class) Inspect() string { return fmt.Sprintf("class %s", c.Name) }
+
+// Object represents an instance of a class
+type Object struct {
+  Class            *Class
+  InstanceVars     map[string]Value
+  Env              *Environment
+}
+
+func (o *Object) Type() ValueType { return OBJECT_VALUE }
+func (o *Object) Inspect() string { return fmt.Sprintf("#<%s:0x%p>", o.Class.Name, o) }
 
 // IsTruthy returns whether a value is considered truthy
 func IsTruthy(val Value) bool {
