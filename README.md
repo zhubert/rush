@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-9%20complete%2C%2010--13%20planned-blue)](#phases)
+[![Phase](https://img.shields.io/badge/phase-11%20in%20progress-blue)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -124,6 +124,10 @@ while (i < 10) {
 for (j = 0; j < 5; j = j + 1) {
   print("Count: " + type(j))
 }
+
+# Modulo operator
+remainder = 10 % 3        # 1
+even = (number % 2) == 0  # Check if even
 ```
 
 ### Arrays and Strings
@@ -131,6 +135,7 @@ for (j = 0; j < 5; j = j + 1) {
 # Array operations
 numbers = [1, 2, 3, 4, 5]
 first = numbers[0]              # Array indexing
+numbers[0] = 99                 # Array assignment
 length = len(numbers)           # Get length
 extended = push(numbers, 6)     # Add element
 subset = slice(numbers, 1, 4)   # Get slice
@@ -164,14 +169,15 @@ import { PI, sin, cos, sqrt } from "std/math"
 print("π =", PI)
 print("sin(π/2) =", sin(PI / 2))
 
-# Import array utilities
+# Import array utilities (available in Phase 11)
 import { map, filter, reduce } from "std/array" 
 numbers = [1, 2, 3, 4, 5]
 doubled = map(numbers, fn(x) { return x * 2 })
 
-# Import string utilities  
-import { trim, upper, lower } from "std/string"
+# Import string utilities (available now)
+import { trim, upper, lower, contains, replace } from "std/string"
 text = trim("  hello world  ")
+uppercase = upper(text)
 ```
 
 ### Error Handling
@@ -207,6 +213,8 @@ throw RuntimeError("Something went wrong")
 ### Utility Functions
 - `len(collection)` - Get length of array or string
 - `type(value)` - Get type of value as string
+- `ord(char)` - Get ASCII code of character
+- `chr(code)` - Get character from ASCII code
 
 ### String Functions
 - `substr(string, start, length)` - Extract substring
@@ -268,6 +276,10 @@ filter_evens = fn(arr) {
 numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 evens = filter_evens(numbers)
 print("Even numbers:", evens)
+
+# Array assignment example
+evens[0] = 999          # Modify first element
+print("Modified:", evens)
 ```
 
 ### More Examples
@@ -349,10 +361,10 @@ Rush was developed through a systematic phased approach:
 ### Advanced Features (In Progress)
 - **✅ Phase 8**: Module System - Import/export functionality
 - **✅ Phase 9**: Error Handling - Try/catch/finally/throw mechanisms
-- **🔄 Phase 10**: Object System - Classes and inheritance
-- **🔄 Phase 11**: Enhanced Standard Library - File I/O, JSON, regex
-- **🔄 Phase 12**: Performance & Compilation - Bytecode optimization
-- **🔄 Phase 13**: Developer Tooling - Debugger, language server, IDE integration
+- **✅ Phase 10**: Object System - Classes, inheritance, and method enhancements
+- **🔄 Phase 11**: Enhanced Standard Library - String/array/math modules, JSON, file I/O
+- **🔄 Phase 12**: Performance & Compilation - Bytecode optimization, JIT compilation
+- **🔄 Phase 13**: Developer Tooling - Language server, debugger, IDE integration
 
 **📋 Development Tracking**: Phases under development are tracked in the [Initial Development GitHub Project](https://github.com/users/zhubert/projects/1).
 
