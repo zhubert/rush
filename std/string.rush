@@ -4,7 +4,7 @@
 # Native functions substr and split are automatically injected by the interpreter
 
 # Helper function to check if a character is whitespace
-export is_whitespace_char = fn(char) {
+export is_whitespace_char? = fn(char) {
   return (char == " ") || (char == "\t") || (char == "\n") || (char == "\r")
 }
 
@@ -20,7 +20,7 @@ export ltrim = fn(s) {
   
   # Find first non-whitespace position
   start = 0
-  while (start < len(s) && is_whitespace_char(substr(s, start, 1))) {
+  while (start < len(s) && is_whitespace_char?(substr(s, start, 1))) {
     start = start + 1
   }
   
@@ -39,7 +39,7 @@ export rtrim = fn(s) {
   
   # Find last non-whitespace position
   end = len(s) - 1
-  while (end >= 0 && is_whitespace_char(substr(s, end, 1))) {
+  while (end >= 0 && is_whitespace_char?(substr(s, end, 1))) {
     end = end - 1
   }
   
@@ -105,7 +105,7 @@ export length = fn(s) {
   return len(s)
 }
 
-export contains = fn(s, search) {
+export contains? = fn(s, search) {
   if (len(search) == 0) {
     return true
   }
@@ -180,7 +180,7 @@ export replace = fn(s, old, new) {
   return result
 }
 
-export starts_with = fn(s, prefix) {
+export starts_with? = fn(s, prefix) {
   if (len(prefix) == 0) {
     return true
   }
@@ -201,7 +201,7 @@ export starts_with = fn(s, prefix) {
   return true
 }
 
-export ends_with = fn(s, suffix) {
+export ends_with? = fn(s, suffix) {
   if (len(suffix) == 0) {
     return true
   }
