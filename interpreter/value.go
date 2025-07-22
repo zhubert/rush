@@ -23,6 +23,7 @@ const (
 	EXCEPTION_VALUE ValueType = "EXCEPTION"
 	CLASS_VALUE     ValueType = "CLASS"
 	INSTANCE_VALUE  ValueType = "INSTANCE"
+	BOUND_METHOD_VALUE ValueType = "BOUND_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -143,6 +144,17 @@ type Object struct {
 
 func (o *Object) Type() ValueType { return INSTANCE_VALUE }
 func (o *Object) Inspect() string { return fmt.Sprintf("#<%s:0x%p>", o.Class.Name, o) }
+
+// BoundMethod represents a method bound to a specific object instance
+type BoundMethod struct {
+  Method *Function
+  Instance *Object
+}
+
+func (bm *BoundMethod) Type() ValueType { return BOUND_METHOD_VALUE }
+func (bm *BoundMethod) Inspect() string { 
+  return fmt.Sprintf("#<BoundMethod:0x%p>", bm) 
+}
 
 // IsTruthy returns whether a value is considered truthy
 func IsTruthy(val Value) bool {

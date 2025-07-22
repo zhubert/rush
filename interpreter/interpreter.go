@@ -607,6 +607,38 @@ func applyFunction(fn Value, args []Value, callNode *ast.CallExpression, env *En
 	}
 	
 	switch fn := fn.(type) {
+	case *BoundMethod:
+		// Handle bound method calls
+		if len(args) != len(fn.Method.Parameters) {
+			return newError("wrong number of arguments: want=%d, got=%d", len(fn.Method.Parameters), len(args))
+		}
+		
+		// Set up method call environment with 'self' and parameters
+		methodEnv := NewEnclosedEnvironment(fn.Method.Env)
+		methodEnv.Set("self", fn.Instance)
+		
+		// Inherit the call stack
+		methodEnv.callStack = env.callStack
+		
+		// Push method call onto stack
+		methodName := functionName
+		if methodName == "<anonymous>" {
+			methodName = "<method>"
+		}
+		env.PushCall(methodName, callNode.Token.Line, callNode.Token.Column)
+		
+		// Set up parameters in method environment
+		for paramIdx, param := range fn.Method.Parameters {
+			methodEnv.Set(param.Value, args[paramIdx])
+		}
+		
+		// Evaluate method body with proper environment
+		result := Eval(fn.Method.Body, methodEnv)
+		
+		// Pop method call from stack
+		env.PopCall()
+		
+		return unwrapReturnValue(result)
 	case *Function:
 		if len(args) != len(fn.Parameters) {
 			return newError("wrong number of arguments: want=%d, got=%d", len(fn.Parameters), len(args))
@@ -869,13 +901,15 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		return object
 	}
 	
-	// Check if it's an object instance and return method
+	// Check if it's an object instance and return bound method
 	if obj, ok := object.(*Object); ok {
 		methodName := node.Property.Value
-		if method, exists := obj.Class.Methods[methodName]; exists {
-			// Return a bound method (for now, just return the function)
-			// In a full implementation, we'd create a bound method that includes 'self'
-			return method
+		if method := resolveMethod(obj.Class, methodName); method != nil {
+			// Return a bound method that includes 'self'
+			return &BoundMethod{
+				Method:   method,
+				Instance: obj,
+			}
 		}
 		return newError("undefined method %s for class %s", methodName, obj.Class.Name)
 	}
