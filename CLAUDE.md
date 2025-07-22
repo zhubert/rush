@@ -7,6 +7,7 @@
 - Test new operators, built-in functions, and syntax additions thoroughly.
 - Run `go test ./...` before committing changes.
 - Whenever we begin work on a new phase of development, always create a new git branch.
+- Always reference the related Github Issue in a Github Pull Request
 
 ## Project Planning & Tracking
 
