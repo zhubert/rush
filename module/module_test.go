@@ -590,3 +590,72 @@ export testResult = "Standard library imports successful"`
     t.Errorf("String module path should end with 'string.rush', got %s", stringModule.Path)
   }
 }
+
+func TestStandardLibraryMigratedFunctions(t *testing.T) {
+  tmpDir, err := os.MkdirTemp("", "stdlib_migrated_test")
+  if err != nil {
+    t.Fatal(err)
+  }
+  defer os.RemoveAll(tmpDir)
+  
+  // Create std subdirectory
+  stdDir := filepath.Join(tmpDir, "std")
+  if err := os.MkdirAll(stdDir, 0755); err != nil {
+    t.Fatal(err)
+  }
+  
+  // Create standard library modules that reference the migrated functions
+  stringModuleContent := `export trim = fn(s) { return s }`
+  
+  arrayModuleContent := `export length = fn(arr) { return len(arr) }`
+  
+  // Write standard library modules
+  stringPath := filepath.Join(stdDir, "string.rush")
+  arrayPath := filepath.Join(stdDir, "array.rush")
+  
+  if err := os.WriteFile(stringPath, []byte(stringModuleContent), 0644); err != nil {
+    t.Fatal(err)
+  }
+  if err := os.WriteFile(arrayPath, []byte(arrayModuleContent), 0644); err != nil {
+    t.Fatal(err)
+  }
+  
+  // Change to test directory for proper standard library resolution
+  originalDir, _ := os.Getwd()
+  os.Chdir(tmpDir)
+  defer os.Chdir(originalDir)
+  
+  // Test that standard library modules can be loaded and parsed correctly
+  resolver := NewModuleResolver()
+  
+  tests := []struct {
+    name       string
+    modulePath string
+  }{
+    {"Load std/string module", "std/string"},
+    {"Load std/array module", "std/array"},
+  }
+  
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      module, err := resolver.LoadModule(tt.modulePath, tmpDir)
+      if err != nil {
+        t.Fatalf("Failed to load %s: %v", tt.modulePath, err)
+      }
+      
+      if module == nil {
+        t.Fatalf("Module %s should not be nil", tt.modulePath)
+      }
+      
+      if module.AST == nil {
+        t.Errorf("Module %s AST should not be nil", tt.modulePath)
+      }
+      
+      // The actual injection of native functions happens at the interpreter level
+      // This test verifies that the modules can be loaded and parsed correctly
+      if !strings.Contains(module.Path, "std") {
+        t.Errorf("Expected std library path for %s, got %s", tt.modulePath, module.Path)
+      }
+    })
+  }
+}

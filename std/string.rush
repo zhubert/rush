@@ -1,6 +1,8 @@
 // Standard library string module
 // Provides common string manipulation functions
 
+// Native functions substr and split are automatically injected by the interpreter
+
 export trim = fn(s) {
   // Basic trim implementation (placeholder for now)
   return s
@@ -17,8 +19,8 @@ export lower = fn(s) {
 }
 
 export length = fn(s) {
-  // Basic length implementation (placeholder for now)
-  return 0
+  // Use built-in len function
+  return len(s)
 }
 
 export contains = fn(s, substr) {

@@ -46,6 +46,7 @@ var builtins = map[string]*BuiltinFunction{
 			return &String{Value: string(args[0].Type())}
 		},
 	},
+	// String functions - will be moved to std/string
 	"substr": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 3 {
@@ -105,6 +106,7 @@ var builtins = map[string]*BuiltinFunction{
 			return &Array{Elements: elements}
 		},
 	},
+	// Array functions - will be moved to std/array
 	"push": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 2 {

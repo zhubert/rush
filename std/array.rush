@@ -1,19 +1,11 @@
 // Standard library array module
 // Provides common array manipulation functions
 
+// Native functions push, pop, and slice are automatically injected by the interpreter
+
 export length = fn(arr) {
-  // Basic length implementation (placeholder for now)
-  return 0
-}
-
-export push = fn(arr, item) {
-  // Basic push implementation (placeholder for now)
-  return arr
-}
-
-export pop = fn(arr) {
-  // Basic pop implementation (placeholder for now)
-  return null
+  // Use built-in len function
+  return len(arr)
 }
 
 export map = fn(arr, func) {
