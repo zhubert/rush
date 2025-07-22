@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	LOGICAL     // && and ||
 	EQUALS      // ==
 	LESSGREATER // > or <
 	SUM         // +
@@ -34,8 +35,8 @@ var precedences = map[lexer.TokenType]int{
 	lexer.DIV:     PRODUCT,
 	lexer.MULT:    PRODUCT,
 	lexer.MOD:     PRODUCT,
-	lexer.AND:     EQUALS,
-	lexer.OR:      EQUALS,
+	lexer.AND:     LOGICAL,
+	lexer.OR:      LOGICAL,
 	lexer.LPAREN:  CALL,
 	lexer.LBRACKET: INDEX,
 	lexer.DOT:     INDEX, // module.member has same precedence as array[index]
