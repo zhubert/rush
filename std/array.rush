@@ -1,24 +1,24 @@
-// Standard library array module
-// Provides common array manipulation functions
+# Standard library array module
+# Provides common array manipulation functions
 
-// Native functions push, pop, and slice are automatically injected by the interpreter
+# Native functions push, pop, and slice are automatically injected by the interpreter
 
 export length = fn(arr) {
-  // Use built-in len function
+  # Use built-in len function
   return len(arr)
 }
 
 export map = fn(arr, func) {
-  // Basic map implementation (placeholder for now)
+  # Basic map implementation (placeholder for now)
   return arr
 }
 
 export filter = fn(arr, func) {
-  // Basic filter implementation (placeholder for now)
+  # Basic filter implementation (placeholder for now)
   return arr
 }
 
 export reduce = fn(arr, func, initial) {
-  // Basic reduce implementation (placeholder for now)
+  # Basic reduce implementation (placeholder for now)
   return initial
 }
