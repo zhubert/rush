@@ -318,6 +318,85 @@ func TestSliceFunction(t *testing.T) {
   }
 }
 
+func TestOrdFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {`ord("a")`, 97},
+    {`ord("A")`, 65},
+    {`ord("z")`, 122},
+    {`ord("Z")`, 90},
+    {`ord("0")`, 48},
+    {`ord("9")`, 57},
+    {`ord(" ")`, 32},
+    {`ord("!")`, 33},
+    {`ord("")`, "argument to `ord` must be a single character, got length 0"},
+    {`ord("ab")`, "argument to `ord` must be a single character, got length 2"},
+    {`ord(42)`, "argument to `ord` must be STRING, got INTEGER"},
+    {`ord("a", "b")`, "wrong number of arguments. got=2, want=1"},
+    {`ord()`, "wrong number of arguments. got=0, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestChrFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {`chr(97)`, "a"},
+    {`chr(65)`, "A"},
+    {`chr(122)`, "z"},
+    {`chr(90)`, "Z"},
+    {`chr(48)`, "0"},
+    {`chr(57)`, "9"},
+    {`chr(32)`, " "},
+    {`chr(33)`, "!"},
+    {`chr(127)`, string(byte(127))},
+    {`chr(0)`, string(byte(0))},
+    {`chr(-1)`, "argument to `chr` must be between 0 and 127, got -1"},
+    {`chr(128)`, "argument to `chr` must be between 0 and 127, got 128"},
+    {`chr("a")`, "argument to `chr` must be INTEGER, got STRING"},
+    {`chr(65, 66)`, "wrong number of arguments. got=2, want=1"},
+    {`chr()`, "wrong number of arguments. got=0, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case string:
+      if errObj, ok := evaluated.(*Error); ok {
+        if errObj.Message != expected {
+          t.Errorf("wrong error message. expected=%q, got=%q",
+            expected, errObj.Message)
+        }
+      } else {
+        testStringObject(t, evaluated, expected)
+      }
+    }
+  }
+}
+
 // Helper function specifically for builtin tests
 func testEvalBuiltin(input string) Value {
   l := lexer.New(input)

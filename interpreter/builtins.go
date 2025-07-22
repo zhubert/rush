@@ -46,6 +46,42 @@ var builtins = map[string]*BuiltinFunction{
 			return &String{Value: string(args[0].Type())}
 		},
 	},
+	"ord": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			str, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to `ord` must be STRING, got %s", args[0].Type())
+			}
+
+			if len(str.Value) != 1 {
+				return newError("argument to `ord` must be a single character, got length %d", len(str.Value))
+			}
+
+			return &Integer{Value: int64(str.Value[0])}
+		},
+	},
+	"chr": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			code, ok := args[0].(*Integer)
+			if !ok {
+				return newError("argument to `chr` must be INTEGER, got %s", args[0].Type())
+			}
+
+			if code.Value < 0 || code.Value > 127 {
+				return newError("argument to `chr` must be between 0 and 127, got %d", code.Value)
+			}
+
+			return &String{Value: string(byte(code.Value))}
+		},
+	},
 	// String functions - will be moved to std/string
 	"substr": {
 		Fn: func(args ...Value) Value {

@@ -287,7 +287,7 @@ print(undefinedVariable)
     {
       name: "Runtime Error - Type Mismatch",
       program: `
-result = 5 + "hello"
+result = true + false
 `,
       hasError: true,
     },

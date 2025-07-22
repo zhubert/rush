@@ -608,3 +608,21 @@ func (se *SuperExpression) String() string {
   out.WriteString(")")
   return out.String()
 }
+
+// BreakStatement represents break statements
+type BreakStatement struct {
+	Token lexer.Token // the 'break' token
+}
+
+func (bs *BreakStatement) statementNode()       {}
+func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+func (bs *BreakStatement) String() string       { return bs.TokenLiteral() }
+
+// ContinueStatement represents continue statements
+type ContinueStatement struct {
+	Token lexer.Token // the 'continue' token
+}
+
+func (cs *ContinueStatement) statementNode()       {}
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) String() string       { return cs.TokenLiteral() }

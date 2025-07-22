@@ -20,6 +20,8 @@ const (
 	FUNCTION_VALUE  ValueType = "FUNCTION"
 	BUILTIN_VALUE   ValueType = "BUILTIN"
 	RETURN_VALUE    ValueType = "RETURN_VALUE"
+	BREAK_VALUE     ValueType = "BREAK_VALUE"
+	CONTINUE_VALUE  ValueType = "CONTINUE_VALUE"
 	EXCEPTION_VALUE ValueType = "EXCEPTION"
 	CLASS_VALUE     ValueType = "CLASS"
 	INSTANCE_VALUE  ValueType = "INSTANCE"
@@ -107,6 +109,18 @@ type ReturnValue struct {
 
 func (rv *ReturnValue) Type() ValueType { return RETURN_VALUE }
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+// BreakValue signals a break statement
+type BreakValue struct{}
+
+func (bv *BreakValue) Type() ValueType { return BREAK_VALUE }
+func (bv *BreakValue) Inspect() string { return "break" }
+
+// ContinueValue signals a continue statement
+type ContinueValue struct{}
+
+func (cv *ContinueValue) Type() ValueType { return CONTINUE_VALUE }
+func (cv *ContinueValue) Inspect() string { return "continue" }
 
 // BuiltinFunction represents built-in functions
 type BuiltinFunction struct {
