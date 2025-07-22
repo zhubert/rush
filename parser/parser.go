@@ -164,6 +164,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBreakStatement()
 	case lexer.CONTINUE:
 		return p.parseContinueStatement()
+	case lexer.SWITCH:
+		return p.parseSwitchStatement()
 	case lexer.WHILE:
 		return p.parseWhileStatement()
 	case lexer.FOR:
@@ -618,6 +620,117 @@ func (p *Parser) parseBreakStatement() *ast.BreakStatement {
 
 func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
 	return &ast.ContinueStatement{Token: p.curToken}
+}
+
+func (p *Parser) parseSwitchStatement() *ast.SwitchStatement {
+	stmt := &ast.SwitchStatement{Token: p.curToken}
+
+	if !p.expectPeek(lexer.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(lexer.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(lexer.LBRACE) {
+		return nil
+	}
+
+	// Parse case and default clauses
+	for p.peekToken.Type != lexer.RBRACE && p.peekToken.Type != lexer.EOF {
+		p.nextToken()
+		
+		// Skip semicolons and comments
+		if p.curToken.Type == lexer.SEMICOLON || p.curToken.Type == lexer.COMMENT {
+			continue
+		}
+		
+		if p.curToken.Type == lexer.CASE {
+			caseClause := p.parseCaseClause()
+			if caseClause != nil {
+				stmt.Cases = append(stmt.Cases, caseClause)
+			}
+		} else if p.curToken.Type == lexer.DEFAULT {
+			if stmt.Default != nil {
+				msg := fmt.Sprintf("line %d:%d: switch statement can only have one default clause", p.curToken.Line, p.curToken.Column)
+				p.errors = append(p.errors, msg)
+				return nil
+			}
+			stmt.Default = p.parseDefaultClause()
+		} else {
+			msg := fmt.Sprintf("line %d:%d: expected 'case' or 'default', got %s", p.curToken.Line, p.curToken.Column, p.curToken.Type)
+			p.errors = append(p.errors, msg)
+			return nil
+		}
+	}
+
+	if !p.expectPeek(lexer.RBRACE) {
+		return nil
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseCaseClause() *ast.CaseClause {
+	clause := &ast.CaseClause{Token: p.curToken}
+
+	p.nextToken()
+	clause.Values = append(clause.Values, p.parseExpression(LOWEST))
+
+	// Handle multiple values separated by commas
+	for p.peekToken.Type == lexer.COMMA {
+		p.nextToken() // consume comma
+		p.nextToken() // move to next value
+		clause.Values = append(clause.Values, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(lexer.COLON) {
+		return nil
+	}
+
+	// Parse the body - collect statements until we hit case, default, or }
+	clause.Body = p.parseCaseBody()
+
+	return clause
+}
+
+func (p *Parser) parseDefaultClause() *ast.DefaultClause {
+	clause := &ast.DefaultClause{Token: p.curToken}
+
+	if !p.expectPeek(lexer.COLON) {
+		return nil
+	}
+
+	// Parse the body - collect statements until we hit case, default, or }
+	clause.Body = p.parseCaseBody()
+
+	return clause
+}
+
+func (p *Parser) parseCaseBody() *ast.BlockStatement {
+	block := &ast.BlockStatement{Token: p.curToken}
+	block.Statements = []ast.Statement{}
+
+	for p.peekToken.Type != lexer.CASE && 
+		p.peekToken.Type != lexer.DEFAULT && 
+		p.peekToken.Type != lexer.RBRACE && 
+		p.peekToken.Type != lexer.EOF {
+		
+		p.nextToken()
+		if p.curToken.Type == lexer.SEMICOLON || p.curToken.Type == lexer.COMMENT {
+			continue
+		}
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
+	}
+
+	return block
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {

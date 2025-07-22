@@ -37,6 +37,7 @@ const (
 	// Delimiters
 	COMMA     // ,
 	SEMICOLON // ;
+	COLON     // :
 	LPAREN    // (
 	RPAREN    // )
 	LBRACE    // {
@@ -65,6 +66,9 @@ const (
 	INSTANCE_VAR // @
 	BREAK   // break
 	CONTINUE // continue
+	SWITCH   // switch
+	CASE     // case
+	DEFAULT  // default
 )
 
 // Token represents a single token
@@ -103,6 +107,7 @@ var tokenTypeNames = map[TokenType]string{
 	NOT:       "!",
 	COMMA:     ",",
 	SEMICOLON: ";",
+	COLON:     ":",
 	LPAREN:    "(",
 	RPAREN:    ")",
 	LBRACE:    "{",
@@ -129,6 +134,9 @@ var tokenTypeNames = map[TokenType]string{
 	INSTANCE_VAR: "@",
 	BREAK:     "break",
 	CONTINUE:  "continue",
+	SWITCH:    "switch",
+	CASE:      "case",
+	DEFAULT:   "default",
 }
 
 // String returns the string representation of a token type
@@ -159,6 +167,9 @@ var keywords = map[string]TokenType{
 	"super":   SUPER,
 	"break":   BREAK,
 	"continue": CONTINUE,
+	"switch":  SWITCH,
+	"case":    CASE,
+	"default": DEFAULT,
 	"true":    TRUE,
 	"false":   FALSE,
 }

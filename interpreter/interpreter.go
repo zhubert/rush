@@ -209,6 +209,9 @@ func Eval(node ast.Node, env *Environment) Value {
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
 	
+	case *ast.SwitchStatement:
+		return evalSwitchStatement(node, env)
+	
 	case *ast.ForStatement:
 		return evalForStatement(node, env)
 	
@@ -854,6 +857,90 @@ func evalWhileStatement(ws *ast.WhileStatement, env *Environment) Value {
 	}
 
 	return result
+}
+
+func evalSwitchStatement(ss *ast.SwitchStatement, env *Environment) Value {
+	// Evaluate the switch value
+	switchValue := Eval(ss.Value, env)
+	if isError(switchValue) {
+		return switchValue
+	}
+
+	// Check each case clause
+	for _, caseClause := range ss.Cases {
+		for _, caseValue := range caseClause.Values {
+			caseVal := Eval(caseValue, env)
+			if isError(caseVal) {
+				return caseVal
+			}
+			
+			// Compare values for equality
+			if compareValues(switchValue, caseVal) {
+				result := Eval(caseClause.Body, env)
+				if result != nil {
+					rt := result.Type()
+					if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
+						return result
+					}
+					if rt == BREAK_VALUE {
+						return NULL // Go-style automatic break
+					}
+					if rt == CONTINUE_VALUE {
+						return result // Pass continue through
+					}
+				}
+				return result // Go-style automatic break - execute only this case
+			}
+		}
+	}
+
+	// If no case matched, try default clause
+	if ss.Default != nil {
+		result := Eval(ss.Default.Body, env)
+		if result != nil {
+			rt := result.Type()
+			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
+				return result
+			}
+			if rt == BREAK_VALUE {
+				return NULL
+			}
+			if rt == CONTINUE_VALUE {
+				return result
+			}
+		}
+		return result
+	}
+
+	return NULL // No match and no default
+}
+
+// Helper function to compare two values for equality
+func compareValues(left, right Value) bool {
+	if left.Type() != right.Type() {
+		return false
+	}
+
+	switch left := left.(type) {
+	case *Integer:
+		if right, ok := right.(*Integer); ok {
+			return left.Value == right.Value
+		}
+	case *Float:
+		if right, ok := right.(*Float); ok {
+			return left.Value == right.Value
+		}
+	case *String:
+		if right, ok := right.(*String); ok {
+			return left.Value == right.Value
+		}
+	case *Boolean:
+		if right, ok := right.(*Boolean); ok {
+			return left.Value == right.Value
+		}
+	}
+	
+	return false
 }
 
 func evalForStatement(fs *ast.ForStatement, env *Environment) Value {

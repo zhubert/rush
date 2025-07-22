@@ -647,3 +647,80 @@ type ContinueStatement struct {
 func (cs *ContinueStatement) statementNode()       {}
 func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
 func (cs *ContinueStatement) String() string       { return cs.TokenLiteral() }
+
+// SwitchStatement represents switch statements
+type SwitchStatement struct {
+	Token   lexer.Token    // the 'switch' token
+	Value   Expression     // the expression to match against
+	Cases   []*CaseClause  // the case clauses
+	Default *DefaultClause // optional default clause
+}
+
+func (ss *SwitchStatement) statementNode()       {}
+func (ss *SwitchStatement) TokenLiteral() string { return ss.Token.Literal }
+func (ss *SwitchStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString(ss.TokenLiteral())
+	out.WriteString(" (")
+	if ss.Value != nil {
+		out.WriteString(ss.Value.String())
+	}
+	out.WriteString(") {")
+	
+	for _, c := range ss.Cases {
+		out.WriteString(c.String())
+	}
+	
+	if ss.Default != nil {
+		out.WriteString(ss.Default.String())
+	}
+	
+	out.WriteString("}")
+	return out.String()
+}
+
+// CaseClause represents a case clause in a switch statement
+type CaseClause struct {
+	Token  lexer.Token   // the 'case' token
+	Values []Expression  // the values to match (supports multiple values like case 1, 2, 3:)
+	Body   *BlockStatement // the statements to execute
+}
+
+func (cc *CaseClause) statementNode()       {}
+func (cc *CaseClause) TokenLiteral() string { return cc.Token.Literal }
+func (cc *CaseClause) String() string {
+	var out bytes.Buffer
+	out.WriteString(cc.TokenLiteral())
+	out.WriteString(" ")
+	
+	for i, value := range cc.Values {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		out.WriteString(value.String())
+	}
+	
+	out.WriteString(":")
+	if cc.Body != nil {
+		out.WriteString(cc.Body.String())
+	}
+	return out.String()
+}
+
+// DefaultClause represents a default clause in a switch statement
+type DefaultClause struct {
+	Token lexer.Token     // the 'default' token
+	Body  *BlockStatement // the statements to execute
+}
+
+func (dc *DefaultClause) statementNode()       {}
+func (dc *DefaultClause) TokenLiteral() string { return dc.Token.Literal }
+func (dc *DefaultClause) String() string {
+	var out bytes.Buffer
+	out.WriteString(dc.TokenLiteral())
+	out.WriteString(":")
+	if dc.Body != nil {
+		out.WriteString(dc.Body.String())
+	}
+	return out.String()
+}

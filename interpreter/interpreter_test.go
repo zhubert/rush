@@ -2390,3 +2390,243 @@ total`, 45}, // 1+2+3+4+5+6+7+8+9 = 45
     testIntegerObject(t, evaluated, tt.expected)
   }
 }
+
+func TestSwitchStatements(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {
+      `grade = "A"
+      result = ""
+      switch (grade) {
+        case "A":
+          result = "excellent"
+        case "B":
+          result = "good"
+        default:
+          result = "other"
+      }
+      result`,
+      "excellent",
+    },
+    {
+      `grade = "B"
+      result = ""
+      switch (grade) {
+        case "A":
+          result = "excellent"
+        case "B", "C":
+          result = "good"
+        default:
+          result = "other"
+      }
+      result`,
+      "good",
+    },
+    {
+      `grade = "C"
+      result = ""
+      switch (grade) {
+        case "A":
+          result = "excellent"
+        case "B", "C":
+          result = "good"
+        default:
+          result = "other"
+      }
+      result`,
+      "good",
+    },
+    {
+      `grade = "F"
+      result = ""
+      switch (grade) {
+        case "A":
+          result = "excellent"
+        case "B", "C":
+          result = "good"
+        default:
+          result = "other"
+      }
+      result`,
+      "other",
+    },
+    {
+      `num = 42
+      result = ""
+      switch (num) {
+        case 1:
+          result = "one"
+        case 2, 3:
+          result = "two or three"
+        case 42:
+          result = "answer"
+        default:
+          result = "unknown"
+      }
+      result`,
+      "answer",
+    },
+    {
+      `num = 2
+      result = ""
+      switch (num) {
+        case 1:
+          result = "one"
+        case 2, 3:
+          result = "two or three"
+        case 42:
+          result = "answer"
+        default:
+          result = "unknown"
+      }
+      result`,
+      "two or three",
+    },
+    {
+      `num = 99
+      result = ""
+      switch (num) {
+        case 1:
+          result = "one"
+        case 2, 3:
+          result = "two or three"
+        case 42:
+          result = "answer"
+        default:
+          result = "unknown"
+      }
+      result`,
+      "unknown",
+    },
+    {
+      `flag = true
+      result = ""
+      switch (flag) {
+        case true:
+          result = "yes"
+        case false:
+          result = "no"
+      }
+      result`,
+      "yes",
+    },
+    {
+      `flag = false
+      result = ""
+      switch (flag) {
+        case true:
+          result = "yes"
+        case false:
+          result = "no"
+      }
+      result`,
+      "no",
+    },
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      testStringObject(t, evaluated, expected)
+    case bool:
+      testBooleanObject(t, evaluated, expected)
+    }
+  }
+}
+
+func TestSwitchWithoutDefault(t *testing.T) {
+  input := `
+  x = 5
+  result = "none"
+  switch (x) {
+    case 1:
+      result = "one"
+    case 2:
+      result = "two"
+  }
+  result`
+
+  evaluated := testEval(input)
+  testStringObject(t, evaluated, "none")
+}
+
+func TestSwitchAutomaticBreak(t *testing.T) {
+  // Test that switch has automatic break behavior (Go-style)
+  input := `
+  count = 0
+  x = 1
+  switch (x) {
+    case 1:
+      count = count + 1
+    case 2:
+      count = count + 10
+  }
+  count`
+
+  evaluated := testEval(input)
+  testIntegerObject(t, evaluated, 1) // Should be 1, not 11 (no fall-through)
+}
+
+func TestSwitchWithReturnStatement(t *testing.T) {
+  input := `
+  test = fn(x) {
+    switch (x) {
+      case 1:
+        return "one"
+      case 2:
+        return "two"
+      default:
+        return "other"
+    }
+    return "unreachable"
+  }
+  test(1)`
+
+  evaluated := testEval(input)
+  testStringObject(t, evaluated, "one")
+}
+
+func TestSwitchInLoop(t *testing.T) {
+  input := `
+  result = []
+  for (i = 1; i <= 3; i = i + 1) {
+    value = ""
+    switch (i) {
+      case 1:
+        value = "first"
+      case 2:
+        value = "second"
+      case 3:
+        value = "third"
+    }
+    result = push(result, value)
+  }
+  len(result)`
+
+  evaluated := testEval(input)
+  testIntegerObject(t, evaluated, 3)
+}
+
+func TestSwitchWithFloats(t *testing.T) {
+  input := `
+  x = 3.14
+  result = ""
+  switch (x) {
+    case 1.0:
+      result = "one"
+    case 3.14:
+      result = "pi"
+    default:
+      result = "other"
+  }
+  result`
+
+  evaluated := testEval(input)
+  testStringObject(t, evaluated, "pi")
+}

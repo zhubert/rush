@@ -526,6 +526,196 @@ func TestMultiLevelInheritance(t *testing.T) {
   }
 }
 
+func TestSwitchStatements(t *testing.T) {
+  input := `switch (grade) {
+    case "A":
+      result = "excellent"
+    case "B", "C":
+      result = "good"
+    default:
+      result = "other"
+  }`
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(p.Errors()) > 0 {
+    for _, err := range p.Errors() {
+      t.Errorf("Parser error: %s", err)
+    }
+    t.FailNow()
+  }
+
+  if len(program.Statements) != 1 {
+    t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+      len(program.Statements))
+  }
+
+  stmt, ok := program.Statements[0].(*ast.SwitchStatement)
+  if !ok {
+    t.Fatalf("program.Statements[0] is not ast.SwitchStatement. got=%T",
+      program.Statements[0])
+  }
+
+  if stmt.Value.String() != "grade" {
+    t.Errorf("stmt.Value is not 'grade'. got=%q", stmt.Value.String())
+  }
+
+  if len(stmt.Cases) != 2 {
+    t.Fatalf("stmt.Cases does not contain 2 cases. got=%d", len(stmt.Cases))
+  }
+
+  // Test first case: case "A"
+  firstCase := stmt.Cases[0]
+  if len(firstCase.Values) != 1 {
+    t.Errorf("firstCase.Values should have 1 value. got=%d", len(firstCase.Values))
+  }
+  if firstCase.Values[0].String() != "\"A\"" {
+    t.Errorf("firstCase.Values[0] should be '\"A\"'. got=%s", firstCase.Values[0].String())
+  }
+
+  // Test second case: case "B", "C"
+  secondCase := stmt.Cases[1]
+  if len(secondCase.Values) != 2 {
+    t.Errorf("secondCase.Values should have 2 values. got=%d", len(secondCase.Values))
+  }
+  if secondCase.Values[0].String() != "\"B\"" {
+    t.Errorf("secondCase.Values[0] should be '\"B\"'. got=%s", secondCase.Values[0].String())
+  }
+  if secondCase.Values[1].String() != "\"C\"" {
+    t.Errorf("secondCase.Values[1] should be '\"C\"'. got=%s", secondCase.Values[1].String())
+  }
+
+  // Test default clause
+  if stmt.Default == nil {
+    t.Fatal("stmt.Default should not be nil")
+  }
+  if len(stmt.Default.Body.Statements) != 1 {
+    t.Errorf("default clause should have 1 statement. got=%d", len(stmt.Default.Body.Statements))
+  }
+}
+
+func TestSwitchWithoutDefault(t *testing.T) {
+  input := `switch (x) {
+    case 1:
+      y = 10
+    case 2:
+      y = 20
+  }`
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(p.Errors()) > 0 {
+    for _, err := range p.Errors() {
+      t.Errorf("Parser error: %s", err)
+    }
+    t.FailNow()
+  }
+
+  if len(program.Statements) != 1 {
+    t.Fatalf("program.Statements does not contain 1 statement. got=%d",
+      len(program.Statements))
+  }
+
+  stmt, ok := program.Statements[0].(*ast.SwitchStatement)
+  if !ok {
+    t.Fatalf("program.Statements[0] is not ast.SwitchStatement. got=%T",
+      program.Statements[0])
+  }
+
+  if len(stmt.Cases) != 2 {
+    t.Fatalf("stmt.Cases does not contain 2 cases. got=%d", len(stmt.Cases))
+  }
+
+  if stmt.Default != nil {
+    t.Error("stmt.Default should be nil when no default clause is present")
+  }
+}
+
+func TestSwitchIntegerCases(t *testing.T) {
+  input := `switch (num) {
+    case 1, 2, 3:
+      result = "low"
+    case 42:
+      result = "answer"
+  }`
+
+  l := lexer.New(input)
+  p := New(l)
+  program := p.ParseProgram()
+
+  if len(p.Errors()) > 0 {
+    for _, err := range p.Errors() {
+      t.Errorf("Parser error: %s", err)
+    }
+    t.FailNow()
+  }
+
+  stmt, ok := program.Statements[0].(*ast.SwitchStatement)
+  if !ok {
+    t.Fatalf("program.Statements[0] is not ast.SwitchStatement. got=%T",
+      program.Statements[0])
+  }
+
+  // Test first case with multiple integer values
+  firstCase := stmt.Cases[0]
+  if len(firstCase.Values) != 3 {
+    t.Errorf("firstCase.Values should have 3 values. got=%d", len(firstCase.Values))
+  }
+
+  expectedValues := []string{"1", "2", "3"}
+  for i, expectedValue := range expectedValues {
+    if firstCase.Values[i].String() != expectedValue {
+      t.Errorf("firstCase.Values[%d] should be '%s'. got=%s", i, expectedValue, firstCase.Values[i].String())
+    }
+  }
+}
+
+func TestSwitchParseErrors(t *testing.T) {
+  tests := []struct {
+    input    string
+    errorMsg string
+  }{
+    {
+      `switch (x) {
+        case 1:
+          y = 10
+        default:
+          y = 20
+        default:
+          y = 30
+      }`,
+      "switch statement can only have one default clause",
+    },
+  }
+
+  for _, tt := range tests {
+    l := lexer.New(tt.input)
+    p := New(l)
+    p.ParseProgram()
+
+    if len(p.Errors()) == 0 {
+      t.Errorf("Expected parser errors for input: %s", tt.input)
+      continue
+    }
+
+    found := false
+    for _, err := range p.Errors() {
+      if err == tt.errorMsg || len(err) > len(tt.errorMsg) {
+        found = true
+        break
+      }
+    }
+
+    if !found {
+      t.Errorf("Expected error containing '%s', but got: %v", tt.errorMsg, p.Errors())
+    }
+  }
+}
+
 func stringPtr(s string) *string {
   return &s
 }
