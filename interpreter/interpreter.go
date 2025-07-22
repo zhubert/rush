@@ -775,8 +775,24 @@ func evalIndexExpression(left, index Value) Value {
 	switch {
 	case left.Type() == ARRAY_VALUE && index.Type() == INTEGER_VALUE:
 		return evalArrayIndexExpression(left, index)
+	case left.Type() == ARRAY_VALUE && index.Type() == FLOAT_VALUE:
+		// Allow float indices that represent whole numbers
+		floatIdx := index.(*Float).Value
+		if floatIdx == float64(int64(floatIdx)) {
+			intIdx := &Integer{Value: int64(floatIdx)}
+			return evalArrayIndexExpression(left, intIdx)
+		}
+		return newError("array index must be a whole number, got: %g", floatIdx)
 	case left.Type() == STRING_VALUE && index.Type() == INTEGER_VALUE:
 		return evalStringIndexExpression(left, index)
+	case left.Type() == STRING_VALUE && index.Type() == FLOAT_VALUE:
+		// Allow float indices that represent whole numbers
+		floatIdx := index.(*Float).Value
+		if floatIdx == float64(int64(floatIdx)) {
+			intIdx := &Integer{Value: int64(floatIdx)}
+			return evalStringIndexExpression(left, intIdx)
+		}
+		return newError("string index must be a whole number, got: %g", floatIdx)
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
