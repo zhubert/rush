@@ -62,6 +62,8 @@ const (
 	INITIALIZE // initialize
 	SUPER   // super
 	INSTANCE_VAR // @
+	BREAK   // break
+	CONTINUE // continue
 )
 
 // Token represents a single token
@@ -123,6 +125,8 @@ var tokenTypeNames = map[TokenType]string{
 	INITIALIZE: "initialize",
 	SUPER:     "super",
 	INSTANCE_VAR: "@",
+	BREAK:     "break",
+	CONTINUE:  "continue",
 }
 
 // String returns the string representation of a token type
@@ -151,6 +155,8 @@ var keywords = map[string]TokenType{
 	"class":   CLASS,
 	"initialize": INITIALIZE,
 	"super":   SUPER,
+	"break":   BREAK,
+	"continue": CONTINUE,
 	"true":    TRUE,
 	"false":   FALSE,
 }

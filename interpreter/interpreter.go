@@ -185,6 +185,12 @@ func Eval(node ast.Node, env *Environment) Value {
 		}
 		return &ReturnValue{Value: val}
 	
+	case *ast.BreakStatement:
+		return &BreakValue{}
+	
+	case *ast.ContinueStatement:
+		return &ContinueValue{}
+	
 	case *ast.IndexExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -312,6 +318,8 @@ func evalInfixExpression(operator string, left, right Value) Value {
 		return evalMixedNumberInfixExpression(operator, left, right)
 	case left.Type() == STRING_VALUE && right.Type() == STRING_VALUE:
 		return evalStringInfixExpression(operator, left, right)
+	case left.Type() == STRING_VALUE || right.Type() == STRING_VALUE:
+		return evalStringCoercionInfixExpression(operator, left, right)
 	case operator == "==":
 		return nativeBoolToBooleanValue(left == right)
 	case operator == "!=":
@@ -446,6 +454,38 @@ func evalStringInfixExpression(operator string, left, right Value) Value {
 		return nativeBoolToBooleanValue(leftVal == rightVal)
 	case "!=":
 		return nativeBoolToBooleanValue(leftVal != rightVal)
+	case "<":
+		return nativeBoolToBooleanValue(leftVal < rightVal)
+	case ">":
+		return nativeBoolToBooleanValue(leftVal > rightVal)
+	case "<=":
+		return nativeBoolToBooleanValue(leftVal <= rightVal)
+	case ">=":
+		return nativeBoolToBooleanValue(leftVal >= rightVal)
+	default:
+		return newError("unknown operator: %s", operator)
+	}
+}
+
+func evalStringCoercionInfixExpression(operator string, left, right Value) Value {
+	leftStr := valueToString(left)
+	rightStr := valueToString(right)
+	
+	switch operator {
+	case "+":
+		return &String{Value: leftStr + rightStr}
+	case "==":
+		return nativeBoolToBooleanValue(leftStr == rightStr)
+	case "!=":
+		return nativeBoolToBooleanValue(leftStr != rightStr)
+	case "<":
+		return nativeBoolToBooleanValue(leftStr < rightStr)
+	case ">":
+		return nativeBoolToBooleanValue(leftStr > rightStr)
+	case "<=":
+		return nativeBoolToBooleanValue(leftStr <= rightStr)
+	case ">=":
+		return nativeBoolToBooleanValue(leftStr >= rightStr)
 	default:
 		return newError("unknown operator: %s", operator)
 	}
@@ -564,7 +604,7 @@ func evalBlockStatement(block *ast.BlockStatement, env *Environment) Value {
 
 		if result != nil {
 			rt := result.Type()
-			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
+			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE || rt == BREAK_VALUE || rt == CONTINUE_VALUE {
 				return result
 			}
 		}
@@ -680,8 +720,36 @@ func unwrapReturnValue(val Value) Value {
 	if returnValue, ok := val.(*ReturnValue); ok {
 		return returnValue.Value
 	}
+	// Convert break/continue that escape function boundaries to errors
+	if _, ok := val.(*BreakValue); ok {
+		return newError("break statement not in loop")
+	}
+	if _, ok := val.(*ContinueValue); ok {
+		return newError("continue statement not in loop")
+	}
 	// Don't unwrap exceptions - they should propagate as-is
 	return val
+}
+
+// valueToString converts any value to its string representation for coercion
+func valueToString(val Value) string {
+	switch val.Type() {
+	case STRING_VALUE:
+		return val.(*String).Value
+	case INTEGER_VALUE:
+		return fmt.Sprintf("%d", val.(*Integer).Value)
+	case FLOAT_VALUE:
+		return fmt.Sprintf("%g", val.(*Float).Value)
+	case BOOLEAN_VALUE:
+		if val.(*Boolean).Value {
+			return "true"
+		}
+		return "false"
+	case NULL_VALUE:
+		return "null"
+	default:
+		return val.Inspect() // fallback to existing representation
+	}
 }
 
 func evalIndexExpression(left, index Value) Value {
@@ -740,6 +808,13 @@ func evalWhileStatement(ws *ast.WhileStatement, env *Environment) Value {
 			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
 				return result
 			}
+			if rt == BREAK_VALUE {
+				result = NULL // Don't return the BreakValue
+				break // Exit the while loop
+			}
+			if rt == CONTINUE_VALUE {
+				continue // Skip to next iteration
+			}
 		}
 	}
 
@@ -778,6 +853,20 @@ func evalForStatement(fs *ast.ForStatement, env *Environment) Value {
 			rt := result.Type()
 			if rt == RETURN_VALUE || rt == ERROR_VALUE || rt == EXCEPTION_VALUE {
 				return result
+			}
+			if rt == BREAK_VALUE {
+				result = NULL // Don't return the BreakValue
+				break // Exit the for loop
+			}
+			if rt == CONTINUE_VALUE {
+				// Execute update statement before continuing
+				if fs.Update != nil {
+					updateResult := Eval(fs.Update, env)
+					if isError(updateResult) {
+						return updateResult
+					}
+				}
+				continue // Skip to next iteration
 			}
 		}
 

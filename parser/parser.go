@@ -157,6 +157,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseExportStatement()
 	case lexer.RETURN:
 		return p.parseReturnStatement()
+	case lexer.BREAK:
+		return p.parseBreakStatement()
+	case lexer.CONTINUE:
+		return p.parseContinueStatement()
 	case lexer.WHILE:
 		return p.parseWhileStatement()
 	case lexer.FOR:
@@ -550,6 +554,14 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	return &ast.BreakStatement{Token: p.curToken}
+}
+
+func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
+	return &ast.ContinueStatement{Token: p.curToken}
 }
 
 func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
