@@ -23,6 +23,7 @@ const (
 	MINUS  // -
 	MULT   // *
 	DIV    // /
+	MOD    // %
 	EQ     // ==
 	NOT_EQ // !=
 	LT     // <
@@ -90,6 +91,7 @@ var tokenTypeNames = map[TokenType]string{
 	MINUS:     "-",
 	MULT:      "*",
 	DIV:       "/",
+	MOD:       "%",
 	EQ:        "==",
 	NOT_EQ:    "!=",
 	LT:        "<",

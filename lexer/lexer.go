@@ -133,6 +133,8 @@ func (l *Lexer) NextToken() Token {
 		tok = newToken(MULT, l.ch, line, column)
 	case '/':
 		tok = newToken(DIV, l.ch, line, column)
+	case '%':
+		tok = newToken(MOD, l.ch, line, column)
 	case '!':
 		if l.peekChar() == '=' {
 			ch := l.ch

@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -349,6 +350,11 @@ func evalIntegerInfixExpression(operator string, left, right Value) Value {
 			return newError("division by zero")
 		}
 		return &Float{Value: float64(leftVal) / float64(rightVal)}
+	case "%":
+		if rightVal == 0 {
+			return newError("modulo by zero")
+		}
+		return &Integer{Value: leftVal % rightVal}
 	case "<":
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
@@ -382,6 +388,11 @@ func evalFloatInfixExpression(operator string, left, right Value) Value {
 			return newError("division by zero")
 		}
 		return &Float{Value: leftVal / rightVal}
+	case "%":
+		if rightVal == 0 {
+			return newError("modulo by zero")
+		}
+		return &Float{Value: math.Mod(leftVal, rightVal)}
 	case "<":
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
@@ -426,6 +437,11 @@ func evalMixedNumberInfixExpression(operator string, left, right Value) Value {
 			return newError("division by zero")
 		}
 		return &Float{Value: leftVal / rightVal}
+	case "%":
+		if rightVal == 0 {
+			return newError("modulo by zero")
+		}
+		return &Float{Value: math.Mod(leftVal, rightVal)}
 	case "<":
 		return nativeBoolToBooleanValue(leftVal < rightVal)
 	case ">":
