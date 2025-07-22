@@ -69,6 +69,7 @@ const (
 	SWITCH   // switch
 	CASE     // case
 	DEFAULT  // default
+	AS       // as
 )
 
 // Token represents a single token
@@ -137,6 +138,7 @@ var tokenTypeNames = map[TokenType]string{
 	SWITCH:    "switch",
 	CASE:      "case",
 	DEFAULT:   "default",
+	AS:        "as",
 }
 
 // String returns the string representation of a token type
@@ -170,6 +172,7 @@ var keywords = map[string]TokenType{
 	"switch":  SWITCH,
 	"case":    CASE,
 	"default": DEFAULT,
+	"as":      AS,
 	"true":    TRUE,
 	"false":   FALSE,
 }

@@ -849,6 +849,7 @@ func (p *Parser) parseForExpressionStatement() *ast.ExpressionStatement {
 }
 
 // parseImportStatement parses import statements like "import { func, var } from "module""
+// and "import { func as alias } from "module""
 func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	stmt := &ast.ImportStatement{Token: p.curToken}
 
@@ -856,7 +857,7 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 		return nil
 	}
 
-	stmt.Names = []*ast.Identifier{}
+	stmt.Items = []*ast.ImportItem{}
 
 	if p.peekToken.Type == lexer.RBRACE {
 		p.nextToken()
@@ -865,22 +866,22 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 
 	p.nextToken()
 
-	// Parse first identifier
-	if p.curToken.Type != lexer.IDENT {
-		p.noPrefixParseFnError(p.curToken.Type)
+	// Parse first import item
+	item := p.parseImportItem()
+	if item == nil {
 		return nil
 	}
-	stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
+	stmt.Items = append(stmt.Items, item)
 
-	// Parse remaining identifiers
+	// Parse remaining import items
 	for p.peekToken.Type == lexer.COMMA {
 		p.nextToken()
 		p.nextToken()
-		if p.curToken.Type != lexer.IDENT {
-			p.noPrefixParseFnError(p.curToken.Type)
+		item := p.parseImportItem()
+		if item == nil {
 			return nil
 		}
-		stmt.Names = append(stmt.Names, &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
+		stmt.Items = append(stmt.Items, item)
 	}
 
 	if !p.expectPeek(lexer.RBRACE) {
@@ -898,6 +899,29 @@ func (p *Parser) parseImportStatement() *ast.ImportStatement {
 	stmt.Module = &ast.StringLiteral{Token: p.curToken, Value: p.curToken.Literal}
 
 	return stmt
+}
+
+// parseImportItem parses a single import item like "func" or "func as alias"
+func (p *Parser) parseImportItem() *ast.ImportItem {
+	if p.curToken.Type != lexer.IDENT {
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+	
+	item := &ast.ImportItem{
+		Name: &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal},
+	}
+	
+	// Check for "as alias" syntax
+	if p.peekToken.Type == lexer.AS {
+		p.nextToken() // consume 'as'
+		if !p.expectPeek(lexer.IDENT) {
+			return nil
+		}
+		item.Alias = &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	}
+	
+	return item
 }
 
 // parseExportStatement parses export statements like "export var = 42"

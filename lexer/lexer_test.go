@@ -182,7 +182,7 @@ func TestOperators(t *testing.T) {
 }
 
 func TestKeywords(t *testing.T) {
-  input := `if else while for return true false`
+  input := `if else while for return true false import export from as`
 
   tests := []struct {
     expectedType    TokenType
@@ -195,6 +195,10 @@ func TestKeywords(t *testing.T) {
     {RETURN, "return"},
     {TRUE, "true"},
     {FALSE, "false"},
+    {IMPORT, "import"},
+    {EXPORT, "export"},
+    {FROM, "from"},
+    {AS, "as"},
     {EOF, ""},
   }
 

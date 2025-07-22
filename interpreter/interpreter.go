@@ -1043,17 +1043,22 @@ func evalImportStatement(node *ast.ImportStatement, env *Environment) Value {
 		}
 	}
 	
-	// Import the specified names into the current environment
-	for _, name := range node.Names {
-		if value, exists := module.Exports[name.Value]; exists {
+	// Import the specified items into the current environment
+	for _, item := range node.Items {
+		if value, exists := module.Exports[item.Name.Value]; exists {
 			// Convert interface{} back to Value
 			if val, ok := value.(Value); ok {
-				env.Set(name.Value, val)
+				// Use alias if provided, otherwise use original name
+				importName := item.Name.Value
+				if item.Alias != nil {
+					importName = item.Alias.Value
+				}
+				env.Set(importName, val)
 			} else {
-				return newError("invalid export type for %s", name.Value)
+				return newError("invalid export type for %s", item.Name.Value)
 			}
 		} else {
-			return newError("module %s does not export %s", modulePath, name.Value)
+			return newError("module %s does not export %s", modulePath, item.Name.Value)
 		}
 	}
 	

@@ -379,11 +379,17 @@ func (fs *ForStatement) String() string {
 	return out.String()
 }
 
+// ImportItem represents a single import with optional alias
+type ImportItem struct {
+	Name  *Identifier // original name
+	Alias *Identifier // alias (can be nil)
+}
+
 // ImportStatement represents import statements like "import { func, var } from "module""
 type ImportStatement struct {
-	Token     lexer.Token   // the 'import' token
-	Names     []*Identifier // imported names
-	Module    *StringLiteral // module path
+	Token     lexer.Token      // the 'import' token
+	Items     []*ImportItem    // imported items with optional aliases
+	Module    *StringLiteral   // module path
 }
 
 func (is *ImportStatement) statementNode()       {}
@@ -391,11 +397,15 @@ func (is *ImportStatement) TokenLiteral() string { return is.Token.Literal }
 func (is *ImportStatement) String() string {
 	var out bytes.Buffer
 	out.WriteString("import { ")
-	names := []string{}
-	for _, name := range is.Names {
-		names = append(names, name.String())
+	items := []string{}
+	for _, item := range is.Items {
+		if item.Alias != nil {
+			items = append(items, item.Name.String()+" as "+item.Alias.String())
+		} else {
+			items = append(items, item.Name.String())
+		}
 	}
-	out.WriteString(strings.Join(names, ", "))
+	out.WriteString(strings.Join(items, ", "))
 	out.WriteString(" } from ")
 	out.WriteString(is.Module.String())
 	return out.String()

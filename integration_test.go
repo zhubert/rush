@@ -1262,6 +1262,40 @@ print("Last:", last)
 print("Message:", message)`,
       expected: "First: 10\nLast: 50\nMessage: Hello World",
     },
+    {
+      name: "Import Aliasing - Basic",
+      moduleContent: `export add = fn(x, y) { return x + y }
+export PI = 3.14159`,
+      mainContent: `import { add as sum, PI as pi } from "./math_alias_module"
+result = sum(10, 5)
+print("Result:", result)
+print("Pi:", pi)`,
+      expected: "Result: 15\nPi: 3.14159",
+    },
+    {
+      name: "Import Aliasing - Mixed with Regular Imports",
+      moduleContent: `export multiply = fn(x, y) { return x * y }
+export divide = fn(x, y) { return x / y }
+export MAX_VALUE = 100`,
+      mainContent: `import { multiply as mult, divide, MAX_VALUE as max } from "./mixed_alias_module"
+product = mult(6, 7)
+quotient = divide(50, 2)
+print("Product:", product)
+print("Quotient:", quotient)
+print("Max:", max)`,
+      expected: "Product: 42\nQuotient: 25\nMax: 100",
+    },
+    {
+      name: "Import Aliasing - Avoiding Name Conflicts",
+      moduleContent: `export print = fn(msg) { return "Module: " + msg }
+export format = fn(str) { return "[" + str + "]" }`,
+      mainContent: `import { print as modulePrint, format } from "./conflict_module"
+result = modulePrint("Hello")
+formatted = format("Test")
+print("Module result:", result)
+print("Formatted:", formatted)`,
+      expected: "Module result: Module: Hello\nFormatted: [Test]",
+    },
   }
 
   for _, tt := range tests {
@@ -1286,6 +1320,12 @@ print("Message:", message)`,
         moduleFileName = "recursive_module.rush"
       case "Array and String Operations Module":
         moduleFileName = "utils_module.rush"
+      case "Import Aliasing - Basic":
+        moduleFileName = "math_alias_module.rush"
+      case "Import Aliasing - Mixed with Regular Imports":
+        moduleFileName = "mixed_alias_module.rush"
+      case "Import Aliasing - Avoiding Name Conflicts":
+        moduleFileName = "conflict_module.rush"
       }
 
       // Create module file

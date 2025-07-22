@@ -719,3 +719,111 @@ func TestSwitchParseErrors(t *testing.T) {
 func stringPtr(s string) *string {
   return &s
 }
+
+func TestImportAliasingParsing(t *testing.T) {
+  tests := []struct {
+    name   string
+    input  string
+    expected func(*ast.ImportStatement) bool
+  }{
+    {
+      name:  "Basic import without alias",
+      input: `import { foo } from "module"`,
+      expected: func(stmt *ast.ImportStatement) bool {
+        if len(stmt.Items) != 1 {
+          t.Errorf("Expected 1 import item, got %d", len(stmt.Items))
+          return false
+        }
+        item := stmt.Items[0]
+        if item.Name.Value != "foo" {
+          t.Errorf("Expected import name 'foo', got %s", item.Name.Value)
+          return false
+        }
+        if item.Alias != nil {
+          t.Errorf("Expected no alias, but got alias: %s", item.Alias.Value)
+          return false
+        }
+        return true
+      },
+    },
+    {
+      name:  "Import with alias",
+      input: `import { foo as bar } from "module"`,
+      expected: func(stmt *ast.ImportStatement) bool {
+        if len(stmt.Items) != 1 {
+          t.Errorf("Expected 1 import item, got %d", len(stmt.Items))
+          return false
+        }
+        item := stmt.Items[0]
+        if item.Name.Value != "foo" {
+          t.Errorf("Expected import name 'foo', got %s", item.Name.Value)
+          return false
+        }
+        if item.Alias == nil {
+          t.Errorf("Expected alias, but got nil")
+          return false
+        }
+        if item.Alias.Value != "bar" {
+          t.Errorf("Expected alias 'bar', got %s", item.Alias.Value)
+          return false
+        }
+        return true
+      },
+    },
+    {
+      name:  "Multiple imports with mixed aliases",
+      input: `import { foo, bar as baz, qux } from "module"`,
+      expected: func(stmt *ast.ImportStatement) bool {
+        if len(stmt.Items) != 3 {
+          t.Errorf("Expected 3 import items, got %d", len(stmt.Items))
+          return false
+        }
+        
+        // Check first item (no alias)
+        if stmt.Items[0].Name.Value != "foo" || stmt.Items[0].Alias != nil {
+          t.Errorf("First item should be 'foo' with no alias")
+          return false
+        }
+        
+        // Check second item (with alias)
+        if stmt.Items[1].Name.Value != "bar" || stmt.Items[1].Alias == nil || stmt.Items[1].Alias.Value != "baz" {
+          t.Errorf("Second item should be 'bar as baz'")
+          return false
+        }
+        
+        // Check third item (no alias)
+        if stmt.Items[2].Name.Value != "qux" || stmt.Items[2].Alias != nil {
+          t.Errorf("Third item should be 'qux' with no alias")
+          return false
+        }
+        
+        return true
+      },
+    },
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      l := lexer.New(tt.input)
+      p := New(l)
+      program := p.ParseProgram()
+
+      if len(p.Errors()) > 0 {
+        t.Fatalf("Parser errors: %v", p.Errors())
+      }
+
+      if len(program.Statements) != 1 {
+        t.Fatalf("Expected 1 statement, got %d", len(program.Statements))
+      }
+
+      stmt, ok := program.Statements[0].(*ast.ImportStatement)
+      if !ok {
+        t.Fatalf("Expected ImportStatement, got %T", program.Statements[0])
+      }
+
+      if !tt.expected(stmt) {
+        t.Fatalf("Test validation failed")
+      }
+    })
+  }
+}
