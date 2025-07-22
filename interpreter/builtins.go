@@ -293,4 +293,15 @@ var builtins = map[string]*BuiltinFunction{
 			return newTypedError("RuntimeError", msg.Value, 0, 0)
 		},
 	},
+	"to_string": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			
+			// Use the built-in Inspect() method which provides proper string representation
+			// for all value types including integers, floats, booleans, arrays, etc.
+			return &String{Value: args[0].Inspect()}
+		},
+	},
 }

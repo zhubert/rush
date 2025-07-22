@@ -406,3 +406,67 @@ func testEvalBuiltin(input string) Value {
 
   return Eval(program, env)
 }
+
+func TestToStringFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected string
+  }{
+    {`to_string(42)`, "42"},
+    {`to_string(3.14)`, "3.14"},
+    {`to_string(true)`, "true"},
+    {`to_string(false)`, "false"},
+    {`to_string("hello")`, "hello"},
+    {`to_string([1, 2, 3])`, "[1, 2, 3]"},
+    {`to_string([])`, "[]"},
+    {`to_string(0)`, "0"},
+    {`to_string(-42)`, "-42"},
+    {`to_string(3.0)`, "3"},
+    {`to_string([true, "test", 42])`, `[true, test, 42]`},
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.input, func(t *testing.T) {
+      result := testEvalBuiltin(tt.input)
+      
+      if result.Type() != STRING_VALUE {
+        t.Fatalf("Expected STRING, got %T (%+v)", result, result)
+      }
+      
+      str, ok := result.(*String)
+      if !ok {
+        t.Fatalf("Expected *String, got %T", result)
+      }
+      
+      if str.Value != tt.expected {
+        t.Errorf("Expected %q, got %q", tt.expected, str.Value)
+      }
+    })
+  }
+}
+
+func TestToStringErrors(t *testing.T) {
+  tests := []struct {
+    input    string
+    hasError bool
+  }{
+    {`to_string()`, true},           // No arguments
+    {`to_string(1, 2)`, true},      // Too many arguments
+  }
+
+  for _, tt := range tests {
+    t.Run(tt.input, func(t *testing.T) {
+      result := testEvalBuiltin(tt.input)
+      
+      if tt.hasError {
+        if result.Type() != ERROR_VALUE {
+          t.Fatalf("Expected ERROR, got %T (%+v)", result, result)
+        }
+      } else {
+        if result.Type() == ERROR_VALUE {
+          t.Fatalf("Unexpected error: %s", result.Inspect())
+        }
+      }
+    })
+  }
+}

@@ -242,36 +242,5 @@ export join = fn(arr, separator) {
   return result
 }
 
-export to_string = fn(value) {
-  # Convert various types to string representation
-  if (type(value) == "STRING") {
-    return value
-  }
-  
-  if (type(value) == "INTEGER") {
-    # Basic integer to string conversion
-    if (value == 0) { return "0" }
-    if (value == 1) { return "1" }
-    if (value == 2) { return "2" }
-    if (value == 3) { return "3" }
-    if (value == 4) { return "4" }
-    if (value == 5) { return "5" }
-    if (value == 6) { return "6" }
-    if (value == 7) { return "7" }
-    if (value == 8) { return "8" }
-    if (value == 9) { return "9" }
-    if (value == 10) { return "10" }
-    # This is a simplified version - full implementation would need more logic
-    return "number"
-  }
-  
-  if (type(value) == "BOOLEAN") {
-    if (value) {
-      return "true"
-    } else {
-      return "false"
-    }
-  }
-  
-  return "unknown"
-}
+# to_string is now available as a built-in function
+# No need for a module implementation as it's globally available
