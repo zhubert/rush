@@ -1,0 +1,25 @@
+# Array Operations Demo
+# Testing basic array operations
+
+print("=== Array Operations Demo ===")
+
+# Sample data
+numbers = [5, 2, 8, 1, 9, 3]
+
+print("Original numbers:")
+print(numbers)
+
+# Test basic built-in array functions
+print("\n--- Built-in Array Functions ---")
+print("Length of numbers:")
+print(len(numbers))
+
+print("Push 10 to numbers:")
+numbers_with_10 = push(numbers, 10)
+print(numbers_with_10)
+
+print("Slice numbers from 1 to 4:")
+sliced = slice(numbers, 1, 4)
+print(sliced)
+
+print("\n=== Demo Complete ===")

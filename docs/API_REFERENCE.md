@@ -223,6 +223,115 @@ split("hello", 42)            # Error: second argument to `split` must be STRING
 split("hello")                # Error: wrong number of arguments. got=1, want=2
 ```
 
+## Standard Library String Functions
+
+The following functions are available through the `std/string` module and provide advanced string manipulation capabilities. Note that boolean predicate functions use the `?` suffix.
+
+### `contains?(string, substring)`
+
+Checks if a string contains a substring.
+
+**Syntax:**
+```rush
+string.contains?(string, substring)
+```
+
+**Parameters:**
+- `string` (`STRING`): The source string
+- `substring` (`STRING`): The substring to search for
+
+**Returns:**
+- `BOOLEAN`: `true` if substring is found, `false` otherwise
+
+**Examples:**
+```rush
+text = "hello world"
+has_world = string.contains?(text, "world")
+# Returns: true
+
+has_foo = string.contains?(text, "foo")
+# Returns: false
+```
+
+### `starts_with?(string, prefix)`
+
+Checks if a string starts with a specific prefix.
+
+**Syntax:**
+```rush
+string.starts_with?(string, prefix)
+```
+
+**Parameters:**
+- `string` (`STRING`): The source string
+- `prefix` (`STRING`): The prefix to check for
+
+**Returns:**
+- `BOOLEAN`: `true` if string starts with prefix, `false` otherwise
+
+**Examples:**
+```rush
+text = "hello world"
+starts_hello = string.starts_with?(text, "hello")
+# Returns: true
+
+starts_world = string.starts_with?(text, "world")
+# Returns: false
+```
+
+### `ends_with?(string, suffix)`
+
+Checks if a string ends with a specific suffix.
+
+**Syntax:**
+```rush
+string.ends_with?(string, suffix)
+```
+
+**Parameters:**
+- `string` (`STRING`): The source string
+- `suffix` (`STRING`): The suffix to check for
+
+**Returns:**
+- `BOOLEAN`: `true` if string ends with suffix, `false` otherwise
+
+**Examples:**
+```rush
+text = "hello world"
+ends_world = string.ends_with?(text, "world")
+# Returns: true
+
+ends_hello = string.ends_with?(text, "hello")
+# Returns: false
+```
+
+### `is_whitespace_char?(character)`
+
+Checks if a single character is whitespace (space, tab, newline, or carriage return).
+
+**Syntax:**
+```rush
+string.is_whitespace_char?(character)
+```
+
+**Parameters:**
+- `character` (`STRING`): A single character string
+
+**Returns:**
+- `BOOLEAN`: `true` if character is whitespace, `false` otherwise
+
+**Examples:**
+```rush
+is_space = string.is_whitespace_char?(" ")
+# Returns: true
+
+is_letter = string.is_whitespace_char?("a")
+# Returns: false
+
+is_tab = string.is_whitespace_char?("\t")
+# Returns: true
+```
+
 ## Array Functions
 
 ### `push(array, element)`
@@ -355,6 +464,260 @@ slice([1, 2, 3], 0, 3)          # Returns: [1, 2, 3]
 # Error cases
 slice(42, 0, 1)                 # Error: first argument to `slice` must be ARRAY, got INTEGER
 slice([1, 2, 3])                # Error: wrong number of arguments. got=1, want=3
+```
+
+## Standard Library Array Functions
+
+The following functions are available through the `std/array` module and provide advanced array manipulation capabilities.
+
+### `map(array, function)`
+
+Transforms each element of an array using the provided function.
+
+**Syntax:**
+```rush
+array.map(array, function)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `function` (`FUNCTION`): A function that takes one argument and returns a value
+
+**Returns:**
+- `ARRAY`: New array with transformed elements
+
+**Examples:**
+```rush
+numbers = [1, 2, 3, 4]
+doubled = array.map(numbers, fn(x) { return x * 2 })
+# Returns: [2, 4, 6, 8]
+
+words = ["hello", "world"]
+uppercased = array.map(words, fn(word) { return upper(word) })
+# Returns: ["HELLO", "WORLD"]
+```
+
+### `filter(array, function)`
+
+Returns a new array containing only elements that satisfy the predicate function.
+
+**Syntax:**
+```rush
+array.filter(array, function)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `function` (`FUNCTION`): A predicate function that returns true/false
+
+**Returns:**
+- `ARRAY`: New array with filtered elements
+
+**Examples:**
+```rush
+numbers = [1, 2, 3, 4, 5, 6]
+evens = array.filter(numbers, fn(x) { return x % 2 == 0 })
+# Returns: [2, 4, 6]
+
+words = ["cat", "elephant", "dog"]
+long_words = array.filter(words, fn(word) { return len(word) > 3 })
+# Returns: ["elephant"]
+```
+
+### `reduce(array, function, initial)`
+
+Reduces an array to a single value using the provided accumulator function.
+
+**Syntax:**
+```rush
+array.reduce(array, function, initial)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `function` (`FUNCTION`): Function that takes (accumulator, current_value) and returns new accumulator
+- `initial` (any type): Initial value for the accumulator
+
+**Returns:**
+- (any type): The final accumulated value
+
+**Examples:**
+```rush
+numbers = [1, 2, 3, 4]
+sum = array.reduce(numbers, fn(acc, x) { return acc + x }, 0)
+# Returns: 10
+
+words = ["hello", "beautiful", "world"]
+longest = array.reduce(words, fn(acc, word) { 
+  if (len(word) > len(acc)) { return word }
+  return acc 
+}, "")
+# Returns: "beautiful"
+```
+
+### `find(array, function)`
+
+Returns the first element that satisfies the predicate function.
+
+**Syntax:**
+```rush
+array.find(array, function)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `function` (`FUNCTION`): A predicate function that returns true/false
+
+**Returns:**
+- (any type): The first matching element, or `null` if not found
+
+**Examples:**
+```rush
+numbers = [1, 3, 5, 2, 4]
+first_even = array.find(numbers, fn(x) { return x % 2 == 0 })
+# Returns: 2
+
+fruits = ["apple", "banana", "cherry"]
+long_fruit = array.find(fruits, fn(fruit) { return len(fruit) > 5 })
+# Returns: "banana"
+
+not_found = array.find([1, 3, 5], fn(x) { return x % 2 == 0 })
+# Returns: null
+```
+
+### `index_of(array, element)`
+
+Returns the index of the first occurrence of the specified element.
+
+**Syntax:**
+```rush
+array.index_of(array, element)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `element` (any type): The element to search for
+
+**Returns:**
+- `INTEGER`: The index of the element (0-based), or -1 if not found
+
+**Examples:**
+```rush
+fruits = ["apple", "banana", "cherry", "banana"]
+index = array.index_of(fruits, "banana")
+# Returns: 1 (first occurrence)
+
+numbers = [10, 20, 30]
+missing = array.index_of(numbers, 25)
+# Returns: -1 (not found)
+```
+
+### `includes?(array, element)`
+
+Checks if an array contains the specified element.
+
+**Syntax:**
+```rush
+array.includes?(array, element)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+- `element` (any type): The element to search for
+
+**Returns:**
+- `BOOLEAN`: `true` if element is found, `false` otherwise
+
+**Examples:**
+```rush
+numbers = [10, 20, 30]
+has_twenty = array.includes?(numbers, 20)
+# Returns: true
+
+has_forty = array.includes?(numbers, 40)
+# Returns: false
+```
+
+### `reverse(array)`
+
+Returns a new array with elements in reverse order.
+
+**Syntax:**
+```rush
+array.reverse(array)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+
+**Returns:**
+- `ARRAY`: New array with elements reversed
+
+**Examples:**
+```rush
+numbers = [1, 2, 3, 4, 5]
+reversed = array.reverse(numbers)
+# Returns: [5, 4, 3, 2, 1]
+
+words = ["first", "second", "third"]
+backwards = array.reverse(words)
+# Returns: ["third", "second", "first"]
+```
+
+### `sort(array)`
+
+Returns a new array with elements sorted in ascending order.
+
+**Syntax:**
+```rush
+array.sort(array)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+
+**Returns:**
+- `ARRAY`: New array with elements sorted
+
+**Behavior:**
+- Sorts numbers in ascending numerical order
+- Sorts strings in lexicographical order
+- Original array is not modified
+
+**Examples:**
+```rush
+numbers = [3, 1, 4, 1, 5, 9, 2, 6]
+sorted_nums = array.sort(numbers)
+# Returns: [1, 1, 2, 3, 4, 5, 6, 9]
+
+words = ["zebra", "apple", "banana"]
+sorted_words = array.sort(words)
+# Returns: ["apple", "banana", "zebra"]
+```
+
+### `length(array)`
+
+Returns the number of elements in an array (alias for built-in `len` function).
+
+**Syntax:**
+```rush
+array.length(array)
+```
+
+**Parameters:**
+- `array` (`ARRAY`): The source array
+
+**Returns:**
+- `INTEGER`: The number of elements in the array
+
+**Examples:**
+```rush
+numbers = [1, 2, 3, 4, 5]
+count = array.length(numbers)
+# Returns: 5
+
+empty = array.length([])
+# Returns: 0
 ```
 
 ## Error Handling
