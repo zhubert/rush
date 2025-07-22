@@ -404,10 +404,10 @@ var builtins = map[string]*BuiltinFunction{
 						maxVal = val
 					}
 				case *Float:
+					isFloat = true // Set to true whenever we encounter a float
 					if val.Value > maxFloat {
 						maxFloat = val.Value
 						maxVal = val
-						isFloat = true
 					}
 				default:
 					return newError("arguments to `builtin_max` must be INTEGER or FLOAT, got %s", args[i].Type())
