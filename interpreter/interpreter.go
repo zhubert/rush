@@ -40,6 +40,9 @@ func Eval(node ast.Node, env *Environment) Value {
 		env.Set(node.Name.Value, val)
 		return val
 	
+	case *ast.IndexAssignmentStatement:
+		return evalIndexAssignment(node, env)
+	
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression, env)
 	
@@ -1387,4 +1390,57 @@ func addNativeStandardLibraryFunctions(env *Environment, modulePath string) {
 			env.AddExport("slice", builtin)
 		}
 	}
+}
+
+// evalIndexAssignment evaluates array element assignments like "arr[0] = 5"
+func evalIndexAssignment(node *ast.IndexAssignmentStatement, env *Environment) Value {
+	// Evaluate the array/string being indexed
+	left := Eval(node.Left.Left, env)
+	if isError(left) {
+		return left
+	}
+	
+	// Evaluate the index
+	index := Eval(node.Left.Index, env)
+	if isError(index) {
+		return index
+	}
+	
+	// Evaluate the value to assign
+	value := Eval(node.Value, env)
+	if isError(value) {
+		return value
+	}
+	
+	// Handle array index assignment
+	if arr, ok := left.(*Array); ok {
+		return evalArrayIndexAssignment(arr, index, value)
+	}
+	
+	// String index assignment is not supported (strings are immutable)
+	if _, ok := left.(*String); ok {
+		return newError("string index assignment not supported: strings are immutable")
+	}
+	
+	return newError("index assignment not supported on type: %s", left.Type())
+}
+
+// evalArrayIndexAssignment handles assignment to array elements
+func evalArrayIndexAssignment(array *Array, index Value, value Value) Value {
+	idx, ok := index.(*Integer)
+	if !ok {
+		return newError("array index must be an integer, got %s", index.Type())
+	}
+	
+	arrayLen := int64(len(array.Elements))
+	i := idx.Value
+	
+	// Check bounds
+	if i < 0 || i >= arrayLen {
+		return newError("array index out of bounds: index %d, length %d", i, arrayLen)
+	}
+	
+	// Assign the value
+	array.Elements[i] = value
+	return value
 }

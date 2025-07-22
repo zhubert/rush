@@ -180,6 +180,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		if p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.ASSIGN {
 			return p.parseAssignmentStatement()
 		}
+		// Check if this is an array element assignment (identifier[index] = value)
+		if p.isIndexAssignment() {
+			return p.parseIndexAssignmentStatement()
+		}
 		// Otherwise, parse as expression statement
 		return p.parseExpressionStatement()
 	}
@@ -207,6 +211,55 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
 		p.nextToken()
 	}
 
+	return stmt
+}
+
+// isIndexAssignment checks if the current position represents an array index assignment
+// Pattern: IDENT [ ... ] = 
+func (p *Parser) isIndexAssignment() bool {
+	// Simple check: if current token is IDENT and peek is LBRACKET, it might be array assignment
+	// We'll do the full validation in parseIndexAssignmentStatement
+	return p.curToken.Type == lexer.IDENT && p.peekToken.Type == lexer.LBRACKET
+}
+
+// parseIndexAssignmentStatement parses array element assignments like "arr[0] = 5"
+func (p *Parser) parseIndexAssignmentStatement() ast.Statement {
+	// First, parse the left side as an index expression
+	leftExpr := p.parseExpression(LOWEST)
+	indexExpr, ok := leftExpr.(*ast.IndexExpression)
+	if !ok {
+		// This wasn't an index expression, fall back to expression statement
+		return &ast.ExpressionStatement{
+			Token:      p.curToken,
+			Expression: leftExpr,
+		}
+	}
+	
+	// Check if the next token is an assignment
+	if p.peekToken.Type != lexer.ASSIGN {
+		// This is just an index expression, not an assignment
+		return &ast.ExpressionStatement{
+			Token:      p.curToken,
+			Expression: leftExpr,
+		}
+	}
+	
+	// This is indeed an index assignment
+	p.nextToken() // move to =
+	
+	stmt := &ast.IndexAssignmentStatement{
+		Token: p.curToken, // the = token
+		Left:  indexExpr,
+	}
+	
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+	
+	// Optional semicolon
+	if p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+	
 	return stmt
 }
 

@@ -64,6 +64,27 @@ func (as *AssignmentStatement) String() string {
 	return out.String()
 }
 
+// IndexAssignmentStatement represents array element assignments like "arr[0] = 5"
+type IndexAssignmentStatement struct {
+	Token lexer.Token      // the '=' token
+	Left  *IndexExpression // the array[index] being assigned to
+	Value Expression       // the value being assigned
+}
+
+func (ias *IndexAssignmentStatement) statementNode()       {}
+func (ias *IndexAssignmentStatement) TokenLiteral() string { return ias.Token.Literal }
+func (ias *IndexAssignmentStatement) String() string {
+	var out bytes.Buffer
+	if ias.Left != nil {
+		out.WriteString(ias.Left.String())
+	}
+	out.WriteString(" = ")
+	if ias.Value != nil {
+		out.WriteString(ias.Value.String())
+	}
+	return out.String()
+}
+
 // Identifier represents identifiers like variable names
 type Identifier struct {
 	Token lexer.Token // the token.IDENT token
