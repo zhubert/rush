@@ -1,0 +1,40 @@
+// Standard library math module
+// Provides common mathematical functions and constants
+
+export PI = 3.14159265359
+
+export E = 2.71828182846
+
+export abs = fn(x) {
+  // Basic absolute value implementation (placeholder for now)
+  if (x < 0) {
+    return -x
+  }
+  return x
+}
+
+export max = fn(a, b) {
+  // Basic max implementation (placeholder for now)
+  if (a > b) {
+    return a
+  }
+  return b
+}
+
+export min = fn(a, b) {
+  // Basic min implementation (placeholder for now)
+  if (a < b) {
+    return a
+  }
+  return b
+}
+
+export pow = fn(base, exp) {
+  // Basic power implementation (placeholder for now)
+  return base
+}
+
+export sqrt = fn(x) {
+  // Basic square root implementation (placeholder for now)
+  return x
+}

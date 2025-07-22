@@ -3,6 +3,7 @@ package interpreter
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"rush/ast"
 )
@@ -813,6 +814,11 @@ func evalImportStatement(node *ast.ImportStatement, env *Environment) Value {
 		moduleDir := filepath.Dir(module.Path)
 		moduleEnv.SetCurrentDir(moduleDir)
 		
+		// Add native functions for standard library modules
+		if isStandardLibraryModule(modulePath) {
+			addNativeStandardLibraryFunctions(moduleEnv, modulePath)
+		}
+		
 		// Execute the module
 		result := Eval(module.AST, moduleEnv)
 		if isError(result) {
@@ -1246,4 +1252,34 @@ func evalSuperExpression(node *ast.SuperExpression, env *Environment) Value {
   // Evaluate method body with proper environment
   result := Eval(method.Body, methodEnv)
   return unwrapReturnValue(result)
+}
+
+// isStandardLibraryModule checks if a module path is for a standard library module
+func isStandardLibraryModule(modulePath string) bool {
+	return strings.HasPrefix(modulePath, "std/")
+}
+
+// addNativeStandardLibraryFunctions adds native functions to standard library modules
+func addNativeStandardLibraryFunctions(env *Environment, modulePath string) {
+	switch modulePath {
+	case "std/string":
+		// Add native string functions
+		if builtin, exists := builtins["substr"]; exists {
+			env.AddExport("substr", builtin)
+		}
+		if builtin, exists := builtins["split"]; exists {
+			env.AddExport("split", builtin)
+		}
+	case "std/array":
+		// Add native array functions
+		if builtin, exists := builtins["push"]; exists {
+			env.AddExport("push", builtin)
+		}
+		if builtin, exists := builtins["pop"]; exists {
+			env.AddExport("pop", builtin)
+		}
+		if builtin, exists := builtins["slice"]; exists {
+			env.AddExport("slice", builtin)
+		}
+	}
 }

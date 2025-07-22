@@ -1,0 +1,29 @@
+// Standard library string module
+// Provides common string manipulation functions
+
+// Native functions substr and split are automatically injected by the interpreter
+
+export trim = fn(s) {
+  // Basic trim implementation (placeholder for now)
+  return s
+}
+
+export upper = fn(s) {
+  // Basic upper implementation (placeholder for now) 
+  return s
+}
+
+export lower = fn(s) {
+  // Basic lower implementation (placeholder for now)
+  return s
+}
+
+export length = fn(s) {
+  // Use built-in len function
+  return len(s)
+}
+
+export contains = fn(s, substr) {
+  // Basic contains implementation (placeholder for now)
+  return false
+}
