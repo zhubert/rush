@@ -251,9 +251,9 @@ func newToken(tokenType TokenType, ch byte, line, column int) Token {
 	}
 }
 
-// isLetter checks if a character is a letter or underscore
+// isLetter checks if a character is a letter, underscore, or question mark (for boolean predicates)
 func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '?'
 }
 
 // isDigit checks if a character is a digit
