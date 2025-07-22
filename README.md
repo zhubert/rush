@@ -8,14 +8,40 @@ Rush is a modern, dynamically-typed programming language designed for simplicity
 
 ## 🚀 Quick Start
 
-### Running Rush Programs
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/zhubert/rush.git
+cd rush
+
+# Install Rush system-wide (requires sudo)
+make install
+
+# Or just build without installing
+make build
+```
+
+After installation, you can use Rush from anywhere:
 
 ```bash
 # Execute a Rush file
-go run cmd/rush/main.go examples/comprehensive_demo.rush
+rush examples/comprehensive_demo.rush
 
 # Start interactive REPL
-go run cmd/rush/main.go
+rush
+```
+
+### Development Mode
+
+If you want to run Rush from source without installing:
+
+```bash
+# Execute a Rush file from source
+make dev FILE=examples/comprehensive_demo.rush
+
+# Start REPL from source  
+make repl
 ```
 
 ### Hello World
@@ -27,7 +53,11 @@ print("Hello, Rush!")
 
 Run it:
 ```bash
-go run cmd/rush/main.go hello.rush
+# If installed
+rush hello.rush
+
+# From source
+make dev FILE=hello.rush
 ```
 
 ## ✨ Features
@@ -123,6 +153,25 @@ import { add, PI, square } from "./math"
 result = add(10, 5)             # 15
 area = PI * square(3)           # ~28.27
 print("Result:", result, "Area:", area)
+```
+
+### Standard Library
+Rush includes a standard library with useful modules (available after installation):
+
+```rush
+# Import math functions
+import { PI, sin, cos, sqrt } from "std/math"
+print("π =", PI)
+print("sin(π/2) =", sin(PI / 2))
+
+# Import array utilities
+import { map, filter, reduce } from "std/array" 
+numbers = [1, 2, 3, 4, 5]
+doubled = map(numbers, fn(x) { return x * 2 })
+
+# Import string utilities  
+import { trim, upper, lower } from "std/string"
+text = trim("  hello world  ")
 ```
 
 ### Error Handling

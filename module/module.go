@@ -143,6 +143,10 @@ func (mr *ModuleResolver) resolveStandardLibraryPath(modulePath string) (string,
 	
 	// Then try relative to executable path (for deployed installations)
 	if execPath, err := os.Executable(); err == nil {
+		// Resolve symlinks to get the actual executable path
+		if realPath, err := filepath.EvalSymlinks(execPath); err == nil {
+			execPath = realPath
+		}
 		execDir := filepath.Dir(execPath)
 		searchPaths = append(searchPaths, filepath.Join(execDir, "std", stdModuleName))
 	}
