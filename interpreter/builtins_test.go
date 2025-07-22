@@ -470,3 +470,581 @@ func TestToStringErrors(t *testing.T) {
     })
   }
 }
+
+// Math function tests
+
+func TestBuiltinAbsFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_abs(5)", 5},
+    {"builtin_abs(-5)", 5},
+    {"builtin_abs(0)", 0},
+    {"builtin_abs(3.14)", 3.14},
+    {"builtin_abs(-3.14)", 3.14},
+    {"builtin_abs(0.0)", 0.0},
+    {"builtin_abs(\"hello\")", "argument to `builtin_abs` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_abs()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_abs(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinMinFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_min(5, 3)", 3},
+    {"builtin_min(3, 5)", 3},
+    {"builtin_min(-5, -3)", -5},
+    {"builtin_min(0, 1)", 0},
+    {"builtin_min(1, 2, 3)", 1},
+    {"builtin_min(5, 3, 7, 1, 9)", 1},
+    {"builtin_min(3.14, 2.71)", 2.71},
+    {"builtin_min(5, 3.14)", 3.14},
+    {"builtin_min(3.14, 5)", 3.14},
+    {"builtin_min(42)", 42},
+    {"builtin_min()", "wrong number of arguments. got=0, want at least 1"},
+    {"builtin_min(\"hello\", 5)", "arguments to `builtin_min` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_min(5, \"hello\")", "arguments to `builtin_min` must be INTEGER or FLOAT, got STRING"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinMaxFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_max(5, 3)", 5},
+    {"builtin_max(3, 5)", 5},
+    {"builtin_max(-5, -3)", -3},
+    {"builtin_max(0, 1)", 1},
+    {"builtin_max(1, 2, 3)", 3},
+    {"builtin_max(5, 3, 7, 1, 9)", 9},
+    {"builtin_max(3.14, 2.71)", 3.14},
+    {"builtin_max(5, 3.14)", 5.0},
+    {"builtin_max(3.14, 5)", 5.0},
+    {"builtin_max(42)", 42},
+    {"builtin_max()", "wrong number of arguments. got=0, want at least 1"},
+    {"builtin_max(\"hello\", 5)", "arguments to `builtin_max` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_max(5, \"hello\")", "arguments to `builtin_max` must be INTEGER or FLOAT, got STRING"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinFloorFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_floor(5)", 5},
+    {"builtin_floor(5.9)", 5},
+    {"builtin_floor(5.1)", 5},
+    {"builtin_floor(-5.1)", -6},
+    {"builtin_floor(-5.9)", -6},
+    {"builtin_floor(0.0)", 0},
+    {"builtin_floor(0.9)", 0},
+    {"builtin_floor(-0.9)", -1},
+    {"builtin_floor(\"hello\")", "argument to `builtin_floor` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_floor()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_floor(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinCeilFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_ceil(5)", 5},
+    {"builtin_ceil(5.1)", 6},
+    {"builtin_ceil(5.9)", 6},
+    {"builtin_ceil(-5.1)", -5},
+    {"builtin_ceil(-5.9)", -5},
+    {"builtin_ceil(0.0)", 0},
+    {"builtin_ceil(0.1)", 1},
+    {"builtin_ceil(-0.1)", 0},
+    {"builtin_ceil(\"hello\")", "argument to `builtin_ceil` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_ceil()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_ceil(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinRoundFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_round(5)", 5},
+    {"builtin_round(5.4)", 5},
+    {"builtin_round(5.5)", 6},
+    {"builtin_round(5.6)", 6},
+    {"builtin_round(-5.4)", -5},
+    {"builtin_round(-5.5)", -6},
+    {"builtin_round(-5.6)", -6},
+    {"builtin_round(0.0)", 0},
+    {"builtin_round(0.4)", 0},
+    {"builtin_round(0.5)", 1},
+    {"builtin_round(-0.5)", -1},
+    {"builtin_round(\"hello\")", "argument to `builtin_round` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_round()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_round(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinSqrtFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_sqrt(4)", 2.0},
+    {"builtin_sqrt(9)", 3.0},
+    {"builtin_sqrt(16.0)", 4.0},
+    {"builtin_sqrt(0)", 0.0},
+    {"builtin_sqrt(0.0)", 0.0},
+    {"builtin_sqrt(1)", 1.0},
+    {"builtin_sqrt(2)", 1.4142135623730951}, // math.Sqrt(2)
+    {"builtin_sqrt(-1)", "argument to `builtin_sqrt` cannot be negative, got -1.000000"},
+    {"builtin_sqrt(-4.0)", "argument to `builtin_sqrt` cannot be negative, got -4.000000"},
+    {"builtin_sqrt(\"hello\")", "argument to `builtin_sqrt` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_sqrt()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_sqrt(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinPowFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_pow(2, 3)", 8.0},
+    {"builtin_pow(5, 0)", 1.0},
+    {"builtin_pow(2, -1)", 0.5},
+    {"builtin_pow(9, 0.5)", 3.0},
+    {"builtin_pow(2.0, 3.0)", 8.0},
+    {"builtin_pow(10, 2)", 100.0},
+    {"builtin_pow(1, 100)", 1.0},
+    {"builtin_pow(0, 5)", 0.0},
+    {"builtin_pow(\"hello\", 2)", "first argument to `builtin_pow` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_pow(2, \"hello\")", "second argument to `builtin_pow` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_pow(2)", "wrong number of arguments. got=1, want=2"},
+    {"builtin_pow()", "wrong number of arguments. got=0, want=2"},
+    {"builtin_pow(1, 2, 3)", "wrong number of arguments. got=3, want=2"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinRandomFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    hasError bool
+    errorMsg string
+  }{
+    {"builtin_random()", false, ""},
+    {"builtin_random(1)", true, "wrong number of arguments. got=1, want=0"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    if tt.hasError {
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != tt.errorMsg {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          tt.errorMsg, errObj.Message)
+      }
+    } else {
+      // Check that it's a float between 0.0 and 1.0
+      float, ok := evaluated.(*Float)
+      if !ok {
+        t.Errorf("object is not Float. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if float.Value < 0.0 || float.Value >= 1.0 {
+        t.Errorf("random value out of range [0.0, 1.0). got=%f", float.Value)
+      }
+    }
+  }
+}
+
+func TestBuiltinRandomIntFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    hasError bool
+    errorMsg string
+    minVal   int64
+    maxVal   int64
+  }{
+    {"builtin_random_int(1, 5)", false, "", 1, 5},
+    {"builtin_random_int(0, 0)", false, "", 0, 0},
+    {"builtin_random_int(-5, 5)", false, "", -5, 5},
+    {"builtin_random_int(5, 1)", true, "first argument to `builtin_random_int` cannot be greater than second argument", 0, 0},
+    {"builtin_random_int(\"hello\", 5)", true, "first argument to `builtin_random_int` must be INTEGER, got STRING", 0, 0},
+    {"builtin_random_int(1, \"hello\")", true, "second argument to `builtin_random_int` must be INTEGER, got STRING", 0, 0},
+    {"builtin_random_int(1)", true, "wrong number of arguments. got=1, want=2", 0, 0},
+    {"builtin_random_int()", true, "wrong number of arguments. got=0, want=2", 0, 0},
+    {"builtin_random_int(1, 2, 3)", true, "wrong number of arguments. got=3, want=2", 0, 0},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    if tt.hasError {
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != tt.errorMsg {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          tt.errorMsg, errObj.Message)
+      }
+    } else {
+      // Check that it's an integer in the specified range
+      integer, ok := evaluated.(*Integer)
+      if !ok {
+        t.Errorf("object is not Integer. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if integer.Value < tt.minVal || integer.Value > tt.maxVal {
+        t.Errorf("random int out of range [%d, %d]. got=%d", tt.minVal, tt.maxVal, integer.Value)
+      }
+    }
+  }
+}
+
+func TestBuiltinSumFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_sum([1, 2, 3])", 6},
+    {"builtin_sum([1.5, 2.5, 3.0])", 7.0},
+    {"builtin_sum([1, 2.5, 3])", 6.5},
+    {"builtin_sum([])", 0},
+    {"builtin_sum([42])", 42},
+    {"builtin_sum([-1, -2, -3])", -6},
+    {"builtin_sum([0, 0, 0])", 0},
+    {"builtin_sum([1, \"hello\", 3])", "array elements for `builtin_sum` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_sum(42)", "argument to `builtin_sum` must be ARRAY, got INTEGER"},
+    {"builtin_sum()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_sum([1, 2], [3, 4])", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case int:
+      testIntegerObject(t, evaluated, int64(expected))
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinAverageFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {"builtin_average([1, 2, 3])", 2.0},
+    {"builtin_average([1.5, 2.5, 3.0])", 2.3333333333333335},
+    {"builtin_average([1, 2.5, 3])", 2.1666666666666665},
+    {"builtin_average([42])", 42.0},
+    {"builtin_average([-1, -2, -3])", -2.0},
+    {"builtin_average([0, 0, 0])", 0.0},
+    {"builtin_average([10, 20])", 15.0},
+    {"builtin_average([])", "cannot calculate average of empty array"},
+    {"builtin_average([1, \"hello\", 3])", "array elements for `builtin_average` must be INTEGER or FLOAT, got STRING"},
+    {"builtin_average(42)", "argument to `builtin_average` must be ARRAY, got INTEGER"},
+    {"builtin_average()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_average([1, 2], [3, 4])", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+
+    switch expected := tt.expected.(type) {
+    case float64:
+      testFloatObject(t, evaluated, expected)
+    case string:
+      errObj, ok := evaluated.(*Error)
+      if !ok {
+        t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+        continue
+      }
+      if errObj.Message != expected {
+        t.Errorf("wrong error message. expected=%q, got=%q",
+          expected, errObj.Message)
+      }
+    }
+  }
+}
+
+func TestBuiltinIsNumberFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    {"builtin_is_number(42)", true},
+    {"builtin_is_number(3.14)", true},
+    {"builtin_is_number(0)", true},
+    {"builtin_is_number(0.0)", true},
+    {"builtin_is_number(-5)", true},
+    {"builtin_is_number(-3.14)", true},
+    {"builtin_is_number(\"hello\")", false},
+    {"builtin_is_number(true)", false},
+    {"builtin_is_number(false)", false},
+    {"builtin_is_number([])", false},
+    {"builtin_is_number([1, 2, 3])", false},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestBuiltinIsIntegerFunction(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    {"builtin_is_integer(42)", true},
+    {"builtin_is_integer(0)", true},
+    {"builtin_is_integer(-5)", true},
+    {"builtin_is_integer(3.14)", false},
+    {"builtin_is_integer(0.0)", false},
+    {"builtin_is_integer(-3.14)", false},
+    {"builtin_is_integer(\"hello\")", false},
+    {"builtin_is_integer(true)", false},
+    {"builtin_is_integer(false)", false},
+    {"builtin_is_integer([])", false},
+    {"builtin_is_integer([1, 2, 3])", false},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestBuiltinIsNumberErrors(t *testing.T) {
+  tests := []struct {
+    input    string
+    errorMsg string
+  }{
+    {"builtin_is_number()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_is_number(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+    
+    errObj, ok := evaluated.(*Error)
+    if !ok {
+      t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+      continue
+    }
+    if errObj.Message != tt.errorMsg {
+      t.Errorf("wrong error message. expected=%q, got=%q",
+        tt.errorMsg, errObj.Message)
+    }
+  }
+}
+
+func TestBuiltinIsIntegerErrors(t *testing.T) {
+  tests := []struct {
+    input    string
+    errorMsg string
+  }{
+    {"builtin_is_integer()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_is_integer(1, 2)", "wrong number of arguments. got=2, want=1"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEvalBuiltin(tt.input)
+    
+    errObj, ok := evaluated.(*Error)
+    if !ok {
+      t.Errorf("object is not Error. got=%T (%+v)", evaluated, evaluated)
+      continue
+    }
+    if errObj.Message != tt.errorMsg {
+      t.Errorf("wrong error message. expected=%q, got=%q",
+        tt.errorMsg, errObj.Message)
+    }
+  }
+}

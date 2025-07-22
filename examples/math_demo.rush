@@ -1,0 +1,67 @@
+# Math Operations Module Demo
+# Demonstrates all the mathematical functions and constants
+
+import { abs, min, max, floor, ceil, round, sqrt, pow, PI, E, random, random_int, sum, average, is_number, is_integer } from "std/math"
+
+print("=== Math Constants ===")
+print("PI =", PI)
+print("E =", E)
+
+print("\n=== Basic Operations ===")
+print("abs(-5) =", abs(-5))
+print("abs(3.14) =", abs(3.14))
+print("min(10, 5, 8) =", min(10, 5, 8))
+print("max(10, 5, 8) =", max(10, 5, 8))
+
+print("\n=== Rounding Functions ===")
+let value = 3.7
+print("Original value:", value)
+print("floor(3.7) =", floor(value))
+print("ceil(3.7) =", ceil(value))
+print("round(3.7) =", round(value))
+
+print("\n=== Power Operations ===")
+print("sqrt(16) =", sqrt(16))
+print("pow(2, 3) =", pow(2, 3))
+print("pow(9, 0.5) =", pow(9, 0.5))
+
+print("\n=== Random Numbers ===")
+print("random() =", random())
+print("random_int(1, 10) =", random_int(1, 10))
+
+print("\n=== Array Math Operations ===")
+let numbers = [1, 2, 3, 4, 5]
+print("Array:", numbers)
+print("sum(numbers) =", sum(numbers))
+print("average(numbers) =", average(numbers))
+
+let mixed_numbers = [1.5, 2, 3.14]
+print("Mixed array:", mixed_numbers)
+print("sum(mixed) =", sum(mixed_numbers))
+print("average(mixed) =", average(mixed_numbers))
+
+print("\n=== Type Checking ===")
+print("is_number(42) =", is_number(42))
+print("is_number(3.14) =", is_number(3.14))
+print("is_number('hello') =", is_number("hello"))
+print("is_integer(42) =", is_integer(42))
+print("is_integer(3.14) =", is_integer(3.14))
+
+print("\n=== Calculations ===")
+# Calculate area of a circle
+let radius = 5
+let area = PI * pow(radius, 2)
+print("Circle area (radius", radius, ") =", area)
+
+# Calculate distance between two points
+let x1 = 3
+let y1 = 4
+let x2 = 0
+let y2 = 0
+let distance = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2))
+print("Distance from (", x1, ",", y1, ") to (", x2, ",", y2, ") =", distance)
+
+print("\n=== Error Handling Examples ===")
+# These should produce errors if uncommented:
+# print("sqrt(-1) =", sqrt(-1))  # Should error
+# print("average([]) =", average([]))  # Should error
