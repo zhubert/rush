@@ -68,7 +68,7 @@ make dev FILE=hello.rush
 - **Error Handling**: Try/catch/finally/throw mechanisms with type-specific catching
 - **Arrays**: Built-in support for dynamic arrays
 - **String Manipulation**: Comprehensive string operations
-- **Control Flow**: If/else, while, and for loops
+- **Control Flow**: If/else, while, for loops, and switch/case statements
 - **Interactive REPL**: Explore Rush interactively
 - **Clean Syntax**: Easy to read and write
 
@@ -123,6 +123,19 @@ while (i < 10) {
 # For loops
 for (j = 0; j < 5; j = j + 1) {
   print("Count: " + type(j))
+}
+
+# Switch statements (Go-style automatic break)
+grade = "B"
+switch (grade) {
+  case "A":
+    result = "Excellent!"
+  case "B", "C":
+    result = "Good work"
+  case "D":
+    result = "Needs improvement"
+  default:
+    result = "Invalid grade"
 }
 
 # Modulo operator
