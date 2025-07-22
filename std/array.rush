@@ -1,0 +1,32 @@
+// Standard library array module
+// Provides common array manipulation functions
+
+export length = fn(arr) {
+  // Basic length implementation (placeholder for now)
+  return 0
+}
+
+export push = fn(arr, item) {
+  // Basic push implementation (placeholder for now)
+  return arr
+}
+
+export pop = fn(arr) {
+  // Basic pop implementation (placeholder for now)
+  return null
+}
+
+export map = fn(arr, func) {
+  // Basic map implementation (placeholder for now)
+  return arr
+}
+
+export filter = fn(arr, func) {
+  // Basic filter implementation (placeholder for now)
+  return arr
+}
+
+export reduce = fn(arr, func, initial) {
+  // Basic reduce implementation (placeholder for now)
+  return initial
+}

@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -92,6 +93,11 @@ func (mr *ModuleResolver) LoadModule(modulePath string, baseDir string) (*Module
 
 // resolvePath resolves a module path to an actual file path
 func (mr *ModuleResolver) resolvePath(modulePath string, baseDir string) (string, error) {
+	// Handle standard library modules
+	if strings.HasPrefix(modulePath, "std/") {
+		return mr.resolveStandardLibraryPath(modulePath)
+	}
+
 	// Handle relative paths
 	if strings.HasPrefix(modulePath, "./") || strings.HasPrefix(modulePath, "../") {
 		absPath := filepath.Join(baseDir, modulePath)
@@ -113,14 +119,48 @@ func (mr *ModuleResolver) resolvePath(modulePath string, baseDir string) (string
 		return absPath, nil
 	}
 
-	// Handle standard library modules (to be implemented later)
-	// For now, treat as relative to current directory
+	// Handle user modules in current directory
 	absPath := filepath.Join(baseDir, modulePath)
 	if !strings.HasSuffix(absPath, ".rush") {
 		absPath += ".rush"
 	}
 	
 	return filepath.Abs(absPath)
+}
+
+// resolveStandardLibraryPath resolves a standard library module path
+func (mr *ModuleResolver) resolveStandardLibraryPath(modulePath string) (string, error) {
+	// Remove the "std/" prefix
+	stdModuleName := strings.TrimPrefix(modulePath, "std/")
+	
+	// Try multiple search paths for the standard library
+	searchPaths := []string{}
+	
+	// First, try relative to current working directory (for development/testing)
+	if cwd, err := os.Getwd(); err == nil {
+		searchPaths = append(searchPaths, filepath.Join(cwd, "std", stdModuleName))
+	}
+	
+	// Then try relative to executable path (for deployed installations)
+	if execPath, err := os.Executable(); err == nil {
+		execDir := filepath.Dir(execPath)
+		searchPaths = append(searchPaths, filepath.Join(execDir, "std", stdModuleName))
+	}
+	
+	// Try each search path
+	for _, stdLibPath := range searchPaths {
+		// Add .rush extension if not present
+		if !strings.HasSuffix(stdLibPath, ".rush") {
+			stdLibPath += ".rush"
+		}
+		
+		// Check if the standard library module exists
+		if _, err := os.Stat(stdLibPath); err == nil {
+			return stdLibPath, nil
+		}
+	}
+	
+	return "", fmt.Errorf("standard library module not found: %s", modulePath)
 }
 
 // GetExports returns the exports of a loaded module

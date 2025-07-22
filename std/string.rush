@@ -1,0 +1,27 @@
+// Standard library string module
+// Provides common string manipulation functions
+
+export trim = fn(s) {
+  // Basic trim implementation (placeholder for now)
+  return s
+}
+
+export upper = fn(s) {
+  // Basic upper implementation (placeholder for now) 
+  return s
+}
+
+export lower = fn(s) {
+  // Basic lower implementation (placeholder for now)
+  return s
+}
+
+export length = fn(s) {
+  // Basic length implementation (placeholder for now)
+  return 0
+}
+
+export contains = fn(s, substr) {
+  // Basic contains implementation (placeholder for now)
+  return false
+}
