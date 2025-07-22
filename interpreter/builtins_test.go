@@ -958,17 +958,17 @@ func TestBuiltinIsNumberFunction(t *testing.T) {
     input    string
     expected bool
   }{
-    {"builtin_is_number(42)", true},
-    {"builtin_is_number(3.14)", true},
-    {"builtin_is_number(0)", true},
-    {"builtin_is_number(0.0)", true},
-    {"builtin_is_number(-5)", true},
-    {"builtin_is_number(-3.14)", true},
-    {"builtin_is_number(\"hello\")", false},
-    {"builtin_is_number(true)", false},
-    {"builtin_is_number(false)", false},
-    {"builtin_is_number([])", false},
-    {"builtin_is_number([1, 2, 3])", false},
+    {"builtin_is_number?(42)", true},
+    {"builtin_is_number?(3.14)", true},
+    {"builtin_is_number?(0)", true},
+    {"builtin_is_number?(0.0)", true},
+    {"builtin_is_number?(-5)", true},
+    {"builtin_is_number?(-3.14)", true},
+    {"builtin_is_number?(\"hello\")", false},
+    {"builtin_is_number?(true)", false},
+    {"builtin_is_number?(false)", false},
+    {"builtin_is_number?([])", false},
+    {"builtin_is_number?([1, 2, 3])", false},
   }
 
   for _, tt := range tests {
@@ -982,17 +982,17 @@ func TestBuiltinIsIntegerFunction(t *testing.T) {
     input    string
     expected bool
   }{
-    {"builtin_is_integer(42)", true},
-    {"builtin_is_integer(0)", true},
-    {"builtin_is_integer(-5)", true},
-    {"builtin_is_integer(3.14)", false},
-    {"builtin_is_integer(0.0)", false},
-    {"builtin_is_integer(-3.14)", false},
-    {"builtin_is_integer(\"hello\")", false},
-    {"builtin_is_integer(true)", false},
-    {"builtin_is_integer(false)", false},
-    {"builtin_is_integer([])", false},
-    {"builtin_is_integer([1, 2, 3])", false},
+    {"builtin_is_integer?(42)", true},
+    {"builtin_is_integer?(0)", true},
+    {"builtin_is_integer?(-5)", true},
+    {"builtin_is_integer?(3.14)", false},
+    {"builtin_is_integer?(0.0)", false},
+    {"builtin_is_integer?(-3.14)", false},
+    {"builtin_is_integer?(\"hello\")", false},
+    {"builtin_is_integer?(true)", false},
+    {"builtin_is_integer?(false)", false},
+    {"builtin_is_integer?([])", false},
+    {"builtin_is_integer?([1, 2, 3])", false},
   }
 
   for _, tt := range tests {
@@ -1006,8 +1006,8 @@ func TestBuiltinIsNumberErrors(t *testing.T) {
     input    string
     errorMsg string
   }{
-    {"builtin_is_number()", "wrong number of arguments. got=0, want=1"},
-    {"builtin_is_number(1, 2)", "wrong number of arguments. got=2, want=1"},
+    {"builtin_is_number?()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_is_number?(1, 2)", "wrong number of arguments. got=2, want=1"},
   }
 
   for _, tt := range tests {
@@ -1030,8 +1030,8 @@ func TestBuiltinIsIntegerErrors(t *testing.T) {
     input    string
     errorMsg string
   }{
-    {"builtin_is_integer()", "wrong number of arguments. got=0, want=1"},
-    {"builtin_is_integer(1, 2)", "wrong number of arguments. got=2, want=1"},
+    {"builtin_is_integer?()", "wrong number of arguments. got=0, want=1"},
+    {"builtin_is_integer?(1, 2)", "wrong number of arguments. got=2, want=1"},
   }
 
   for _, tt := range tests {

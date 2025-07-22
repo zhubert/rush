@@ -1,7 +1,7 @@
 # Math Operations Module Demo
 # Demonstrates all the mathematical functions and constants
 
-import { abs, min, max, floor, ceil, round, sqrt, pow, PI, E, random, random_int, sum, average, is_number, is_integer } from "std/math"
+import { abs, min, max, floor, ceil, round, sqrt, pow, PI, E, random, random_int, sum, average, is_number??, is_integer?? } from "std/math"
 
 print("=== Math Constants ===")
 print("PI =", PI)
@@ -41,11 +41,11 @@ print("sum(mixed) =", sum(mixed_numbers))
 print("average(mixed) =", average(mixed_numbers))
 
 print("\n=== Type Checking ===")
-print("is_number(42) =", is_number(42))
-print("is_number(3.14) =", is_number(3.14))
-print("is_number('hello') =", is_number("hello"))
-print("is_integer(42) =", is_integer(42))
-print("is_integer(3.14) =", is_integer(3.14))
+print("is_number?(42) =", is_number?(42))
+print("is_number?(3.14) =", is_number?(3.14))
+print("is_number?('hello') =", is_number?("hello"))
+print("is_integer?(42) =", is_integer?(42))
+print("is_integer?(3.14) =", is_integer?(3.14))
 
 print("\n=== Calculations ===")
 # Calculate area of a circle

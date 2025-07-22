@@ -28,5 +28,5 @@ export sum = builtin_sum
 export average = builtin_average
 
 # Type checking functions
-export is_number = builtin_is_number
-export is_integer = builtin_is_integer
+export is_number? = builtin_is_number?
+export is_integer? = builtin_is_integer?

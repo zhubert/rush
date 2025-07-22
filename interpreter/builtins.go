@@ -623,7 +623,7 @@ var builtins = map[string]*BuiltinFunction{
 			return &Float{Value: average}
 		},
 	},
-	"builtin_is_number": {
+	"builtin_is_number?": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
@@ -637,7 +637,7 @@ var builtins = map[string]*BuiltinFunction{
 			}
 		},
 	},
-	"builtin_is_integer": {
+	"builtin_is_integer?": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 1 {
 				return newError("wrong number of arguments. got=%d, want=1", len(args))
