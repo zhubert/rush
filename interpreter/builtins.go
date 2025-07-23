@@ -20,6 +20,8 @@ var builtins = map[string]*BuiltinFunction{
 				return &Integer{Value: int64(len(arg.Elements))}
 			case *String:
 				return &Integer{Value: int64(len(arg.Value))}
+			case *Hash:
+				return &Integer{Value: int64(len(arg.Keys))}
 			default:
 				return newError("argument to `len` not supported, got %s", args[0].Type())
 			}
@@ -649,6 +651,200 @@ var builtins = map[string]*BuiltinFunction{
 			default:
 				return &Boolean{Value: false}
 			}
+		},
+	},
+	"builtin_hash_keys": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("argument to `builtin_hash_keys` must be HASH, got %s", args[0].Type())
+			}
+
+			return &Array{Elements: hash.Keys}
+		},
+	},
+	"builtin_hash_values": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("argument to `builtin_hash_values` must be HASH, got %s", args[0].Type())
+			}
+
+			values := []Value{}
+			for _, key := range hash.Keys {
+				hashKey := CreateHashKey(key)
+				values = append(values, hash.Pairs[hashKey])
+			}
+
+			return &Array{Elements: values}
+		},
+	},
+	"builtin_hash_has_key": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 2 {
+				return newError("wrong number of arguments. got=%d, want=2", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("first argument to `builtin_hash_has_key` must be HASH, got %s", args[0].Type())
+			}
+
+			key := args[1]
+			if !isHashable(key) {
+				return newError("unusable as hash key: %T", key)
+			}
+
+			hashKey := CreateHashKey(key)
+			_, exists := hash.Pairs[hashKey]
+			return &Boolean{Value: exists}
+		},
+	},
+	"builtin_hash_get": {
+		Fn: func(args ...Value) Value {
+			if len(args) < 2 || len(args) > 3 {
+				return newError("wrong number of arguments. got=%d, want=2 or 3", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("first argument to `builtin_hash_get` must be HASH, got %s", args[0].Type())
+			}
+
+			key := args[1]
+			if !isHashable(key) {
+				return newError("unusable as hash key: %T", key)
+			}
+
+			hashKey := CreateHashKey(key)
+			value, exists := hash.Pairs[hashKey]
+			if !exists {
+				if len(args) == 3 {
+					return args[2] // return default value
+				}
+				return NULL
+			}
+
+			return value
+		},
+	},
+	"builtin_hash_set": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 3 {
+				return newError("wrong number of arguments. got=%d, want=3", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("first argument to `builtin_hash_set` must be HASH, got %s", args[0].Type())
+			}
+
+			key := args[1]
+			if !isHashable(key) {
+				return newError("unusable as hash key: %T", key)
+			}
+
+			value := args[2]
+
+			// Create new hash (immutable operation)
+			newPairs := make(map[HashKey]Value)
+			newKeys := []Value{}
+
+			// Copy existing pairs
+			for _, k := range hash.Keys {
+				hashKey := CreateHashKey(k)
+				newPairs[hashKey] = hash.Pairs[hashKey]
+				newKeys = append(newKeys, k)
+			}
+
+			// Add or update the key-value pair
+			hashKey := CreateHashKey(key)
+			if _, exists := newPairs[hashKey]; !exists {
+				newKeys = append(newKeys, key)
+			}
+			newPairs[hashKey] = value
+
+			return &Hash{Pairs: newPairs, Keys: newKeys}
+		},
+	},
+	"builtin_hash_delete": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 2 {
+				return newError("wrong number of arguments. got=%d, want=2", len(args))
+			}
+
+			hash, ok := args[0].(*Hash)
+			if !ok {
+				return newError("first argument to `builtin_hash_delete` must be HASH, got %s", args[0].Type())
+			}
+
+			key := args[1]
+			if !isHashable(key) {
+				return newError("unusable as hash key: %T", key)
+			}
+
+			hashKey := CreateHashKey(key)
+
+			// Create new hash without the key (immutable operation)
+			newPairs := make(map[HashKey]Value)
+			newKeys := []Value{}
+
+			for _, k := range hash.Keys {
+				kHashKey := CreateHashKey(k)
+				if kHashKey != hashKey {
+					newPairs[kHashKey] = hash.Pairs[kHashKey]
+					newKeys = append(newKeys, k)
+				}
+			}
+
+			return &Hash{Pairs: newPairs, Keys: newKeys}
+		},
+	},
+	"builtin_hash_merge": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 2 {
+				return newError("wrong number of arguments. got=%d, want=2", len(args))
+			}
+
+			hash1, ok1 := args[0].(*Hash)
+			if !ok1 {
+				return newError("first argument to `builtin_hash_merge` must be HASH, got %s", args[0].Type())
+			}
+
+			hash2, ok2 := args[1].(*Hash)
+			if !ok2 {
+				return newError("second argument to `builtin_hash_merge` must be HASH, got %s", args[1].Type())
+			}
+
+			// Create new hash (immutable operation)
+			newPairs := make(map[HashKey]Value)
+			newKeys := []Value{}
+
+			// Copy hash1
+			for _, key := range hash1.Keys {
+				hashKey := CreateHashKey(key)
+				newPairs[hashKey] = hash1.Pairs[hashKey]
+				newKeys = append(newKeys, key)
+			}
+
+			// Merge hash2 (overrides conflicts)
+			for _, key := range hash2.Keys {
+				hashKey := CreateHashKey(key)
+				if _, exists := newPairs[hashKey]; !exists {
+					newKeys = append(newKeys, key)
+				}
+				newPairs[hashKey] = hash2.Pairs[hashKey]
+			}
+
+			return &Hash{Pairs: newPairs, Keys: newKeys}
 		},
 	},
 }

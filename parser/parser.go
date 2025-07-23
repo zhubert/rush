@@ -79,6 +79,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(lexer.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(lexer.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(lexer.LBRACKET, p.parseArrayLiteral)
+	p.registerPrefix(lexer.LBRACE, p.parseHashLiteral)
 	p.registerPrefix(lexer.IF, p.parseIfExpression)
 	p.registerPrefix(lexer.FN, p.parseFunctionLiteral)
 	p.registerPrefix(lexer.INSTANCE_VAR, p.parseInstanceVariable)
@@ -424,6 +425,50 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 	array := &ast.ArrayLiteral{Token: p.curToken}
 	array.Elements = p.parseExpressionList(lexer.RBRACKET)
 	return array
+}
+
+func (p *Parser) parseHashLiteral() ast.Expression {
+	hash := &ast.HashLiteral{Token: p.curToken}
+	hash.Pairs = make(map[ast.Expression]ast.Expression)
+
+	// Handle empty hash {}
+	if p.peekToken.Type == lexer.RBRACE {
+		p.nextToken()
+		return hash
+	}
+
+	p.nextToken()
+
+	// Parse first key-value pair
+	key := p.parseExpression(LOWEST)
+	if !p.expectPeek(lexer.COLON) {
+		return nil
+	}
+
+	p.nextToken()
+	value := p.parseExpression(LOWEST)
+	hash.Pairs[key] = value
+
+	// Parse remaining key-value pairs
+	for p.peekToken.Type == lexer.COMMA {
+		p.nextToken()
+		p.nextToken()
+
+		key := p.parseExpression(LOWEST)
+		if !p.expectPeek(lexer.COLON) {
+			return nil
+		}
+
+		p.nextToken()
+		value := p.parseExpression(LOWEST)
+		hash.Pairs[key] = value
+	}
+
+	if !p.expectPeek(lexer.RBRACE) {
+		return nil
+	}
+
+	return hash
 }
 
 func (p *Parser) parseExpressionList(end lexer.TokenType) []ast.Expression {
