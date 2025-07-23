@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rush Programming Language</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --accent-color: #f59e0b;
+            --text-color: #1f2937;
+            --text-light: #6b7280;
+            --bg-color: #ffffff;
+            --bg-secondary: #f9fafb;
+            --border-color: #e5e7eb;
+            --code-bg: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        main {
+            padding: 80px 0;
+        }
+
+        .section {
+            margin-bottom: 80px;
+        }
+
+        .section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .section p {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 40px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .feature {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .feature h3 {
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .feature p {
+            color: var(--text-light);
+            text-align: left;
+            margin: 0;
+        }
+
+        .code-example {
+            background: var(--code-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 40px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .code-header {
+            background: #1f2937;
+            padding: 15px 20px;
+            color: #9ca3af;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #374151;
+        }
+
+        .code-content {
+            padding: 0;
+        }
+
+        .code-content pre {
+            padding: 20px;
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .code-content code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .quick-start {
+            background: var(--bg-secondary);
+            padding: 60px 0;
+            border-radius: 20px;
+            margin: 60px 0;
+        }
+
+        .installation-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .step {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            line-height: 40px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .step h4 {
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        footer {
+            background: var(--text-color);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .installation-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="hero">
+                <h1>Rush</h1>
+                <p>A modern, expressive programming language designed for simplicity and power</p>
+                <div class="cta-buttons">
+                    <a href="#quick-start" class="btn btn-primary">Get Started</a>
+                    <a href="https://github.com/zhubert/rush" class="btn btn-secondary">View on GitHub</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section class="section">
+                <h2>What is Rush?</h2>
+                <p>
+                    Rush is a modern, dynamically-typed programming language built with Go and 
+                    <strong>written entirely by Agentic AI</strong>. It combines clean, readable syntax 
+                    with powerful features like first-class functions, object-oriented programming, 
+                    and a comprehensive standard library. Perfect for both beginners learning programming 
+                    concepts and experienced developers who want a simple yet expressive language.
+                </p>
+                
+                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%); padding: 30px; border-radius: 12px; margin: 40px 0; text-align: center; border-left: 4px solid var(--primary-color);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px; font-size: 1.5rem;">🤖 Built by AI</h3>
+                    <p style="margin: 0; font-size: 1.1rem; color: var(--text-color);">
+                        Rush is an interesting example of AI-assisted software development. 
+                        Every component, from the lexer to the interpreter, was developed through 
+                        collaboration with AI systems, demonstrating how artificial intelligence 
+                        can help create complete programming language implementations.
+                    </p>
+                </div>
+
+                <div class="code-example">
+                    <div class="code-header">hello.rush</div>
+                    <div class="code-content">
+                        <pre><code class="language-javascript"># Your first Rush program
+print("Hello, Rush!")
+
+# Variables and functions
+greet = fn(name) {
+    return "Welcome to Rush, " + name + "!"
+}
+
+# Arrays and control flow
+languages = ["Go", "Python", "JavaScript", "Rush"]
+for (i = 0; i < len(languages); i = i + 1) {
+    print(greet(languages[i]))
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Why Choose Rush?</h2>
+                <div class="features">
+                    <div class="feature">
+                        <h3>🚀 Easy to Learn</h3>
+                        <p>Clean, intuitive syntax that's perfect for beginners while remaining powerful for advanced use cases.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚡ Interactive REPL</h3>
+                        <p>Explore and experiment with Rush interactively. Perfect for learning and prototyping.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎯 Dynamic Typing</h3>
+                        <p>Variables can hold any type of value, making development fast and flexible.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🧰 Rich Standard Library</h3>
+                        <p>Comprehensive modules for math, string manipulation, arrays, and collections out of the box.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🏗️ Object-Oriented</h3>
+                        <p>Classes, inheritance, and method calls for structured, maintainable code.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📦 Module System</h3>
+                        <p>Import and export functionality with aliasing for clean, organized code.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Language Features</h2>
+                
+                <div class="code-example">
+                    <div class="code-header">Functions and Closures</div>
+                    <div class="code-content">
+                        <pre><code class="language-javascript"># First-class functions with closures
+counter = fn(start) {
+    count = start
+    return fn() {
+        count = count + 1
+        return count
+    }
+}
+
+myCounter = counter(10)
+print(myCounter())  # 11
+print(myCounter())  # 12</code></pre>
+                    </div>
+                </div>
+
+                <div class="code-example">
+                    <div class="code-header">Object-Oriented Programming</div>
+                    <div class="code-content">
+                        <pre><code class="language-javascript"># Classes and inheritance
+class Animal {
+    fn initialize(name) {
+        @name = name
+    }
+    
+    fn speak() {
+        return @name + " makes a sound"
+    }
+}
+
+class Dog < Animal {
+    fn speak() {
+        return @name + " barks!"
+    }
+}
+
+buddy = Dog.new("Buddy")
+print(buddy.speak())  # "Buddy barks!"</code></pre>
+                    </div>
+                </div>
+
+                <div class="code-example">
+                    <div class="code-header">Standard Library Power</div>
+                    <div class="code-content">
+                        <pre><code class="language-javascript"># Rich standard library modules
+import { map, filter, reduce } from "std/array"
+import { trim, upper, contains? } from "std/string"
+import { sqrt, PI, max } from "std/math"
+
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+# Functional programming with arrays
+evens = filter(numbers, fn(x) { x % 2 == 0 })
+doubled = map(evens, fn(x) { x * 2 })
+sum = reduce(doubled, fn(acc, x) { acc + x }, 0)
+
+print("Sum of doubled evens:", sum)  # 60</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="quick-start" class="quick-start">
+                <div class="container">
+                    <h2>Quick Start</h2>
+                    <p>Get Rush up and running in minutes</p>
+                    
+                    <div class="installation-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <h4>Clone Repository</h4>
+                            <p>Get the Rush source code from GitHub</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <h4>Install</h4>
+                            <p>Run <code>make install</code> to build and install Rush system-wide</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <h4>Start Coding</h4>
+                            <p>Create your first Rush program and run it with <code>rush myfile.rush</code></p>
+                        </div>
+                    </div>
+
+                    <div class="code-example">
+                        <div class="code-header">Terminal</div>
+                        <div class="code-content">
+                            <pre><code class="language-bash"># Clone and install Rush
+git clone https://github.com/zhubert/rush.git
+cd rush
+make install
+
+# Start the interactive REPL
+rush
+
+# Or run a Rush program
+rush examples/comprehensive_demo.rush</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Explore More</h2>
+                <p>Ready to dive deeper? Check out these resources to master Rush programming.</p>
+                
+                <div class="features">
+                    <div class="feature">
+                        <h3>📖 Documentation</h3>
+                        <p>Complete language specification, user guide, and API reference available in the docs/ directory.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎮 Examples</h3>
+                        <p>Comprehensive demos including algorithms, games, and real-world applications in the examples/ directory.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🧪 Interactive REPL</h3>
+                        <p>Experiment with Rush features interactively. Type <code>rush</code> to start exploring!</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/zhubert/rush">GitHub</a>
+                <a href="https://github.com/zhubert/rush/blob/main/docs/LANGUAGE_SPECIFICATION.md">Language Spec</a>
+                <a href="https://github.com/zhubert/rush/blob/main/docs/USER_GUIDE.md">User Guide</a>
+                <a href="https://github.com/zhubert/rush/blob/main/docs/API_REFERENCE.md">API Reference</a>
+                <a href="https://github.com/zhubert/rush/issues">Issues</a>
+            </div>
+            <p>&copy; 2024 Rush Programming Language. Licensed under MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize syntax highlighting
+        hljs.highlightAll();
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
