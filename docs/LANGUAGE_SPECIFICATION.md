@@ -2,7 +2,7 @@
 
 ## Overview
 
-Rush is a dynamically-typed, interpreted programming language with clean syntax inspired by modern languages. It features C-style control flow, first-class functions, and built-in support for arrays and strings.
+Rush is a dynamically-typed, interpreted programming language with clean syntax inspired by modern languages. It features C-style control flow, first-class functions, and built-in support for arrays, hashes/dictionaries, and strings.
 
 ## Table of Contents
 
@@ -102,9 +102,10 @@ Reserved words in Rush:
 
 ### Delimiters
 - `()` - parentheses for grouping and function calls
-- `{}` - braces for code blocks
+- `{}` - braces for code blocks and hash literals
 - `[]` - brackets for array literals and indexing
 - `,` - comma separator
+- `:` - colon for hash key-value pairs
 - `;` - statement terminator (optional, newlines also terminate statements)
 
 ## Data Types
@@ -180,6 +181,47 @@ Array element assignment is supported:
 ```rush
 numbers = [1, 2, 3]
 numbers[0] = 10  # Array becomes [10, 2, 3]
+```
+
+### Hash/Dictionary
+
+Key-value mappings with `{key: value}` syntax:
+
+```rush
+person = {"name": "Alice", "age": 30, "active": true}
+config = {42: "answer", "pi": 3.14, true: "enabled"}
+empty_hash = {}
+```
+
+Hash keys can be strings, integers, booleans, or floats:
+
+```rush
+mixed_keys = {
+  "string": "value1",
+  42: "value2", 
+  true: "value3",
+  3.14: "value4"
+}
+```
+
+Hash indexing uses bracket notation:
+
+```rush
+name = person["name"]      # Returns "Alice"
+age = person["age"]        # Returns 30
+```
+
+Hash assignment creates or updates key-value pairs:
+
+```rush
+person["city"] = "NYC"     # Add new key
+person["age"] = 31         # Update existing key
+```
+
+Out-of-bounds access returns `null`:
+
+```rush
+unknown = person["unknown"]  # Returns null
 ```
 
 ### Function
@@ -793,6 +835,61 @@ pop([])                # Returns null
 Returns a portion of an array:
 ```rush
 slice([1, 2, 3, 4, 5], 1, 4)  # Returns [2, 3, 4]
+```
+
+### Hash Functions
+
+#### `builtin_hash_keys(hash)`
+Returns an array of all keys in the hash:
+```rush
+person = {"name": "Alice", "age": 30}
+keys = builtin_hash_keys(person)  # Returns ["name", "age"]
+```
+
+#### `builtin_hash_values(hash)`
+Returns an array of all values in the hash:
+```rush
+person = {"name": "Alice", "age": 30}
+values = builtin_hash_values(person)  # Returns ["Alice", 30]
+```
+
+#### `builtin_hash_has_key(hash, key)`
+Returns true if the hash contains the specified key:
+```rush
+person = {"name": "Alice", "age": 30}
+has_name = builtin_hash_has_key(person, "name")  # Returns true
+has_city = builtin_hash_has_key(person, "city")  # Returns false
+```
+
+#### `builtin_hash_get(hash, key, default?)`
+Gets a value from the hash with optional default:
+```rush
+person = {"name": "Alice", "age": 30}
+name = builtin_hash_get(person, "name")        # Returns "Alice"
+city = builtin_hash_get(person, "city")        # Returns null
+city = builtin_hash_get(person, "city", "NYC") # Returns "NYC"
+```
+
+#### `builtin_hash_set(hash, key, value)`
+Returns a new hash with the key-value pair added or updated:
+```rush
+person = {"name": "Alice"}
+updated = builtin_hash_set(person, "age", 30)  # Returns {"name": "Alice", "age": 30}
+```
+
+#### `builtin_hash_delete(hash, key)`
+Returns a new hash with the specified key removed:
+```rush
+person = {"name": "Alice", "age": 30}
+updated = builtin_hash_delete(person, "age")  # Returns {"name": "Alice"}
+```
+
+#### `builtin_hash_merge(hash1, hash2)`
+Returns a new hash combining both hashes (hash2 values overwrite hash1):
+```rush
+person = {"name": "Alice", "age": 25}
+updates = {"age": 30, "city": "NYC"}
+merged = builtin_hash_merge(person, updates)  # Returns {"name": "Alice", "age": 30, "city": "NYC"}
 ```
 
 ## Grammar

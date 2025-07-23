@@ -7,9 +7,10 @@ This document provides comprehensive documentation for all built-in functions av
 1. [Core Built-in Functions](#core-built-in-functions)
 2. [String Built-in Functions](#string-built-in-functions)
 3. [Array Built-in Functions](#array-built-in-functions)
-4. [Math Built-in Functions](#math-built-in-functions)
-5. [Standard Library Modules](#standard-library-modules)
-6. [Error Types](#error-types)
+4. [Hash Built-in Functions](#hash-built-in-functions)
+5. [Math Built-in Functions](#math-built-in-functions)
+6. [Standard Library Modules](#standard-library-modules)
+7. [Error Types](#error-types)
 
 ## Core Built-in Functions
 
@@ -774,6 +775,251 @@ count = array.length(numbers)
 
 empty = array.length([])
 # Returns: 0
+```
+
+## Hash Built-in Functions
+
+These functions provide comprehensive operations for working with hash/dictionary data structures.
+
+### `builtin_hash_keys(hash)`
+
+Returns an array containing all keys from the hash in insertion order.
+
+**Syntax:**
+```rush
+builtin_hash_keys(hash)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The hash to extract keys from
+
+**Returns:**
+- `ARRAY`: Array of keys in insertion order
+
+**Behavior:**
+- Keys are returned in the order they were inserted into the hash
+- Works with all hashable key types (string, integer, boolean, float)
+
+**Errors:**
+- Returns error if argument is not a hash
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 30, "active": true}
+keys = builtin_hash_keys(person)
+# Returns: ["name", "age", "active"]
+
+empty_keys = builtin_hash_keys({})
+# Returns: []
+```
+
+### `builtin_hash_values(hash)`
+
+Returns an array containing all values from the hash in insertion order.
+
+**Syntax:**
+```rush
+builtin_hash_values(hash)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The hash to extract values from
+
+**Returns:**
+- `ARRAY`: Array of values in key insertion order
+
+**Behavior:**
+- Values are returned in the same order as their corresponding keys
+- Values can be of any type
+
+**Errors:**
+- Returns error if argument is not a hash
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 30}
+values = builtin_hash_values(person)
+# Returns: ["Alice", 30]
+```
+
+### `builtin_hash_has_key(hash, key)`
+
+Checks if a hash contains a specific key.
+
+**Syntax:**
+```rush
+builtin_hash_has_key(hash, key)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The hash to check
+- `key` (hashable): The key to look for
+
+**Returns:**
+- `BOOLEAN`: True if key exists, false otherwise
+
+**Behavior:**
+- Works with all hashable key types
+- Case-sensitive for string keys
+
+**Errors:**
+- Returns error if first argument is not a hash
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 30}
+has_name = builtin_hash_has_key(person, "name")    # Returns: true
+has_city = builtin_hash_has_key(person, "city")    # Returns: false
+has_answer = builtin_hash_has_key({42: "answer"}, 42)  # Returns: true
+```
+
+### `builtin_hash_get(hash, key, default?)`
+
+Gets a value from the hash with optional default.
+
+**Syntax:**
+```rush
+builtin_hash_get(hash, key)
+builtin_hash_get(hash, key, default)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The hash to get value from
+- `key` (hashable): The key to look up
+- `default` (any type, optional): Value to return if key doesn't exist
+
+**Returns:**
+- Any type: The value associated with the key, or default/null if not found
+
+**Behavior:**
+- Returns the value if key exists
+- Returns default value if provided and key doesn't exist
+- Returns null if no default provided and key doesn't exist
+
+**Errors:**
+- Returns error if first argument is not a hash
+- Returns error if wrong number of arguments provided (must be 2 or 3)
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 30}
+name = builtin_hash_get(person, "name")           # Returns: "Alice"
+city = builtin_hash_get(person, "city")           # Returns: null
+city = builtin_hash_get(person, "city", "NYC")    # Returns: "NYC"
+```
+
+### `builtin_hash_set(hash, key, value)`
+
+Returns a new hash with the key-value pair added or updated.
+
+**Syntax:**
+```rush
+builtin_hash_set(hash, key, value)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The source hash
+- `key` (hashable): The key to set
+- `value` (any type): The value to associate with the key
+
+**Returns:**
+- `HASH`: New hash with the key-value pair added/updated
+
+**Behavior:**
+- Original hash is not modified (immutable operation)
+- If key exists, its value is updated in the new hash
+- If key doesn't exist, it's added to the new hash
+- Maintains insertion order for new keys
+
+**Errors:**
+- Returns error if first argument is not a hash
+- Returns error if key is not hashable
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice"}
+updated = builtin_hash_set(person, "age", 30)
+# Returns: {"name": "Alice", "age": 30}
+
+modified = builtin_hash_set(person, "name", "Bob")
+# Returns: {"name": "Bob"}
+```
+
+### `builtin_hash_delete(hash, key)`
+
+Returns a new hash with the specified key removed.
+
+**Syntax:**
+```rush
+builtin_hash_delete(hash, key)
+```
+
+**Parameters:**
+- `hash` (`HASH`): The source hash
+- `key` (hashable): The key to remove
+
+**Returns:**
+- `HASH`: New hash without the specified key
+
+**Behavior:**
+- Original hash is not modified (immutable operation)
+- If key exists, it's removed from the new hash
+- If key doesn't exist, returns a copy of the original hash
+- Maintains order of remaining keys
+
+**Errors:**
+- Returns error if first argument is not a hash
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 30, "city": "NYC"}
+without_age = builtin_hash_delete(person, "age")
+# Returns: {"name": "Alice", "city": "NYC"}
+
+same = builtin_hash_delete(person, "nonexistent")
+# Returns: {"name": "Alice", "age": 30, "city": "NYC"}
+```
+
+### `builtin_hash_merge(hash1, hash2)`
+
+Returns a new hash combining two hashes, with hash2 values overwriting hash1.
+
+**Syntax:**
+```rush
+builtin_hash_merge(hash1, hash2)
+```
+
+**Parameters:**
+- `hash1` (`HASH`): The base hash
+- `hash2` (`HASH`): The hash to merge in (takes precedence)
+
+**Returns:**
+- `HASH`: New hash combining both inputs
+
+**Behavior:**
+- Original hashes are not modified (immutable operation)
+- Keys from hash2 overwrite keys from hash1 if they exist in both
+- Maintains insertion order: hash1 keys first, then new keys from hash2
+- Updated keys maintain their original position
+
+**Errors:**
+- Returns error if either argument is not a hash
+- Returns error if wrong number of arguments provided
+
+**Examples:**
+```rush
+person = {"name": "Alice", "age": 25}
+updates = {"age": 30, "city": "NYC"}
+merged = builtin_hash_merge(person, updates)
+# Returns: {"name": "Alice", "age": 30, "city": "NYC"}
+
+empty_merge = builtin_hash_merge({}, {"key": "value"})
+# Returns: {"key": "value"}
 ```
 
 ## Math Built-in Functions

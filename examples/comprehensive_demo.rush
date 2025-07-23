@@ -255,9 +255,55 @@ print("  10 - 4 = " + type(calculator("-", 10, 4)))
 print("  6 * 7 = " + type(calculator("*", 6, 7)))
 print("  15 / 3 = " + type(calculator("/", 15, 3)))
 
-# 10. TYPE SYSTEM DEMONSTRATION
-print("\n10. Type System:")
-values = [42, 3.14, "text", true, [1, 2, 3], fn(x) { x }]
+# 10. HASH/DICTIONARY COLLECTIONS
+print("\n10. Hash/Dictionary Collections:")
+
+# Hash creation and basic operations
+person = {"name": "Alice", "age": 30, "active": true}
+print("Person hash: " + type(person))
+print("Name: " + person["name"])
+print("Age: " + type(person["age"]))
+
+# Hash assignment and modification
+person["city"] = "New York"
+person["age"] = 31
+print("Updated person: " + type(person))
+
+# Hash with different key types
+config = {"debug": true, 42: "answer", 3.14: "pi", true: "enabled"}
+print("Mixed key types: " + type(config["debug"]) + ", " + config[42] + ", " + config[3.14])
+
+# Hash built-in functions
+keys = builtin_hash_keys(person)
+values = builtin_hash_values(person)
+print("Keys count: " + type(len(keys)))
+print("Has 'name' key: " + type(builtin_hash_has_key(person, "name")))
+print("Has 'phone' key: " + type(builtin_hash_has_key(person, "phone")))
+
+# Hash manipulation functions
+original = {"name": "Bob", "score": 85}
+updated = builtin_hash_set(original, "grade", "B")
+without_score = builtin_hash_delete(updated, "score")
+print("Final hash length: " + type(len(without_score)))
+
+# Hash merging
+defaults = {"theme": "dark", "notifications": true}
+user_prefs = {"theme": "light", "language": "en"}
+merged = builtin_hash_merge(defaults, user_prefs)
+print("Merged config theme: " + merged["theme"])
+
+# Nested hashes example
+users = {
+  "alice": {"role": "admin", "permissions": ["read", "write", "delete"]},
+  "bob": {"role": "user", "permissions": ["read"]}
+}
+alice_role = users["alice"]["role"]
+alice_perms = users["alice"]["permissions"]
+print("Alice is " + alice_role + " with " + type(len(alice_perms)) + " permissions")
+
+# 11. TYPE SYSTEM DEMONSTRATION
+print("\n11. Type System:")
+values = [42, 3.14, "text", true, [1, 2, 3], {"key": "value"}, fn(x) { x }]
 for (i = 0; i < len(values); i = i + 1) {
   value = values[i]
   valueType = type(value)
@@ -270,6 +316,7 @@ print("✓ Variables and basic types (Integer, Float, String, Boolean)")
 print("✓ Arithmetic and boolean expressions")
 print("✓ Conditional statements (if/else)")
 print("✓ Arrays with indexing and built-in functions")
+print("✓ Hash/Dictionary collections with comprehensive built-in functions")
 print("✓ String operations and manipulation")
 print("✓ Function definitions and calls")
 print("✓ Loops (while, for)")
