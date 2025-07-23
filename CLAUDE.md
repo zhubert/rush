@@ -8,6 +8,7 @@
 - Run `go test ./...` before committing changes.
 - Whenever we begin work on a new phase of development, always create a new git branch.
 - Always reference the related Github Issue in a Github Pull Request
+- Boolean predicate functions in Rush need to be camel cased, for instance `is_whitespace?`
 
 ## Project Planning & Tracking
 
@@ -169,3 +170,4 @@ if len(args) != 1 {
 - Lexer → Parser → AST → Interpreter (linear dependency)
 - Standard library depends on interpreter and module resolution
 - Examples depend on all language features being implemented
+```
