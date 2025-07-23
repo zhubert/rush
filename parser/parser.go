@@ -429,7 +429,7 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 
 func (p *Parser) parseHashLiteral() ast.Expression {
 	hash := &ast.HashLiteral{Token: p.curToken}
-	hash.Pairs = make(map[ast.Expression]ast.Expression)
+	hash.Pairs = []ast.HashPair{}
 
 	// Handle empty hash {}
 	if p.peekToken.Type == lexer.RBRACE {
@@ -447,7 +447,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 	p.nextToken()
 	value := p.parseExpression(LOWEST)
-	hash.Pairs[key] = value
+	hash.Pairs = append(hash.Pairs, ast.HashPair{Key: key, Value: value})
 
 	// Parse remaining key-value pairs
 	for p.peekToken.Type == lexer.COMMA {
@@ -461,7 +461,7 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 
 		p.nextToken()
 		value := p.parseExpression(LOWEST)
-		hash.Pairs[key] = value
+		hash.Pairs = append(hash.Pairs, ast.HashPair{Key: key, Value: value})
 	}
 
 	if !p.expectPeek(lexer.RBRACE) {

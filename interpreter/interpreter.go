@@ -534,8 +534,8 @@ func evalHashLiteral(node *ast.HashLiteral, env *Environment) Value {
 	pairs := make(map[HashKey]Value)
 	keys := []Value{}
 
-	for keyNode, valueNode := range node.Pairs {
-		key := Eval(keyNode, env)
+	for _, pair := range node.Pairs {
+		key := Eval(pair.Key, env)
 		if isError(key) {
 			return key
 		}
@@ -545,7 +545,7 @@ func evalHashLiteral(node *ast.HashLiteral, env *Environment) Value {
 			return newError("unusable as hash key: %T", key)
 		}
 
-		value := Eval(valueNode, env)
+		value := Eval(pair.Value, env)
 		if isError(value) {
 			return value
 		}
