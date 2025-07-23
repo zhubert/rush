@@ -4,13 +4,16 @@ This document provides comprehensive documentation for all built-in functions av
 
 ## Table of Contents
 
-1. [I/O Functions](#io-functions)
-2. [Utility Functions](#utility-functions)
-3. [String Functions](#string-functions)
-4. [Array Functions](#array-functions)
-5. [Error Handling](#error-handling)
+1. [Core Built-in Functions](#core-built-in-functions)
+2. [String Built-in Functions](#string-built-in-functions)
+3. [Array Built-in Functions](#array-built-in-functions)
+4. [Math Built-in Functions](#math-built-in-functions)
+5. [Standard Library Modules](#standard-library-modules)
+6. [Error Types](#error-types)
 
-## I/O Functions
+## Core Built-in Functions
+
+These functions are available globally without any imports.
 
 ### `print(...)`
 
@@ -130,7 +133,32 @@ if (type(value) == "INTEGER") {
 }
 ```
 
-## String Functions
+### `to_string(value)`
+
+Converts any value to its string representation.
+
+**Syntax:**
+```rush
+to_string(value)
+```
+
+**Parameters:**
+- `value` (any): Value to convert to string
+
+**Returns:**
+- `STRING`: String representation of the value
+
+**Examples:**
+```rush
+to_string(42)          # Returns: "42"
+to_string(3.14)        # Returns: "3.14"
+to_string(true)        # Returns: "true"
+to_string([1, 2, 3])   # Returns: "[1, 2, 3]"
+to_string(null)        # Returns: "null"
+to_string(fn() {})     # Returns: "<function>"
+```
+
+## String Built-in Functions
 
 ### `substr(string, start, length)`
 
@@ -332,7 +360,35 @@ is_tab = string.is_whitespace_char?("\t")
 # Returns: true
 ```
 
-## Array Functions
+### `ord(character)` and `chr(code)`
+
+Convert between characters and ASCII codes.
+
+**Syntax:**
+```rush
+ord(character)
+chr(ascii_code)
+```
+
+**Parameters:**
+- `character` (STRING): Single character string
+- `ascii_code` (INTEGER): ASCII code value (0-127)
+
+**Returns:**
+- `ord`: INTEGER - ASCII code of the character
+- `chr`: STRING - Character corresponding to ASCII code
+
+**Examples:**
+```rush
+ord("A")               # Returns: 65
+ord("a")               # Returns: 97
+chr(65)                # Returns: "A"
+chr(97)                # Returns: "a"
+ord("0")               # Returns: 48
+chr(48)                # Returns: "0"
+```
+
+## Array Built-in Functions
 
 ### `push(array, element)`
 
@@ -720,7 +776,137 @@ empty = array.length([])
 # Returns: 0
 ```
 
-## Error Handling
+## Math Built-in Functions
+
+These math functions are implemented as builtins and used by the standard library.
+
+### Mathematical Operations
+
+```rush
+builtin_abs(-42)           # Returns: 42
+builtin_min(5, 3, 8, 1)    # Returns: 1
+builtin_max(5, 3, 8, 1)    # Returns: 8
+builtin_sqrt(16)           # Returns: 4.0
+builtin_pow(2, 8)          # Returns: 256.0
+```
+
+### Rounding Functions
+
+```rush
+builtin_floor(3.7)         # Returns: 3.0
+builtin_ceil(3.2)          # Returns: 4.0
+builtin_round(3.6)         # Returns: 4.0
+```
+
+### Random Functions
+
+```rush
+builtin_random()           # Returns: random float [0,1)
+builtin_random_int(1, 10)  # Returns: random integer [1,10]
+```
+
+### Array Math Functions
+
+```rush
+builtin_sum([1, 2, 3, 4])     # Returns: 10.0
+builtin_average([1, 2, 3, 4]) # Returns: 2.5
+```
+
+### Type Predicates
+
+```rush
+builtin_is_number?(42)     # Returns: true
+builtin_is_integer?(3.14)  # Returns: false
+```
+
+## Standard Library Modules
+
+Rush includes comprehensive standard library modules that can be imported.
+
+### Math Module (`std/math`)
+
+**Import:**
+```rush
+import { function_name } from "std/math"
+```
+
+**Constants:**
+- `PI` - π (3.141592653589793)
+- `E` - Euler's number (2.718281828459045)
+
+**Functions:**
+- `abs(number)` - Absolute value
+- `min(...numbers)` - Minimum value  
+- `max(...numbers)` - Maximum value
+- `floor(number)` - Floor function
+- `ceil(number)` - Ceiling function
+- `round(number)` - Round to nearest integer
+- `sqrt(number)` - Square root
+- `pow(base, exponent)` - Power function
+- `random()` - Random float [0,1)
+- `random_int(min, max)` - Random integer in range
+- `sum(array)` - Sum of numeric array
+- `average(array)` - Average of numeric array
+- `is_number?(value)` - Check if value is a number
+- `is_integer?(value)` - Check if value is an integer
+
+**Example:**
+```rush
+import { sqrt, PI, sum } from "std/math"
+radius = 5
+area = PI * sqrt(radius)
+numbers = [1, 2, 3, 4, 5]
+total = sum(numbers)  # 15.0
+```
+
+### String Module (`std/string`)
+
+**Functions:**
+- `trim(string)` - Remove leading/trailing whitespace
+- `ltrim(string)` - Remove leading whitespace
+- `rtrim(string)` - Remove trailing whitespace
+- `upper(string)` - Convert to uppercase
+- `lower(string)` - Convert to lowercase
+- `length(string)` - Get string length (alias for `len`)
+- `contains?(string, search)` - Check if string contains substring
+- `replace(string, old, new)` - Replace all occurrences
+- `starts_with?(string, prefix)` - Check string prefix
+- `ends_with?(string, suffix)` - Check string suffix
+- `join(array, separator)` - Join array elements into string
+- `is_whitespace_char?(char)` - Check if character is whitespace
+
+**Example:**
+```rush
+import { trim, upper, replace } from "std/string"
+text = "  hello world  "
+clean = trim(text)           # "hello world"
+loud = upper(clean)          # "HELLO WORLD"
+greeting = replace(loud, "WORLD", "RUSH")  # "HELLO RUSH"
+```
+
+### Array Module (`std/array`)
+
+**Functions:**
+- `length(array)` - Get array length (alias for `len`)
+- `map(array, function)` - Transform each element
+- `filter(array, predicate)` - Filter elements by predicate
+- `reduce(array, function, initial)` - Reduce array to single value
+- `find(array, predicate)` - Find first matching element
+- `index_of(array, element)` - Find index of element (-1 if not found)
+- `includes?(array, element)` - Check if array contains element
+- `reverse(array)` - Reverse array order
+- `sort(array)` - Sort array (bubble sort implementation)
+
+**Example:**
+```rush
+import { map, filter, reduce } from "std/array"
+numbers = [1, 2, 3, 4, 5]
+doubled = map(numbers, fn(x) { x * 2 })      # [2, 4, 6, 8, 10]
+evens = filter(numbers, fn(x) { x % 2 == 0 }) # [2, 4]
+sum = reduce(numbers, fn(acc, x) { acc + x }, 0) # 15
+```
+
+## Error Types
 
 All built-in functions follow consistent error handling patterns:
 

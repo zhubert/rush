@@ -9,12 +9,15 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 3. [Working with Data](#working-with-data)
 4. [Functions](#functions)
 5. [Control Flow](#control-flow)
-6. [Module System](#module-system)
-7. [Built-in Functions](#built-in-functions)
-8. [Examples](#examples)
-9. [REPL Usage](#repl-usage)
-10. [Common Patterns](#common-patterns)
-11. [Tips and Best Practices](#tips-and-best-practices)
+6. [Object-Oriented Programming](#object-oriented-programming)
+7. [Error Handling](#error-handling)
+8. [Module System](#module-system)
+9. [Standard Library](#standard-library)
+10. [Built-in Functions](#built-in-functions)
+11. [Examples](#examples)
+12. [REPL Usage](#repl-usage)
+13. [Common Patterns](#common-patterns)
+14. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
@@ -26,14 +29,28 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 
 ### Running Rush Programs
 
-#### Execute a file:
+#### After Installation:
 ```bash
-go run cmd/rush/main.go your_program.rush
+# Execute a file
+rush your_program.rush
+
+# Start interactive REPL
+rush
 ```
 
-#### Start the interactive REPL:
+#### Development Mode (from source):
 ```bash
-go run cmd/rush/main.go
+# Execute a file
+make dev FILE=your_program.rush
+
+# Start REPL
+make repl
+
+# Build project
+make build
+
+# Install system-wide
+make install
 ```
 
 ### Your First Program
@@ -46,7 +63,7 @@ print("Hello, Rush!")
 
 Run it:
 ```bash
-go run cmd/rush/main.go hello.rush
+rush hello.rush
 ```
 
 ## Basic Concepts
@@ -296,6 +313,296 @@ for (row = 0; row < len(matrix); row = row + 1) {
     print("Element at [" + type(row) + "," + type(col) + "]: " + type(element))
   }
 }
+```
+
+## Object-Oriented Programming
+
+Rush supports object-oriented programming with classes, inheritance, and method calls.
+
+### Class Definition
+
+```rush
+# Define a class
+class Animal {
+  fn initialize(name) {
+    @name = name  # Instance variable with @ prefix
+  }
+  
+  fn speak() {
+    return @name + " makes a sound"
+  }
+  
+  fn get_name() {
+    return @name
+  }
+}
+
+# Create an instance
+animal = Animal.new("Generic Animal")
+print(animal.speak())  # "Generic Animal makes a sound"
+```
+
+### Inheritance
+
+```rush
+# Child class inherits from parent
+class Dog < Animal {
+  fn initialize(name, breed) {
+    super(name)  # Call parent constructor
+    @breed = breed
+  }
+  
+  fn speak() {
+    return @name + " barks"
+  }
+  
+  fn get_breed() {
+    return @breed
+  }
+}
+
+# Create a dog instance
+dog = Dog.new("Buddy", "Golden Retriever")
+print(dog.speak())        # "Buddy barks"
+print(dog.get_name())     # "Buddy"
+print(dog.get_breed())    # "Golden Retriever"
+```
+
+### Method Calls
+
+```rush
+# Methods are called using dot notation
+result = object.method_name(arguments)
+
+# Instance variables use @ prefix
+class Counter {
+  fn initialize() {
+    @count = 0
+  }
+  
+  fn increment() {
+    @count = @count + 1
+    return @count
+  }
+  
+  fn get_count() {
+    return @count
+  }
+}
+
+counter = Counter.new()
+print(counter.increment())  # 1
+print(counter.increment())  # 2
+print(counter.get_count())  # 2
+```
+
+## Error Handling
+
+Rush provides comprehensive error handling with try/catch/finally blocks.
+
+### Basic Try-Catch
+
+```rush
+try {
+  result = risky_operation()
+  print("Success:", result)
+} catch (error) {
+  print("Something went wrong:", error.message)
+}
+```
+
+### Try-Catch-Finally
+
+The finally block always executes:
+
+```rush
+file = null
+try {
+  file = open_file("data.txt")
+  content = read_file(file)
+  process_content(content)
+} catch (error) {
+  print("Error processing file:", error.message)
+} finally {
+  if (file != null) {
+    close_file(file)
+  }
+  print("Cleanup completed")
+}
+```
+
+### Multiple Catch Blocks
+
+Handle different error types separately:
+
+```rush
+try {
+  data = validate_and_process(input)
+} catch (ValidationError error) {
+  print("Validation failed:", error.message)
+  show_help()
+} catch (NetworkError error) {
+  print("Network issue:", error.message)
+  retry_connection()
+} catch (error) {
+  print("Unexpected error:", error.message)
+  log_error(error)
+}
+```
+
+### Throwing Errors
+
+```rush
+validate_age = fn(age) {
+  if (age < 0) {
+    throw ValidationError("Age cannot be negative")
+  }
+  if (age > 150) {
+    throw ValidationError("Age seems unrealistic")
+  }
+  return age
+}
+
+try {
+  age = validate_age(-5)
+} catch (ValidationError error) {
+  print("Invalid age:", error.message)
+}
+```
+
+### Error Types
+
+Built-in error types include:
+- `Error` - Base error type
+- `ValidationError` - Input validation failures
+- `TypeError` - Type-related errors
+- `IndexError` - Array/string index out of bounds
+- `ArgumentError` - Function argument errors
+- `RuntimeError` - General runtime errors
+
+## Standard Library
+
+Rush includes a comprehensive standard library with modules for common operations.
+
+### Math Module (`std/math`)
+
+Mathematical functions and constants:
+
+```rush
+import { PI, E, sqrt, abs, min, max, pow } from "std/math"
+
+# Constants
+print("π =", PI)  # 3.141592653589793
+print("e =", E)   # 2.718281828459045
+
+# Basic operations
+print(abs(-42))           # 42
+print(min(5, 3, 8, 1))   # 1
+print(max(5, 3, 8, 1))   # 8
+print(sqrt(16))          # 4.0
+print(pow(2, 8))         # 256.0
+
+# Rounding functions
+import { floor, ceil, round } from "std/math"
+print(floor(3.7))        # 3.0
+print(ceil(3.2))         # 4.0
+print(round(3.6))        # 4.0
+
+# Random functions
+import { random, random_int } from "std/math"
+print(random())          # Random float [0, 1)
+print(random_int(1, 10)) # Random integer [1, 10]
+
+# Array operations
+import { sum, average } from "std/math"
+numbers = [1, 2, 3, 4, 5]
+print(sum(numbers))      # 15.0
+print(average(numbers))  # 3.0
+
+# Type predicates
+import { is_number?, is_integer? } from "std/math"
+print(is_number?(42))    # true
+print(is_integer?(3.14)) # false
+```
+
+### String Module (`std/string`)
+
+String manipulation functions:
+
+```rush
+import { trim, upper, lower, contains? } from "std/string"
+
+text = "  Hello, World!  "
+print(trim(text))        # "Hello, World!"
+print(upper(text))       # "  HELLO, WORLD!  "
+print(lower(text))       # "  hello, world!  "
+print(contains?(text, "World"))  # true
+
+# More string functions
+import { replace, starts_with?, ends_with?, join } from "std/string"
+
+sentence = "Hello, beautiful world!"
+print(replace(sentence, "world", "universe"))  # "Hello, beautiful universe!"
+print(starts_with?(sentence, "Hello"))         # true
+print(ends_with?(sentence, "world!"))          # true
+
+words = ["apple", "banana", "cherry"]
+print(join(words, ", "))  # "apple, banana, cherry"
+
+# Character operations
+import { is_whitespace_char? } from "std/string"
+print(is_whitespace_char?(" "))   # true
+print(is_whitespace_char?("a"))   # false
+```
+
+### Array Module (`std/array`)
+
+Functional programming utilities for arrays:
+
+```rush
+import { map, filter, reduce, find } from "std/array"
+
+numbers = [1, 2, 3, 4, 5]
+
+# Transform each element
+doubled = map(numbers, fn(x) { x * 2 })
+print(doubled)  # [2, 4, 6, 8, 10]
+
+# Filter elements
+evens = filter(numbers, fn(x) { x % 2 == 0 })
+print(evens)    # [2, 4]
+
+# Reduce to single value
+sum = reduce(numbers, fn(acc, x) { acc + x }, 0)
+print(sum)      # 15
+
+# Find first matching element
+first_even = find(numbers, fn(x) { x % 2 == 0 })
+print(first_even)  # 2
+
+# More array utilities
+import { index_of, includes?, reverse, sort } from "std/array"
+
+fruits = ["apple", "banana", "cherry"]
+print(index_of(fruits, "banana"))     # 1
+print(includes?(fruits, "grape"))     # false
+print(reverse(fruits))                # ["cherry", "banana", "apple"]
+
+numbers = [3, 1, 4, 1, 5]
+print(sort(numbers))                  # [1, 1, 3, 4, 5]
+```
+
+### Import Aliasing
+
+Use aliases for cleaner code:
+
+```rush
+import { 
+  very_long_function_name as short,
+  another_long_name as brief
+} from "std/string"
+
+result = short("some text")
 ```
 
 ## Module System

@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-11%20in%20progress-blue)](#phases)
+[![Phase](https://img.shields.io/badge/phase-11%20complete-green)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -62,15 +62,32 @@ make dev FILE=hello.rush
 
 ## ✨ Features
 
+### Core Language
 - **Dynamic Typing**: Variables can hold any type of value
-- **First-Class Functions**: Functions are values that can be passed around
-- **Module System**: Import/export functionality for code organization
-- **Error Handling**: Try/catch/finally/throw mechanisms with type-specific catching
-- **Arrays**: Built-in support for dynamic arrays
-- **String Manipulation**: Comprehensive string operations
-- **Control Flow**: If/else, while, for loops, and switch/case statements
+- **First-Class Functions**: Functions with closures and higher-order support
+- **Object-Oriented Programming**: Classes, inheritance, and method calls
+- **Module System**: Import/export with aliasing for code organization
+- **Error Handling**: Try/catch/finally/throw with typed error catching
+- **Control Flow**: If/else, while, for loops, switch/case, break/continue
 - **Interactive REPL**: Explore Rush interactively
-- **Clean Syntax**: Easy to read and write
+
+### Data Types & Operations
+- **Arrays**: Dynamic arrays with element assignment (`arr[i] = value`)
+- **Strings**: String indexing and comprehensive manipulation
+- **Numbers**: Integers and floats with modulo operator (`%`)
+- **Booleans**: Logical operations with short-circuit evaluation
+- **Null**: Explicit null handling
+
+### Standard Library
+- **Math Module** (`std/math`): Mathematical functions, constants, and utilities
+- **String Module** (`std/string`): String manipulation and text processing
+- **Array Module** (`std/array`): Functional programming utilities (map, filter, reduce)
+- **Import Aliasing**: Clean imports with `import { func as alias } from "module"`
+
+### Development Experience
+- **System Installation**: Install globally with `make install`
+- **Development Tools**: REPL, file execution, comprehensive error messages
+- **Clean Syntax**: Modern, readable syntax inspired by contemporary languages
 
 ## 📚 Language Overview
 
@@ -174,23 +191,54 @@ print("Result:", result, "Area:", area)
 ```
 
 ### Standard Library
-Rush includes a standard library with useful modules (available after installation):
+Rush includes a comprehensive standard library with three main modules:
 
 ```rush
-# Import math functions
-import { PI, sin, cos, sqrt } from "std/math"
-print("π =", PI)
-print("sin(π/2) =", sin(PI / 2))
-
-# Import array utilities (available in Phase 11)
-import { map, filter, reduce } from "std/array" 
+# Math operations
+import { PI, E, sqrt, abs, min, max, sum } from "std/math"
 numbers = [1, 2, 3, 4, 5]
-doubled = map(numbers, fn(x) { return x * 2 })
+print("π =", PI)                    # 3.141592653589793
+print("√16 =", sqrt(16))            # 4.0
+print("Sum:", sum(numbers))         # 15.0
 
-# Import string utilities (available now)
-import { trim, upper, lower, contains, replace } from "std/string"
-text = trim("  hello world  ")
-uppercase = upper(text)
+# String manipulation
+import { trim, upper, split, join, contains? } from "std/string"
+text = "  hello, rush world  "
+words = split(trim(text), ", ")     # ["hello", "rush world"]
+sentence = join(words, " and ")     # "hello and rush world"
+print(upper(sentence))              # "HELLO AND RUSH WORLD"
+
+# Array utilities with functional programming
+import { map, filter, reduce } from "std/array"
+numbers = [1, 2, 3, 4, 5]
+doubled = map(numbers, fn(x) { x * 2 })          # [2, 4, 6, 8, 10]
+evens = filter(numbers, fn(x) { x % 2 == 0 })    # [2, 4]
+total = reduce(numbers, fn(acc, x) { acc + x }, 0) # 15
+```
+
+### Object-Oriented Programming
+```rush
+# Define a class
+class Animal {
+  fn initialize(name) {
+    @name = name
+  }
+  
+  fn speak() {
+    return @name + " makes a sound"
+  }
+}
+
+# Inheritance
+class Dog < Animal {
+  fn speak() {
+    return @name + " barks"
+  }
+}
+
+# Create instances
+dog = Dog.new("Buddy")
+print(dog.speak())  # "Buddy barks"
 ```
 
 ### Error Handling

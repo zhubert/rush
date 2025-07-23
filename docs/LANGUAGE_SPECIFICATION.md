@@ -53,12 +53,22 @@ Reserved words in Rush:
 - `import` - import statement
 - `export` - export statement  
 - `from` - from clause in imports
+- `as` - alias clause in imports
 - `try` - try block for error handling
 - `catch` - catch block for error handling
 - `finally` - finally block for cleanup
 - `throw` - throw statement for raising errors
+- `switch` - switch statement
+- `case` - case clause in switch
+- `default` - default clause in switch
+- `break` - break statement
+- `continue` - continue statement
+- `class` - class definition
+- `new` - object instantiation
+- `super` - parent class reference
 - `true` - boolean literal
 - `false` - boolean literal
+- `null` - null literal
 
 ### Operators
 
@@ -67,6 +77,7 @@ Reserved words in Rush:
 - `-` - subtraction
 - `*` - multiplication
 - `/` - division (always produces float result)
+- `%` - modulo (remainder)
 
 #### Comparison Operators
 - `==` - equality
@@ -84,8 +95,10 @@ Reserved words in Rush:
 #### Assignment Operator
 - `=` - assignment
 
-#### Access Operator
-- `.` - module member access
+#### Access Operators
+- `.` - module member access / object method call
+- `[index]` - array/string indexing
+- `[index] =` - array element assignment
 
 ### Delimiters
 - `()` - parentheses for grouping and function calls
@@ -162,13 +175,33 @@ second = numbers[1]  # Returns 2
 
 Out-of-bounds access returns `null`.
 
+Array element assignment is supported:
+
+```rush
+numbers = [1, 2, 3]
+numbers[0] = 10  # Array becomes [10, 2, 3]
+```
+
 ### Function
 
-First-class functions:
+First-class functions with closure support:
 
 ```rush
 add = fn(x, y) { return x + y }
 greet = fn(name) { return "Hello, " + name }
+
+# Closures capture their environment
+createCounter = fn() {
+  count = 0
+  return fn() {
+    count = count + 1
+    return count
+  }
+}
+
+counter = createCounter()
+print(counter())  # 1
+print(counter())  # 2
 ```
 
 ### Error
@@ -192,6 +225,38 @@ Represents absence of value. Returned by:
 - Out-of-bounds array access
 - Functions without explicit return
 - Failed operations
+
+```rush
+result = null
+if (result == null) {
+  print("No value")
+}
+```
+
+### Class/Object
+
+Object-oriented programming support:
+
+```rush
+class Animal {
+  fn initialize(name) {
+    @name = name  # Instance variable
+  }
+  
+  fn speak() {
+    return @name + " makes a sound"
+  }
+}
+
+class Dog < Animal {  # Inheritance
+  fn speak() {
+    return @name + " barks"
+  }
+}
+
+dog = Dog.new("Buddy")
+print(dog.speak())  # "Buddy barks"
+```
 
 ## Variables
 
@@ -222,6 +287,7 @@ x + y        # Addition
 x - y        # Subtraction
 x * y        # Multiplication
 x / y        # Division (always float)
+x % y        # Modulo (remainder)
 -x           # Unary negation
 ```
 
@@ -254,6 +320,7 @@ len(array)
 array[0]     # Array indexing
 string[1]    # String indexing
 matrix[i][j] # Nested indexing
+array[i] = value  # Array element assignment
 ```
 
 ### Grouping
@@ -375,6 +442,34 @@ for (initialization; condition; update) {
 
 # Example
 for (i = 0; i < 10; i = i + 1) {
+  print(i)
+}
+```
+
+### Switch Statements
+```rush
+switch (value) {
+  case 1, 2, 3: {
+    print("Small number")
+  }
+  case 4, 5: {
+    print("Medium number")
+  }
+  default: {
+    print("Other value")
+  }
+}
+```
+
+### Break and Continue
+```rush
+for (i = 0; i < 10; i = i + 1) {
+  if (i == 3) {
+    continue  # Skip iteration
+  }
+  if (i == 7) {
+    break     # Exit loop
+  }
   print(i)
 }
 ```
@@ -559,6 +654,10 @@ import { add, PI } from "./math"
 
 # Import multiple values
 import { func1, func2, var1 } from "./utilities"
+
+# Import with aliasing
+import { add as plus, subtract as minus } from "./math"
+import { very_long_function_name as short } from "./utils"
 ```
 
 ### Module Paths
@@ -566,8 +665,31 @@ import { func1, func2, var1 } from "./utilities"
 Module paths can be:
 - **Relative**: `./module` or `../parent/module`
 - **Absolute**: `/path/to/module`
+- **Standard Library**: `std/math`, `std/string`, `std/array`
 
 The `.rush` extension is added automatically if not specified.
+
+### Standard Library
+
+Rush includes a comprehensive standard library:
+
+```rush
+# Math operations
+import { sqrt, PI, abs, min, max } from "std/math"
+radius = 5
+area = PI * sqrt(radius)
+
+# String manipulation
+import { trim, upper, split, join } from "std/string"
+text = upper(trim("  hello world  "))
+words = split(text, " ")
+
+# Array utilities
+import { map, filter, reduce } from "std/array"
+doubled = map([1, 2, 3], fn(x) { x * 2 })
+evens = filter([1, 2, 3, 4], fn(x) { x % 2 == 0 })
+sum = reduce([1, 2, 3], fn(acc, x) { acc + x }, 0)
+```
 
 ### Module Example
 
@@ -617,6 +739,17 @@ type("hello")     # Returns "STRING"
 type(true)        # Returns "BOOLEAN"
 type([1, 2])      # Returns "ARRAY"
 type(fn() {})     # Returns "FUNCTION"
+type(null)        # Returns "NULL"
+```
+
+### `to_string(value)`
+Converts any value to its string representation:
+```rush
+to_string(42)         # Returns "42"
+to_string(3.14)       # Returns "3.14"
+to_string(true)       # Returns "true"
+to_string([1, 2, 3])  # Returns "[1, 2, 3]"
+to_string(null)       # Returns "null"
 ```
 
 ### String Functions
@@ -632,6 +765,13 @@ Splits a string into an array:
 ```rush
 split("a,b,c", ",")    # Returns ["a", "b", "c"]
 split("hello", "")     # Returns ["h", "e", "l", "l", "o"]
+```
+
+#### `ord(character)` and `chr(code)`
+Convert between characters and ASCII codes:
+```rush
+ord("A")              # Returns 65
+chr(65)               # Returns "A"
 ```
 
 ### Array Functions
@@ -660,9 +800,9 @@ slice([1, 2, 3, 4, 5], 1, 4)  # Returns [2, 3, 4]
 ### Precedence (highest to lowest)
 
 1. Primary expressions: literals, identifiers, parentheses
-2. Postfix: function calls, array indexing
+2. Postfix: function calls, array indexing, method calls
 3. Unary: `-`, `!`
-4. Multiplicative: `*`, `/`
+4. Multiplicative: `*`, `/`, `%`
 5. Additive: `+`, `-`
 6. Relational: `<`, `>`, `<=`, `>=`
 7. Equality: `==`, `!=`
