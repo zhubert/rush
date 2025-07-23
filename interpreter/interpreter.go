@@ -189,6 +189,11 @@ func Eval(node ast.Node, env *Environment) Value {
 			return applyHashMethod(hashMethod, args, env)
 		}
 		
+		// Check if it's a string method call
+		if stringMethod, ok := function.(*StringMethod); ok {
+			return applyStringMethod(stringMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -901,6 +906,149 @@ func applyHashMethod(hashMethod *HashMethod, args []Value, env *Environment) Val
 	}
 }
 
+func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environment) Value {
+	str := stringMethod.String.Value
+	
+	switch stringMethod.Method {
+	case "trim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for trim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimSpace(str)}
+		
+	case "ltrim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for ltrim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimLeftFunc(str, func(r rune) bool {
+			return r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		})}
+		
+	case "rtrim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for rtrim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimRightFunc(str, func(r rune) bool {
+			return r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		})}
+		
+	case "upper":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for upper: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.ToUpper(str)}
+		
+	case "lower":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for lower: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.ToLower(str)}
+		
+	case "contains?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for contains?: want=1, got=%d", len(args))
+		}
+		searchStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to contains? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.Contains(str, searchStr.Value)}
+		
+	case "replace":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for replace: want=2, got=%d", len(args))
+		}
+		old, ok1 := args[0].(*String)
+		new, ok2 := args[1].(*String)
+		if !ok1 || !ok2 {
+			return newError("arguments to replace must be STRING, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		return &String{Value: strings.ReplaceAll(str, old.Value, new.Value)}
+		
+	case "starts_with?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for starts_with?: want=1, got=%d", len(args))
+		}
+		prefixStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to starts_with? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.HasPrefix(str, prefixStr.Value)}
+		
+	case "ends_with?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for ends_with?: want=1, got=%d", len(args))
+		}
+		suffixStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to ends_with? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.HasSuffix(str, suffixStr.Value)}
+		
+	case "substr":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for substr: want=2, got=%d", len(args))
+		}
+		start, ok1 := args[0].(*Integer)
+		length, ok2 := args[1].(*Integer)
+		if !ok1 || !ok2 {
+			return newError("arguments to substr must be INTEGER, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		
+		startIdx := int(start.Value)
+		lengthVal := int(length.Value)
+		
+		if startIdx < 0 || startIdx >= len(str) {
+			return &String{Value: ""}
+		}
+		
+		endIdx := startIdx + lengthVal
+		if endIdx > len(str) {
+			endIdx = len(str)
+		}
+		
+		if lengthVal <= 0 {
+			return &String{Value: ""}
+		}
+		
+		return &String{Value: str[startIdx:endIdx]}
+		
+	case "split":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for split: want=1, got=%d", len(args))
+		}
+		delimiter, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to split must be STRING, got %s", args[0].Type())
+		}
+		
+		parts := strings.Split(str, delimiter.Value)
+		elements := make([]Value, len(parts))
+		for i, part := range parts {
+			elements[i] = &String{Value: part}
+		}
+		return &Array{Elements: elements}
+		
+	case "join":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for join: want=1, got=%d", len(args))
+		}
+		arr, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to join must be ARRAY, got %s", args[0].Type())
+		}
+		
+		strs := make([]string, len(arr.Elements))
+		for i, elem := range arr.Elements {
+			strs[i] = valueToString(elem)
+		}
+		return &String{Value: strings.Join(strs, str)}
+		
+	default:
+		return newError("unknown string method: %s", stringMethod.Method)
+	}
+}
+
 func extendFunctionEnv(fn *Function, args []Value) *Environment {
 	env := NewEnclosedEnvironment(fn.Env)
 
@@ -1353,6 +1501,25 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		
 		default:
 			return newError("unknown property %s for hash", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a string and handle property access
+	if str, ok := object.(*String); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "length":
+			return &Integer{Value: int64(len(str.Value))}
+		case "empty":
+			return &Boolean{Value: len(str.Value) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "trim", "ltrim", "rtrim", "upper", "lower", "contains?", "replace",
+		     "starts_with?", "ends_with?", "substr", "split", "join":
+			return &StringMethod{String: str, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for string", node.Property.Value)
 		}
 	}
 	
