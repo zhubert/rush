@@ -431,6 +431,11 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	hash := &ast.HashLiteral{Token: p.curToken}
 	hash.Pairs = []ast.HashPair{}
 
+	// Skip optional semicolons/newlines after opening brace
+	for p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
 	// Handle empty hash {}
 	if p.peekToken.Type == lexer.RBRACE {
 		p.nextToken()
@@ -450,8 +455,20 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 	hash.Pairs = append(hash.Pairs, ast.HashPair{Key: key, Value: value})
 
 	// Parse remaining key-value pairs
-	for p.peekToken.Type == lexer.COMMA {
+	for p.peekToken.Type == lexer.COMMA || p.peekToken.Type == lexer.SEMICOLON {
+		// Skip comma or semicolon/newline
 		p.nextToken()
+		
+		// Skip any additional semicolons/newlines
+		for p.peekToken.Type == lexer.SEMICOLON {
+			p.nextToken()
+		}
+		
+		// Check if we've reached the end
+		if p.peekToken.Type == lexer.RBRACE {
+			break
+		}
+		
 		p.nextToken()
 
 		key := p.parseExpression(LOWEST)
@@ -462,6 +479,11 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		p.nextToken()
 		value := p.parseExpression(LOWEST)
 		hash.Pairs = append(hash.Pairs, ast.HashPair{Key: key, Value: value})
+	}
+
+	// Skip optional semicolons/newlines before closing brace
+	for p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
 	}
 
 	if !p.expectPeek(lexer.RBRACE) {

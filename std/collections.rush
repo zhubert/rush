@@ -2,35 +2,35 @@
 # Provides hash/dictionary operations and utilities
 
 # Core hash operations
-export hash_keys = builtin_hash_keys
-export hash_values = builtin_hash_values
-export hash_has_key = builtin_hash_has_key
-export hash_get = builtin_hash_get
-export hash_set = builtin_hash_set
-export hash_delete = builtin_hash_delete
-export hash_merge = builtin_hash_merge
+export keys = builtin_hash_keys
+export values = builtin_hash_values
+export has_key = builtin_hash_has_key
+export get = builtin_hash_get
+export set = builtin_hash_set
+export delete = builtin_hash_delete
+export merge = builtin_hash_merge
 
 # Convenience hash functions
 
-export hash_length = fn(hash) {
+export length = fn(hash) {
   # Use built-in len function
   return len(hash)
 }
 
-export hash_empty? = fn(hash) {
+export empty? = fn(hash) {
   return len(hash) == 0
 }
 
-export hash_size = fn(hash) {
-  # Alias for hash_length
+export size = fn(hash) {
+  # Alias for length
   return len(hash)
 }
 
-export hash_contains_value? = fn(hash, value) {
-  values = hash_values(hash)
+export contains_value? = fn(hash, value) {
+  hash_values = values(hash)
   i = 0
-  while (i < len(values)) {
-    if (values[i] == value) {
+  while (i < len(hash_values)) {
+    if (hash_values[i] == value) {
       return true
     }
     i = i + 1
@@ -38,33 +38,33 @@ export hash_contains_value? = fn(hash, value) {
   return false
 }
 
-export hash_invert = fn(hash) {
+export invert = fn(hash) {
   # Create a new hash with keys and values swapped
   result = {}
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
-    value = hash_get(hash, key)
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
+    value = get(hash, key)
     result[value] = key
     i = i + 1
   }
   return result
 }
 
-export hash_clear = fn(hash) {
+export clear = fn(hash) {
   # Return a new empty hash
   return {}
 }
 
-export hash_to_array = fn(hash) {
+export to_array = fn(hash) {
   # Convert hash to array of [key, value] pairs
   result = []
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
-    value = hash_get(hash, key)
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
+    value = get(hash, key)
     result = push(result, [key, value])
     i = i + 1
   }
@@ -85,14 +85,14 @@ export array_to_hash = fn(pairs) {
   return result
 }
 
-export hash_filter = fn(hash, func) {
+export filter = fn(hash, func) {
   # Filter hash by key-value pairs that satisfy the predicate
   result = {}
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
-    value = hash_get(hash, key)
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
+    value = get(hash, key)
     if (func(key, value)) {
       result[key] = value
     }
@@ -101,41 +101,41 @@ export hash_filter = fn(hash, func) {
   return result
 }
 
-export hash_map_values = fn(hash, func) {
+export map_values = fn(hash, func) {
   # Transform all values in the hash using the function
   result = {}
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
-    value = hash_get(hash, key)
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
+    value = get(hash, key)
     result[key] = func(value)
     i = i + 1
   }
   return result
 }
 
-export hash_select_keys = fn(hash, key_array) {
+export select_keys = fn(hash, key_array) {
   # Create new hash with only the specified keys
   result = {}
   i = 0
   while (i < len(key_array)) {
     key = key_array[i]
-    if (hash_has_key(hash, key)) {
-      result[key] = hash_get(hash, key)
+    if (has_key(hash, key)) {
+      result[key] = get(hash, key)
     }
     i = i + 1
   }
   return result
 }
 
-export hash_reject_keys = fn(hash, key_array) {
+export reject_keys = fn(hash, key_array) {
   # Create new hash without the specified keys
   result = {}
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
     # Check if key should be rejected
     should_reject = false
     j = 0
@@ -148,22 +148,21 @@ export hash_reject_keys = fn(hash, key_array) {
     }
     
     if (!should_reject) {
-      result[key] = hash_get(hash, key)
+      result[key] = get(hash, key)
     }
     i = i + 1
   }
   return result
 }
 
-export hash_each = fn(hash, callback) {
+export each = fn(hash, callback) {
   # Iterate over hash with callback function
-  keys = hash_keys(hash)
+  hash_keys = keys(hash)
   i = 0
-  while (i < len(keys)) {
-    key = keys[i]
-    value = hash_get(hash, key)
+  while (i < len(hash_keys)) {
+    key = hash_keys[i]
+    value = get(hash, key)
     callback(key, value)
     i = i + 1
   }
-  return null
 }
