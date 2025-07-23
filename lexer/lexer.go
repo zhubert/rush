@@ -58,7 +58,7 @@ func (l *Lexer) skipWhitespace() {
 // readIdentifier reads an identifier or keyword
 func (l *Lexer) readIdentifier() string {
 	position := l.position
-	for isLetter(l.ch) || isDigit(l.ch) {
+	for is_letter?(l.ch) || isDigit(l.ch) {
 		l.readChar()
 	}
 	return l.input[position:l.position]
@@ -221,7 +221,7 @@ func (l *Lexer) NextToken() Token {
 		tok.Line = line
 		tok.Column = column
 	default:
-		if isLetter(l.ch) {
+		if is_letter?(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = LookupIdent(tok.Literal)
 			tok.Line = line
@@ -251,8 +251,8 @@ func newToken(tokenType TokenType, ch byte, line, column int) Token {
 	}
 }
 
-// isLetter checks if a character is a letter, underscore, or question mark (for boolean predicates)
-func isLetter(ch byte) bool {
+// is_letter? checks if a character is a letter, underscore, or question mark (for boolean predicates)
+func is_letter?(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '?'
 }
 
