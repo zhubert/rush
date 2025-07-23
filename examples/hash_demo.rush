@@ -1,7 +1,7 @@
 # Rush Language - Hash/Dictionary Collections Demo
 # This program demonstrates hash/dictionary operations using the collections module
 
-import { keys, values, has_key, get, set, delete, merge, length, empty?, contains_value?, filter, each } from "std/collections"
+import { keys, values, has_key?, get, set, delete, merge, length, empty?, has_value?, filter, each } from "std/collections"
 
 print("=== Rush Hash/Dictionary Collections Demo ===")
 
@@ -31,8 +31,8 @@ print("\n3. Collections Module Functions:")
 person_keys = keys(person)
 person_values = values(person)
 print("Keys count: " + type(length(person)))
-print("Has 'name' key: " + type(has_key(person, "name")))
-print("Has 'phone' key: " + type(has_key(person, "phone")))
+print("Has 'name' key: " + type(has_key?(person, "name")))
+print("Has 'phone' key: " + type(has_key?(person, "phone")))
 
 # Hash manipulation functions
 original = {"name": "Bob", "score": 85}
@@ -56,8 +56,8 @@ print("Empty hash check: " + type(empty?(empty_hash)))
 print("Person hash empty: " + type(empty?(person)))
 
 # Check if hash contains a specific value
-print("Contains value 'Alice': " + type(contains_value?(person, "Alice")))
-print("Contains value 'Bob': " + type(contains_value?(person, "Bob")))
+print("Has value 'Alice': " + type(has_value?(person, "Alice")))
+print("Has value 'Bob': " + type(has_value?(person, "Bob")))
 
 # Filter hash based on condition
 numbers_hash = {"one": 1, "two": 2, "three": 3, "four": 4}
@@ -128,7 +128,7 @@ print("Unknown user name: " + unknown_user["name"])
 print("\n=== Hash Demo Complete! ===")
 print("Rush hash/dictionary collections support:")
 print("✓ Hash creation with mixed key types")
-print("✓ Built-in hash operations (keys, values, has_key, get, set, delete, merge)")
-print("✓ Advanced operations (filter, each, contains_value?, empty?)")
+print("✓ Built-in hash operations (keys, values, has_key?, get, set, delete, merge)")
+print("✓ Advanced operations (filter, each, has_value?, empty?)")
 print("✓ Nested hash structures")
 print("✓ Practical user management examples")

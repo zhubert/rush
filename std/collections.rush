@@ -4,7 +4,7 @@
 # Core hash operations
 export keys = builtin_hash_keys
 export values = builtin_hash_values
-export has_key = builtin_hash_has_key
+export has_key? = builtin_hash_has_key
 export get = builtin_hash_get
 export set = builtin_hash_set
 export delete = builtin_hash_delete
@@ -26,7 +26,7 @@ export size = fn(hash) {
   return len(hash)
 }
 
-export contains_value? = fn(hash, value) {
+export has_value? = fn(hash, value) {
   hash_values = values(hash)
   i = 0
   while (i < len(hash_values)) {
@@ -121,7 +121,7 @@ export select_keys = fn(hash, key_array) {
   i = 0
   while (i < len(key_array)) {
     key = key_array[i]
-    if (has_key(hash, key)) {
+    if (has_key?(hash, key)) {
       result[key] = get(hash, key)
     }
     i = i + 1

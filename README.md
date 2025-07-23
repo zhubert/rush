@@ -179,13 +179,21 @@ chars = split(text, ", ")       # Split string
 hello = substr(text, 0, 5)      # Substring
 
 # Hash/Dictionary operations
+import { keys, values, has_key?, get, set, delete, merge } from "std/collections"
+
 person = {"name": "Alice", "age": 30, "active": true}
 name = person["name"]           # Hash indexing
 person["city"] = "NYC"          # Hash assignment
-person_keys = builtin_hash_keys(person)     # Get all keys
-person_values = builtin_hash_values(person) # Get all values
-has_age = builtin_hash_has_key(person, "age")  # Check key existence
+person_keys = keys(person)      # Get all keys
+person_values = values(person)  # Get all values
+has_age = has_key?(person, "age") # Check key existence
 empty_hash = {}                 # Empty hash literal
+
+# Multiline hash literals supported
+config = {
+  "database": {"host": "localhost", "port": 5432},
+  "cache": {"enabled": true, "ttl": 3600}
+}
 ```
 
 ### Module System
@@ -298,14 +306,19 @@ throw RuntimeError("Something went wrong")
 - `pop(array)` - Get last element of array
 - `slice(array, start, end)` - Extract array slice
 
-### Hash/Dictionary Functions
-- `builtin_hash_keys(hash)` - Get array of all keys
-- `builtin_hash_values(hash)` - Get array of all values
-- `builtin_hash_has_key(hash, key)` - Check if key exists
-- `builtin_hash_get(hash, key, default?)` - Get value with optional default
-- `builtin_hash_set(hash, key, value)` - Create new hash with key-value pair
-- `builtin_hash_delete(hash, key)` - Create new hash without key
-- `builtin_hash_merge(hash1, hash2)` - Merge two hashes (hash2 overwrites)
+### Hash/Dictionary Functions (Collections Module)
+```rush
+import { keys, values, has_key?, get, set, delete, merge, filter, each } from "std/collections"
+```
+- `keys(hash)` - Get array of all keys
+- `values(hash)` - Get array of all values
+- `has_key?(hash, key)` - Check if key exists
+- `get(hash, key, default?)` - Get value with optional default
+- `set(hash, key, value)` - Create new hash with key-value pair
+- `delete(hash, key)` - Create new hash without key
+- `merge(hash1, hash2)` - Merge two hashes (hash2 overwrites)
+- `filter(hash, predicate)` - Filter hash by key-value predicate
+- `each(hash, callback)` - Iterate over hash with callback
 
 ## 📖 Documentation
 
@@ -381,7 +394,7 @@ users["charlie"] = {"name": "Charlie Brown", "age": 35, "role": "user"}
 
 # Check user permissions
 check_admin = fn(username) {
-  if (builtin_hash_has_key(users, username)) {
+  if (has_key?(users, username)) {
     user = users[username]
     return user["role"] == "admin"
   }
