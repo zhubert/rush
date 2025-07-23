@@ -300,6 +300,69 @@ dog = Dog.new("Buddy")
 print(dog.speak())  # "Buddy barks"
 ```
 
+### File System Types
+
+Rush provides built-in file system types for file and directory operations with dot notation support.
+
+#### File
+
+Represents a file in the file system:
+
+```rush
+# Create a file object
+text_file = file("data.txt")
+print(text_file.path)     # "data.txt"
+print(text_file.is_open)  # false
+
+# File operations
+text_file.open("w").write("Hello, Rush!").close()
+if text_file.exists?() {
+    content = text_file.open("r").read()
+    print(content)  # "Hello, Rush!"
+}
+```
+
+#### Directory
+
+Represents a directory in the file system:
+
+```rush
+# Create a directory object
+project_dir = directory("my_project")
+print(project_dir.path)  # "my_project"
+
+# Directory operations
+project_dir.create()
+if project_dir.exists?() {
+    files = project_dir.list()
+    print("Directory contains " + len(files) + " items")
+}
+```
+
+#### Path
+
+Represents a file system path with cross-platform manipulation:
+
+```rush
+# Create a path object
+config_path = path("/home/user")
+print(config_path.value)  # "/home/user"
+
+# Path manipulation
+full_path = config_path.join("config").join("app.conf")
+print(full_path.basename())  # "app.conf"
+print(full_path.dirname())   # "/home/user/config"
+
+# Clean and make absolute
+clean_path = path("./data/../config.txt").clean().absolute()
+```
+
+**Features:**
+- **Dot notation support**: All file system types support method chaining
+- **Cross-platform**: Path operations work consistently across operating systems
+- **Security**: Path traversal attacks (`..`) are blocked in constructors
+- **Error handling**: Operations return appropriate error messages for invalid operations
+
 ## Variables
 
 Variables are dynamically typed and declared by assignment:

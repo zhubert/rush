@@ -31,6 +31,12 @@ const (
 	STRING_METHOD_VALUE ValueType = "STRING_METHOD"
 	ARRAY_METHOD_VALUE  ValueType = "ARRAY_METHOD"
 	NUMBER_METHOD_VALUE ValueType = "NUMBER_METHOD"
+	FILE_VALUE          ValueType = "FILE"
+	DIRECTORY_VALUE     ValueType = "DIRECTORY"
+	PATH_VALUE          ValueType = "PATH"
+	FILE_METHOD_VALUE   ValueType = "FILE_METHOD"
+	DIRECTORY_METHOD_VALUE ValueType = "DIRECTORY_METHOD"
+	PATH_METHOD_VALUE   ValueType = "PATH_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -256,6 +262,74 @@ type NumberMethod struct {
 func (nm *NumberMethod) Type() ValueType { return NUMBER_METHOD_VALUE }
 func (nm *NumberMethod) Inspect() string { 
   return fmt.Sprintf("#<NumberMethod:%s on %s>", nm.Method, nm.Number.Inspect()) 
+}
+
+// File represents a file in the filesystem
+type File struct {
+  Path string
+  Handle interface{} // Will hold actual file handle when opened
+  IsOpen bool
+}
+
+func (f *File) Type() ValueType { return FILE_VALUE }
+func (f *File) Inspect() string {
+  if f.IsOpen {
+    return fmt.Sprintf("#<File:%s (open)>", f.Path)
+  }
+  return fmt.Sprintf("#<File:%s (closed)>", f.Path)
+}
+
+// Directory represents a directory in the filesystem
+type Directory struct {
+  Path string
+}
+
+func (d *Directory) Type() ValueType { return DIRECTORY_VALUE }
+func (d *Directory) Inspect() string {
+  return fmt.Sprintf("#<Directory:%s>", d.Path)
+}
+
+// Path represents a filesystem path
+type Path struct {
+  Value string
+}
+
+func (p *Path) Type() ValueType { return PATH_VALUE }
+func (p *Path) Inspect() string {
+  return fmt.Sprintf("#<Path:%s>", p.Value)
+}
+
+// FileMethod represents a method bound to a specific file instance
+type FileMethod struct {
+  File   *File
+  Method string
+}
+
+func (fm *FileMethod) Type() ValueType { return FILE_METHOD_VALUE }
+func (fm *FileMethod) Inspect() string {
+  return fmt.Sprintf("#<FileMethod:%s on %s>", fm.Method, fm.File.Inspect())
+}
+
+// DirectoryMethod represents a method bound to a specific directory instance
+type DirectoryMethod struct {
+  Directory *Directory
+  Method    string
+}
+
+func (dm *DirectoryMethod) Type() ValueType { return DIRECTORY_METHOD_VALUE }
+func (dm *DirectoryMethod) Inspect() string {
+  return fmt.Sprintf("#<DirectoryMethod:%s on %s>", dm.Method, dm.Directory.Inspect())
+}
+
+// PathMethod represents a method bound to a specific path instance
+type PathMethod struct {
+  Path   *Path
+  Method string
+}
+
+func (pm *PathMethod) Type() ValueType { return PATH_METHOD_VALUE }
+func (pm *PathMethod) Inspect() string {
+  return fmt.Sprintf("#<PathMethod:%s on %s>", pm.Method, pm.Path.Inspect())
 }
 
 // IsTruthy returns whether a value is considered truthy
