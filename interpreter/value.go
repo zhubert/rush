@@ -30,6 +30,7 @@ const (
 	HASH_METHOD_VALUE   ValueType = "HASH_METHOD"
 	STRING_METHOD_VALUE ValueType = "STRING_METHOD"
 	ARRAY_METHOD_VALUE  ValueType = "ARRAY_METHOD"
+	NUMBER_METHOD_VALUE ValueType = "NUMBER_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -244,6 +245,17 @@ type ArrayMethod struct {
 func (am *ArrayMethod) Type() ValueType { return ARRAY_METHOD_VALUE }
 func (am *ArrayMethod) Inspect() string { 
   return fmt.Sprintf("#<ArrayMethod:%s on %s>", am.Method, am.Array.Inspect()) 
+}
+
+// NumberMethod represents a method bound to a specific number instance (integer or float)
+type NumberMethod struct {
+  Number Value  // Can be *Integer or *Float
+  Method string
+}
+
+func (nm *NumberMethod) Type() ValueType { return NUMBER_METHOD_VALUE }
+func (nm *NumberMethod) Inspect() string { 
+  return fmt.Sprintf("#<NumberMethod:%s on %s>", nm.Method, nm.Number.Inspect()) 
 }
 
 // IsTruthy returns whether a value is considered truthy

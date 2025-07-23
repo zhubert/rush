@@ -1,23 +1,16 @@
 # Standard library math module
-# Provides common mathematical functions and constants
+# Provides mathematical constants and utility functions
+# 
+# Note: Basic math operations (abs, floor, ceil, round, sqrt, pow) are now 
+# available as dot notation methods on numbers (e.g., num.abs(), num.sqrt())
 
 # Mathematical constants with high precision
 export PI = 3.141592653589793
 export E = 2.718281828459045
 
-# Basic operations
-export abs = builtin_abs
+# Multi-value operations
 export min = builtin_min
 export max = builtin_max
-
-# Rounding functions
-export floor = builtin_floor
-export ceil = builtin_ceil
-export round = builtin_round
-
-# Power operations
-export sqrt = builtin_sqrt
-export pow = builtin_pow
 
 # Random number generation
 export random = builtin_random

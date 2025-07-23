@@ -199,6 +199,11 @@ func Eval(node ast.Node, env *Environment) Value {
 			return applyArrayMethod(arrayMethod, args, env)
 		}
 		
+		// Check if it's a number method call
+		if numberMethod, ok := function.(*NumberMethod); ok {
+			return applyNumberMethod(numberMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -1294,6 +1299,140 @@ func compareForSort(a, b Value) int {
 	return 0
 }
 
+func applyNumberMethod(numberMethod *NumberMethod, args []Value, env *Environment) Value {
+	num := numberMethod.Number
+	
+	switch numberMethod.Method {
+	case "abs":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for abs: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			if n.Value < 0 {
+				return &Integer{Value: -n.Value}
+			}
+			return n
+		case *Float:
+			if n.Value < 0 {
+				return &Float{Value: -n.Value}
+			}
+			return n
+		default:
+			return newError("abs not supported for type %s", num.Type())
+		}
+		
+	case "floor":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for floor: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already floored
+		case *Float:
+			return &Float{Value: math.Floor(n.Value)}
+		default:
+			return newError("floor not supported for type %s", num.Type())
+		}
+		
+	case "ceil":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for ceil: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already ceiled
+		case *Float:
+			return &Float{Value: math.Ceil(n.Value)}
+		default:
+			return newError("ceil not supported for type %s", num.Type())
+		}
+		
+	case "round":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for round: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already rounded
+		case *Float:
+			return &Float{Value: math.Round(n.Value)}
+		default:
+			return newError("round not supported for type %s", num.Type())
+		}
+		
+	case "sqrt":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for sqrt: want=0, got=%d", len(args))
+		}
+		
+		var value float64
+		switch n := num.(type) {
+		case *Integer:
+			if n.Value < 0 {
+				return newError("sqrt of negative number")
+			}
+			value = float64(n.Value)
+		case *Float:
+			if n.Value < 0 {
+				return newError("sqrt of negative number")
+			}
+			value = n.Value
+		default:
+			return newError("sqrt not supported for type %s", num.Type())
+		}
+		
+		return &Float{Value: math.Sqrt(value)}
+		
+	case "pow":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for pow: want=1, got=%d", len(args))
+		}
+		
+		var base, exponent float64
+		
+		// Get base value
+		switch n := num.(type) {
+		case *Integer:
+			base = float64(n.Value)
+		case *Float:
+			base = n.Value
+		default:
+			return newError("pow not supported for type %s", num.Type())
+		}
+		
+		// Get exponent value
+		switch exp := args[0].(type) {
+		case *Integer:
+			exponent = float64(exp.Value)
+		case *Float:
+			exponent = exp.Value
+		default:
+			return newError("exponent to pow must be number, got %s", args[0].Type())
+		}
+		
+		result := math.Pow(base, exponent)
+		
+		// If both inputs were integers and result is a whole number, return integer
+		if _, baseIsInt := num.(*Integer); baseIsInt {
+			if _, expIsInt := args[0].(*Integer); expIsInt {
+				if result == float64(int64(result)) {
+					return &Integer{Value: int64(result)}
+				}
+			}
+		}
+		
+		return &Float{Value: result}
+		
+	default:
+		return newError("unknown number method: %s", numberMethod.Method)
+	}
+}
+
 func extendFunctionEnv(fn *Function, args []Value) *Environment {
 	env := NewEnclosedEnvironment(fn.Env)
 
@@ -1784,6 +1923,29 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		
 		default:
 			return newError("unknown property %s for array", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a number (integer or float) and handle property access
+	if num, ok := object.(*Integer); ok {
+		switch node.Property.Value {
+		// Methods (with parameters) - return bound methods
+		case "abs", "floor", "ceil", "round", "sqrt", "pow":
+			return &NumberMethod{Number: num, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for integer", node.Property.Value)
+		}
+	}
+	
+	if num, ok := object.(*Float); ok {
+		switch node.Property.Value {
+		// Methods (with parameters) - return bound methods  
+		case "abs", "floor", "ceil", "round", "sqrt", "pow":
+			return &NumberMethod{Number: num, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for float", node.Property.Value)
 		}
 	}
 	
