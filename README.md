@@ -178,22 +178,31 @@ text = "Hello, World!"
 chars = split(text, ", ")       # Split string
 hello = substr(text, 0, 5)      # Substring
 
-# Hash/Dictionary operations
-import { keys, values, has_key?, get, set, delete, merge } from "std/collections"
-
+# Hash/Dictionary operations with dot notation
 person = {"name": "Alice", "age": 30, "active": true}
 name = person["name"]           # Hash indexing
 person["city"] = "NYC"          # Hash assignment
-person_keys = keys(person)      # Get all keys
-person_values = values(person)  # Get all values
-has_age = has_key?(person, "age") # Check key existence
-empty_hash = {}                 # Empty hash literal
+
+# Properties (no imports needed!)
+person_keys = person.keys       # Get all keys
+person_values = person.values   # Get all values  
+count = person.length           # Get count
+is_empty = person.empty         # Check if empty
+
+# Methods
+has_age = person.has_key?("age")           # Check key existence
+safe_get = person.get("phone", "N/A")     # Get with default
+new_person = person.set("email", "alice@example.com")  # Immutable set
+filtered = person.filter(fn(k, v) { k != "active" })  # Filter keys
 
 # Multiline hash literals supported
 config = {
   "database": {"host": "localhost", "port": 5432},
   "cache": {"enabled": true, "ttl": 3600}
 }
+
+# Method chaining
+result = person.set("score", 95).delete("age").merge({"grade": "A"})
 ```
 
 ### Module System
@@ -306,19 +315,32 @@ throw RuntimeError("Something went wrong")
 - `pop(array)` - Get last element of array
 - `slice(array, start, end)` - Extract array slice
 
-### Hash/Dictionary Functions (Collections Module)
-```rush
-import { keys, values, has_key?, get, set, delete, merge, filter, each } from "std/collections"
-```
-- `keys(hash)` - Get array of all keys
-- `values(hash)` - Get array of all values
-- `has_key?(hash, key)` - Check if key exists
-- `get(hash, key, default?)` - Get value with optional default
-- `set(hash, key, value)` - Create new hash with key-value pair
-- `delete(hash, key)` - Create new hash without key
-- `merge(hash1, hash2)` - Merge two hashes (hash2 overwrites)
-- `filter(hash, predicate)` - Filter hash by key-value predicate
-- `each(hash, callback)` - Iterate over hash with callback
+### Hash/Dictionary Methods (Dot Notation)
+No imports needed - all methods are built into hash objects!
+
+**Properties:**
+- `hash.keys` - Array of all keys
+- `hash.values` - Array of all values  
+- `hash.length` / `hash.size` - Number of key-value pairs
+- `hash.empty` - Boolean, true if hash has no pairs
+
+**Methods:**
+- `hash.has_key?(key)` - Check if key exists
+- `hash.has_value?(value)` - Check if value exists
+- `hash.get(key, default?)` - Get value with optional default
+- `hash.set(key, value)` - Create new hash with key-value pair (immutable)
+- `hash.delete(key)` - Create new hash without key (immutable)
+- `hash.merge(other_hash)` - Merge two hashes (other overwrites conflicts)
+- `hash.filter(predicate_fn)` - Filter hash by key-value predicate
+- `hash.map_values(transform_fn)` - Transform all values
+- `hash.each(callback_fn)` - Iterate over hash with callback
+- `hash.select_keys(key_array)` - Create hash with only specified keys
+- `hash.reject_keys(key_array)` - Create hash without specified keys
+- `hash.invert()` - Create hash with keys and values swapped
+- `hash.to_array()` - Convert to array of `[key, value]` pairs
+
+**Standalone Function:**
+- `array_to_hash(pairs)` - Convert array of `[key, value]` pairs to hash
 
 ## 📖 Documentation
 
@@ -394,7 +416,7 @@ users["charlie"] = {"name": "Charlie Brown", "age": 35, "role": "user"}
 
 # Check user permissions
 check_admin = fn(username) {
-  if (has_key?(users, username)) {
+  if (users.has_key?(username)) {
     user = users[username]
     return user["role"] == "admin"
   }

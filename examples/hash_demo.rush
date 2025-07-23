@@ -1,7 +1,5 @@
 # Rush Language - Hash/Dictionary Collections Demo
-# This program demonstrates hash/dictionary operations using the collections module
-
-import { keys, values, has_key?, get, set, delete, merge, length, empty?, has_value?, filter, each } from "std/collections"
+# This program demonstrates hash/dictionary operations using dot notation
 
 print("=== Rush Hash/Dictionary Collections Demo ===")
 
@@ -27,24 +25,24 @@ print("Mixed key types: " + type(config["debug"]) + ", " + config[42] + ", " + c
 # 3. COLLECTIONS MODULE FUNCTIONS
 print("\n3. Collections Module Functions:")
 
-# Using collections module functions
-person_keys = keys(person)
-person_values = values(person)
-print("Keys count: " + type(length(person)))
-print("Has 'name' key: " + type(has_key?(person, "name")))
-print("Has 'phone' key: " + type(has_key?(person, "phone")))
+# Using dot notation
+person_keys = person.keys
+person_values = person.values
+print("Keys count: " + type(person.length))
+print("Has 'name' key: " + type(person.has_key?("name")))
+print("Has 'phone' key: " + type(person.has_key?("phone")))
 
 # Hash manipulation functions
 original = {"name": "Bob", "score": 85}
-updated = set(original, "grade", "B")
-without_score = delete(updated, "score")
-print("Final hash length: " + type(length(without_score)))
+updated = original.set("grade", "B")
+without_score = updated.delete("score")
+print("Final hash length: " + type(without_score.length))
 
 # 4. HASH MERGING
 print("\n4. Hash Merging:")
 defaults = {"theme": "dark", "notifications": true}
 user_prefs = {"theme": "light", "language": "en"}
-merged = merge(defaults, user_prefs)
+merged = defaults.merge(user_prefs)
 print("Merged config theme: " + merged["theme"])
 
 # 5. ADVANCED HASH OPERATIONS
@@ -52,12 +50,12 @@ print("\n5. Advanced Hash Operations:")
 
 # Check if hash is empty
 empty_hash = {}
-print("Empty hash check: " + type(empty?(empty_hash)))
-print("Person hash empty: " + type(empty?(person)))
+print("Empty hash check: " + type(empty_hash.empty))
+print("Person hash empty: " + type(person.empty))
 
 # Check if hash contains a specific value
-print("Has value 'Alice': " + type(has_value?(person, "Alice")))
-print("Has value 'Bob': " + type(has_value?(person, "Bob")))
+print("Has value 'Alice': " + type(person.has_value?("Alice")))
+print("Has value 'Bob': " + type(person.has_value?("Bob")))
 
 # Filter hash based on condition
 numbers_hash = {"one": 1, "two": 2, "three": 3, "four": 4}
@@ -67,8 +65,8 @@ even_filter = fn(key, value) {
   doubled = half * 2
   return doubled == value
 }
-evens = filter(numbers_hash, even_filter)
-print("Filtered even numbers: " + type(length(evens)))
+evens = numbers_hash.filter(even_filter)
+print("Filtered even numbers: " + type(evens.length))
 
 # 6. NESTED HASHES
 print("\n6. Nested Hashes:")
@@ -84,18 +82,18 @@ print("Alice is " + alice_role + " with " + type(len(alice_perms)) + " permissio
 print("\n7. Hash Iteration:")
 sample_hash = {"a": 1, "b": 2, "c": 3}
 
-# Using each function to iterate
+# Using each method to iterate
 print("Hash contents:")
-each(sample_hash, fn(key, value) {
+sample_hash.each(fn(key, value) {
   print("  " + key + ": " + type(value))
 })
 
 # Manual iteration using keys
 print("Manual iteration:")
-sample_keys = keys(sample_hash)
-for (i = 0; i < length(sample_hash); i = i + 1) {
+sample_keys = sample_hash.keys
+for (i = 0; i < sample_hash.length; i = i + 1) {
   key = sample_keys[i]
-  value = get(sample_hash, key)
+  value = sample_hash.get(key)
   print("  Key: " + key + ", Value: " + type(value))
 }
 
@@ -106,29 +104,30 @@ print("\n8. Practical Example - User Management:")
 user_db = {}
 
 # Add users
-user_db = set(user_db, "user1", {"name": "John", "email": "john@example.com", "active": true})
-user_db = set(user_db, "user2", {"name": "Jane", "email": "jane@example.com", "active": false})
-user_db = set(user_db, "user3", {"name": "Bob", "email": "bob@example.com", "active": true})
+user_db = user_db.set("user1", {"name": "John", "email": "john@example.com", "active": true})
+user_db = user_db.set("user2", {"name": "Jane", "email": "jane@example.com", "active": false})
+user_db = user_db.set("user3", {"name": "Bob", "email": "bob@example.com", "active": true})
 
-print("Total users: " + type(length(user_db)))
+print("Total users: " + type(user_db.length))
 
 # Find active users
-active_users = filter(user_db, fn(user_id, user_info) {
+active_users = user_db.filter(fn(user_id, user_info) {
   return user_info["active"]
 })
-print("Active users: " + type(length(active_users)))
+print("Active users: " + type(active_users.length))
 
 # Get user info with default
-user_info = get(user_db, "user1", {"name": "Unknown"})
+user_info = user_db.get("user1", {"name": "Unknown"})
 print("User1 name: " + user_info["name"])
 
-unknown_user = get(user_db, "user999", {"name": "Not Found"})
+unknown_user = user_db.get("user999", {"name": "Not Found"})
 print("Unknown user name: " + unknown_user["name"])
 
 print("\n=== Hash Demo Complete! ===")
 print("Rush hash/dictionary collections support:")
-print("✓ Hash creation with mixed key types")
-print("✓ Built-in hash operations (keys, values, has_key?, get, set, delete, merge)")
-print("✓ Advanced operations (filter, each, has_value?, empty?)")
+print("✓ Hash creation with mixed key types and multiline literals")
+print("✓ Built-in hash properties and methods (keys, values, has_key?, get, set, delete, merge)")
+print("✓ Advanced operations (filter, each, has_value?, empty, map_values, invert, etc.)")
 print("✓ Nested hash structures")
+print("✓ Method chaining and functional programming style")
 print("✓ Practical user management examples")

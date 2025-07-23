@@ -27,6 +27,10 @@ const (
 	CLASS_VALUE     ValueType = "CLASS"
 	INSTANCE_VALUE  ValueType = "INSTANCE"
 	BOUND_METHOD_VALUE ValueType = "BOUND_METHOD"
+	HASH_METHOD_VALUE   ValueType = "HASH_METHOD"
+	STRING_METHOD_VALUE ValueType = "STRING_METHOD"
+	ARRAY_METHOD_VALUE  ValueType = "ARRAY_METHOD"
+	NUMBER_METHOD_VALUE ValueType = "NUMBER_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -208,6 +212,50 @@ type BoundMethod struct {
 func (bm *BoundMethod) Type() ValueType { return BOUND_METHOD_VALUE }
 func (bm *BoundMethod) Inspect() string { 
   return fmt.Sprintf("#<BoundMethod:0x%p>", bm) 
+}
+
+// HashMethod represents a method bound to a specific hash instance
+type HashMethod struct {
+  Hash   *Hash
+  Method string
+}
+
+func (hm *HashMethod) Type() ValueType { return HASH_METHOD_VALUE }
+func (hm *HashMethod) Inspect() string { 
+  return fmt.Sprintf("#<HashMethod:%s on %s>", hm.Method, hm.Hash.Inspect()) 
+}
+
+// StringMethod represents a method bound to a specific string instance
+type StringMethod struct {
+  String *String
+  Method string
+}
+
+func (sm *StringMethod) Type() ValueType { return STRING_METHOD_VALUE }
+func (sm *StringMethod) Inspect() string { 
+  return fmt.Sprintf("#<StringMethod:%s on %s>", sm.Method, sm.String.Inspect()) 
+}
+
+// ArrayMethod represents a method bound to a specific array instance
+type ArrayMethod struct {
+  Array  *Array
+  Method string
+}
+
+func (am *ArrayMethod) Type() ValueType { return ARRAY_METHOD_VALUE }
+func (am *ArrayMethod) Inspect() string { 
+  return fmt.Sprintf("#<ArrayMethod:%s on %s>", am.Method, am.Array.Inspect()) 
+}
+
+// NumberMethod represents a method bound to a specific number instance (integer or float)
+type NumberMethod struct {
+  Number Value  // Can be *Integer or *Float
+  Method string
+}
+
+func (nm *NumberMethod) Type() ValueType { return NUMBER_METHOD_VALUE }
+func (nm *NumberMethod) Inspect() string { 
+  return fmt.Sprintf("#<NumberMethod:%s on %s>", nm.Method, nm.Number.Inspect()) 
 }
 
 // IsTruthy returns whether a value is considered truthy

@@ -183,6 +183,27 @@ func Eval(node ast.Node, env *Environment) Value {
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
+		
+		// Check if it's a hash method call
+		if hashMethod, ok := function.(*HashMethod); ok {
+			return applyHashMethod(hashMethod, args, env)
+		}
+		
+		// Check if it's a string method call
+		if stringMethod, ok := function.(*StringMethod); ok {
+			return applyStringMethod(stringMethod, args, env)
+		}
+		
+		// Check if it's an array method call
+		if arrayMethod, ok := function.(*ArrayMethod); ok {
+			return applyArrayMethod(arrayMethod, args, env)
+		}
+		
+		// Check if it's a number method call
+		if numberMethod, ok := function.(*NumberMethod); ok {
+			return applyNumberMethod(numberMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -768,6 +789,650 @@ func applyFunction(fn Value, args []Value, callNode *ast.CallExpression, env *En
 	}
 }
 
+func applyHashMethod(hashMethod *HashMethod, args []Value, env *Environment) Value {
+	switch hashMethod.Method {
+	case "has_key?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for has_key?: want=1, got=%d", len(args))
+		}
+		key := args[0]
+		hashKey := CreateHashKey(key)
+		_, exists := hashMethod.Hash.Pairs[hashKey]
+		return &Boolean{Value: exists}
+		
+	case "has_value?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for has_value?: want=1, got=%d", len(args))
+		}
+		searchValue := args[0]
+		for _, value := range hashMethod.Hash.Pairs {
+			if compareValues(value, searchValue) {
+				return TRUE
+			}
+		}
+		return FALSE
+		
+	case "get":
+		if len(args) < 1 || len(args) > 2 {
+			return newError("wrong number of arguments for get: want=1 or 2, got=%d", len(args))
+		}
+		key := args[0]
+		hashKey := CreateHashKey(key)
+		if value, exists := hashMethod.Hash.Pairs[hashKey]; exists {
+			return value
+		}
+		if len(args) == 2 {
+			return args[1] // default value
+		}
+		return NULL
+		
+	case "set":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for set: want=2, got=%d", len(args))
+		}
+		return hashSet(hashMethod.Hash, args[0], args[1])
+		
+	case "delete":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for delete: want=1, got=%d", len(args))
+		}
+		return hashDelete(hashMethod.Hash, args[0])
+		
+	case "merge":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for merge: want=1, got=%d", len(args))
+		}
+		otherHash, ok := args[0].(*Hash)
+		if !ok {
+			return newError("argument to merge must be HASH, got %s", args[0].Type())
+		}
+		return hashMerge(hashMethod.Hash, otherHash)
+		
+	case "filter":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for filter: want=1, got=%d", len(args))
+		}
+		predicate, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to filter must be FUNCTION, got %s", args[0].Type())
+		}
+		return hashFilter(hashMethod.Hash, predicate, env)
+		
+	case "map_values":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for map_values: want=1, got=%d", len(args))
+		}
+		transform, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to map_values must be FUNCTION, got %s", args[0].Type())
+		}
+		return hashMapValues(hashMethod.Hash, transform, env)
+		
+	case "each":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for each: want=1, got=%d", len(args))
+		}
+		callback, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to each must be FUNCTION, got %s", args[0].Type())
+		}
+		hashEach(hashMethod.Hash, callback, env)
+		return hashMethod.Hash // return original hash
+		
+	case "select_keys":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for select_keys: want=1, got=%d", len(args))
+		}
+		keyArray, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to select_keys must be ARRAY, got %s", args[0].Type())
+		}
+		return hashSelectKeys(hashMethod.Hash, keyArray)
+		
+	case "reject_keys":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for reject_keys: want=1, got=%d", len(args))
+		}
+		keyArray, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to reject_keys must be ARRAY, got %s", args[0].Type())
+		}
+		return hashRejectKeys(hashMethod.Hash, keyArray)
+		
+	case "invert":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for invert: want=0, got=%d", len(args))
+		}
+		return hashInvert(hashMethod.Hash)
+		
+	case "to_array":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for to_array: want=0, got=%d", len(args))
+		}
+		return hashToArray(hashMethod.Hash)
+		
+	default:
+		return newError("unknown hash method: %s", hashMethod.Method)
+	}
+}
+
+func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environment) Value {
+	str := stringMethod.String.Value
+	
+	switch stringMethod.Method {
+	case "trim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for trim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimSpace(str)}
+		
+	case "ltrim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for ltrim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimLeftFunc(str, func(r rune) bool {
+			return r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		})}
+		
+	case "rtrim":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for rtrim: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.TrimRightFunc(str, func(r rune) bool {
+			return r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		})}
+		
+	case "upper":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for upper: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.ToUpper(str)}
+		
+	case "lower":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for lower: want=0, got=%d", len(args))
+		}
+		return &String{Value: strings.ToLower(str)}
+		
+	case "contains?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for contains?: want=1, got=%d", len(args))
+		}
+		searchStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to contains? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.Contains(str, searchStr.Value)}
+		
+	case "replace":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for replace: want=2, got=%d", len(args))
+		}
+		old, ok1 := args[0].(*String)
+		new, ok2 := args[1].(*String)
+		if !ok1 || !ok2 {
+			return newError("arguments to replace must be STRING, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		return &String{Value: strings.ReplaceAll(str, old.Value, new.Value)}
+		
+	case "starts_with?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for starts_with?: want=1, got=%d", len(args))
+		}
+		prefixStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to starts_with? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.HasPrefix(str, prefixStr.Value)}
+		
+	case "ends_with?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for ends_with?: want=1, got=%d", len(args))
+		}
+		suffixStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to ends_with? must be STRING, got %s", args[0].Type())
+		}
+		return &Boolean{Value: strings.HasSuffix(str, suffixStr.Value)}
+		
+	case "substr":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for substr: want=2, got=%d", len(args))
+		}
+		start, ok1 := args[0].(*Integer)
+		length, ok2 := args[1].(*Integer)
+		if !ok1 || !ok2 {
+			return newError("arguments to substr must be INTEGER, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		
+		startIdx := int(start.Value)
+		lengthVal := int(length.Value)
+		
+		if startIdx < 0 || startIdx >= len(str) {
+			return &String{Value: ""}
+		}
+		
+		endIdx := startIdx + lengthVal
+		if endIdx > len(str) {
+			endIdx = len(str)
+		}
+		
+		if lengthVal <= 0 {
+			return &String{Value: ""}
+		}
+		
+		return &String{Value: str[startIdx:endIdx]}
+		
+	case "split":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for split: want=1, got=%d", len(args))
+		}
+		delimiter, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to split must be STRING, got %s", args[0].Type())
+		}
+		
+		parts := strings.Split(str, delimiter.Value)
+		elements := make([]Value, len(parts))
+		for i, part := range parts {
+			elements[i] = &String{Value: part}
+		}
+		return &Array{Elements: elements}
+		
+	case "join":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for join: want=1, got=%d", len(args))
+		}
+		arr, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to join must be ARRAY, got %s", args[0].Type())
+		}
+		
+		strs := make([]string, len(arr.Elements))
+		for i, elem := range arr.Elements {
+			strs[i] = valueToString(elem)
+		}
+		return &String{Value: strings.Join(strs, str)}
+		
+	default:
+		return newError("unknown string method: %s", stringMethod.Method)
+	}
+}
+
+func applyArrayMethod(arrayMethod *ArrayMethod, args []Value, env *Environment) Value {
+	arr := arrayMethod.Array
+	
+	switch arrayMethod.Method {
+	case "map":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for map: want=1, got=%d", len(args))
+		}
+		mapFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to map must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := []Value{}
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(mapFunc, []Value{elem})
+			mapped := Eval(mapFunc.Body, extendedEnv)
+			if isError(mapped) {
+				return mapped
+			}
+			result = append(result, unwrapReturnValue(mapped))
+		}
+		return &Array{Elements: result}
+		
+	case "filter":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for filter: want=1, got=%d", len(args))
+		}
+		filterFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to filter must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := []Value{}
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(filterFunc, []Value{elem})
+			filtered := Eval(filterFunc.Body, extendedEnv)
+			if isError(filtered) {
+				return filtered
+			}
+			if IsTruthy(unwrapReturnValue(filtered)) {
+				result = append(result, elem)
+			}
+		}
+		return &Array{Elements: result}
+		
+	case "reduce":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for reduce: want=2, got=%d", len(args))
+		}
+		reduceFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("first argument to reduce must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := args[1] // initial value
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(reduceFunc, []Value{result, elem})
+			result = Eval(reduceFunc.Body, extendedEnv)
+			if isError(result) {
+				return result
+			}
+			result = unwrapReturnValue(result)
+		}
+		return result
+		
+	case "find":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for find: want=1, got=%d", len(args))
+		}
+		findFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to find must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(findFunc, []Value{elem})
+			found := Eval(findFunc.Body, extendedEnv)
+			if isError(found) {
+				return found
+			}
+			if IsTruthy(unwrapReturnValue(found)) {
+				return elem
+			}
+		}
+		return NULL
+		
+	case "index_of":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for index_of: want=1, got=%d", len(args))
+		}
+		searchElement := args[0]
+		
+		for i, elem := range arr.Elements {
+			if compareValues(elem, searchElement) {
+				return &Integer{Value: int64(i)}
+			}
+		}
+		return &Integer{Value: -1}
+		
+	case "includes?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for includes?: want=1, got=%d", len(args))
+		}
+		searchElement := args[0]
+		
+		for _, elem := range arr.Elements {
+			if compareValues(elem, searchElement) {
+				return TRUE
+			}
+		}
+		return FALSE
+		
+	case "reverse":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for reverse: want=0, got=%d", len(args))
+		}
+		
+		result := make([]Value, len(arr.Elements))
+		for i, elem := range arr.Elements {
+			result[len(arr.Elements)-1-i] = elem
+		}
+		return &Array{Elements: result}
+		
+	case "sort":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for sort: want=0, got=%d", len(args))
+		}
+		
+		// Create a copy of the array
+		result := make([]Value, len(arr.Elements))
+		copy(result, arr.Elements)
+		
+		// Simple bubble sort
+		n := len(result)
+		for i := 0; i < n-1; i++ {
+			for j := 0; j < n-i-1; j++ {
+				if compareForSort(result[j], result[j+1]) > 0 {
+					result[j], result[j+1] = result[j+1], result[j]
+				}
+			}
+		}
+		return &Array{Elements: result}
+		
+	case "push":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for push: want=1, got=%d", len(args))
+		}
+		
+		newElements := make([]Value, len(arr.Elements)+1)
+		copy(newElements, arr.Elements)
+		newElements[len(arr.Elements)] = args[0]
+		return &Array{Elements: newElements}
+		
+	case "pop":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for pop: want=0, got=%d", len(args))
+		}
+		
+		if len(arr.Elements) == 0 {
+			return newError("cannot pop from empty array")
+		}
+		
+		return arr.Elements[len(arr.Elements)-1]
+		
+	case "slice":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for slice: want=2, got=%d", len(args))
+		}
+		
+		start, ok1 := args[0].(*Integer)
+		end, ok2 := args[1].(*Integer)
+		if !ok1 || !ok2 {
+			return newError("arguments to slice must be INTEGER, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		
+		startIdx := int(start.Value)
+		endIdx := int(end.Value)
+		
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		if endIdx > len(arr.Elements) {
+			endIdx = len(arr.Elements)
+		}
+		if startIdx >= endIdx {
+			return &Array{Elements: []Value{}}
+		}
+		
+		result := make([]Value, endIdx-startIdx)
+		copy(result, arr.Elements[startIdx:endIdx])
+		return &Array{Elements: result}
+		
+	default:
+		return newError("unknown array method: %s", arrayMethod.Method)
+	}
+}
+
+// compareForSort compares two values for sorting purposes
+func compareForSort(a, b Value) int {
+	switch aVal := a.(type) {
+	case *Integer:
+		if bVal, ok := b.(*Integer); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	case *Float:
+		if bVal, ok := b.(*Float); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	case *String:
+		if bVal, ok := b.(*String); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	}
+	// For mixed types or unsupported types, convert to string and compare
+	aStr := valueToString(a)
+	bStr := valueToString(b)
+	if aStr < bStr {
+		return -1
+	} else if aStr > bStr {
+		return 1
+	}
+	return 0
+}
+
+func applyNumberMethod(numberMethod *NumberMethod, args []Value, env *Environment) Value {
+	num := numberMethod.Number
+	
+	switch numberMethod.Method {
+	case "abs":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for abs: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			if n.Value < 0 {
+				return &Integer{Value: -n.Value}
+			}
+			return n
+		case *Float:
+			if n.Value < 0 {
+				return &Float{Value: -n.Value}
+			}
+			return n
+		default:
+			return newError("abs not supported for type %s", num.Type())
+		}
+		
+	case "floor":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for floor: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already floored
+		case *Float:
+			return &Float{Value: math.Floor(n.Value)}
+		default:
+			return newError("floor not supported for type %s", num.Type())
+		}
+		
+	case "ceil":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for ceil: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already ceiled
+		case *Float:
+			return &Float{Value: math.Ceil(n.Value)}
+		default:
+			return newError("ceil not supported for type %s", num.Type())
+		}
+		
+	case "round":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for round: want=0, got=%d", len(args))
+		}
+		
+		switch n := num.(type) {
+		case *Integer:
+			return n // integers are already rounded
+		case *Float:
+			return &Float{Value: math.Round(n.Value)}
+		default:
+			return newError("round not supported for type %s", num.Type())
+		}
+		
+	case "sqrt":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for sqrt: want=0, got=%d", len(args))
+		}
+		
+		var value float64
+		switch n := num.(type) {
+		case *Integer:
+			if n.Value < 0 {
+				return newError("sqrt of negative number")
+			}
+			value = float64(n.Value)
+		case *Float:
+			if n.Value < 0 {
+				return newError("sqrt of negative number")
+			}
+			value = n.Value
+		default:
+			return newError("sqrt not supported for type %s", num.Type())
+		}
+		
+		return &Float{Value: math.Sqrt(value)}
+		
+	case "pow":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for pow: want=1, got=%d", len(args))
+		}
+		
+		var base, exponent float64
+		
+		// Get base value
+		switch n := num.(type) {
+		case *Integer:
+			base = float64(n.Value)
+		case *Float:
+			base = n.Value
+		default:
+			return newError("pow not supported for type %s", num.Type())
+		}
+		
+		// Get exponent value
+		switch exp := args[0].(type) {
+		case *Integer:
+			exponent = float64(exp.Value)
+		case *Float:
+			exponent = exp.Value
+		default:
+			return newError("exponent to pow must be number, got %s", args[0].Type())
+		}
+		
+		result := math.Pow(base, exponent)
+		
+		// If both inputs were integers and result is a whole number, return integer
+		if _, baseIsInt := num.(*Integer); baseIsInt {
+			if _, expIsInt := args[0].(*Integer); expIsInt {
+				if result == float64(int64(result)) {
+					return &Integer{Value: int64(result)}
+				}
+			}
+		}
+		
+		return &Float{Value: result}
+		
+	default:
+		return newError("unknown number method: %s", numberMethod.Method)
+	}
+}
+
 func extendFunctionEnv(fn *Function, args []Value) *Environment {
 	env := NewEnclosedEnvironment(fn.Env)
 
@@ -1192,6 +1857,96 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 			}
 		}
 		return newError("undefined method %s for class %s", methodName, obj.Class.Name)
+	}
+	
+	// Check if it's a hash and handle property access
+	if hash, ok := object.(*Hash); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "keys":
+			return &Array{Elements: hash.Keys}
+		case "values":
+			values := make([]Value, 0, len(hash.Keys))
+			for _, key := range hash.Keys {
+				hashKey := CreateHashKey(key)
+				values = append(values, hash.Pairs[hashKey])
+			}
+			return &Array{Elements: values}
+		case "length", "size":
+			return &Integer{Value: int64(len(hash.Keys))}
+		case "empty":
+			return &Boolean{Value: len(hash.Keys) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "has_key?", "has_value?", "get", "set", "delete", "merge", 
+		     "filter", "map_values", "each", "select_keys", "reject_keys",
+		     "invert", "to_array":
+			return &HashMethod{Hash: hash, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for hash", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a string and handle property access
+	if str, ok := object.(*String); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "length":
+			return &Integer{Value: int64(len(str.Value))}
+		case "empty":
+			return &Boolean{Value: len(str.Value) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "trim", "ltrim", "rtrim", "upper", "lower", "contains?", "replace",
+		     "starts_with?", "ends_with?", "substr", "split", "join":
+			return &StringMethod{String: str, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for string", node.Property.Value)
+		}
+	}
+	
+	// Check if it's an array and handle property access
+	if arr, ok := object.(*Array); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "length":
+			return &Integer{Value: int64(len(arr.Elements))}
+		case "empty":
+			return &Boolean{Value: len(arr.Elements) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "map", "filter", "reduce", "find", "index_of", "includes?", "reverse", 
+		     "sort", "push", "pop", "slice":
+			return &ArrayMethod{Array: arr, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for array", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a number (integer or float) and handle property access
+	if num, ok := object.(*Integer); ok {
+		switch node.Property.Value {
+		// Methods (with parameters) - return bound methods
+		case "abs", "floor", "ceil", "round", "sqrt", "pow":
+			return &NumberMethod{Number: num, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for integer", node.Property.Value)
+		}
+	}
+	
+	if num, ok := object.(*Float); ok {
+		switch node.Property.Value {
+		// Methods (with parameters) - return bound methods  
+		case "abs", "floor", "ceil", "round", "sqrt", "pow":
+			return &NumberMethod{Number: num, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for float", node.Property.Value)
+		}
 	}
 	
 	// For other objects, try module access (backward compatibility)
@@ -1633,4 +2388,229 @@ func evalHashIndexAssignment(hash *Hash, index Value, value Value, env *Environm
 	hash.Pairs[hashKey] = value
 	
 	return value
+}
+
+// Hash method helper functions
+
+func hashSet(hash *Hash, key, value Value) Value {
+	hashKey := CreateHashKey(key)
+	newPairs := make(map[HashKey]Value)
+	for k, v := range hash.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Check if key already exists
+	if _, exists := newPairs[hashKey]; !exists {
+		// New key, add to keys array
+		newKeys := make([]Value, len(hash.Keys)+1)
+		copy(newKeys, hash.Keys)
+		newKeys[len(hash.Keys)] = key
+		newPairs[hashKey] = value
+		return &Hash{Pairs: newPairs, Keys: newKeys}
+	} else {
+		// Existing key, just update value
+		newPairs[hashKey] = value
+		return &Hash{Pairs: newPairs, Keys: hash.Keys}
+	}
+}
+
+func hashDelete(hash *Hash, key Value) Value {
+	hashKey := CreateHashKey(key)
+	if _, exists := hash.Pairs[hashKey]; !exists {
+		// Key doesn't exist, return original hash
+		return hash
+	}
+	
+	newPairs := make(map[HashKey]Value)
+	for k, v := range hash.Pairs {
+		if k != hashKey {
+			newPairs[k] = v
+		}
+	}
+	
+	// Remove key from keys array
+	newKeys := make([]Value, 0, len(hash.Keys)-1)
+	for _, k := range hash.Keys {
+		if !compareValues(k, key) {
+			newKeys = append(newKeys, k)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashMerge(hash1, hash2 *Hash) Value {
+	newPairs := make(map[HashKey]Value)
+	
+	// Copy all pairs from hash1
+	for k, v := range hash1.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Copy all pairs from hash2 (overwrites conflicts)
+	for k, v := range hash2.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Build new keys array maintaining order
+	newKeys := make([]Value, 0, len(newPairs))
+	keyExists := make(map[string]bool)
+	
+	// Add keys from hash1 first
+	for _, key := range hash1.Keys {
+		keyStr := key.Inspect()
+		if !keyExists[keyStr] {
+			newKeys = append(newKeys, key)
+			keyExists[keyStr] = true
+		}
+	}
+	
+	// Add new keys from hash2
+	for _, key := range hash2.Keys {
+		keyStr := key.Inspect()
+		if !keyExists[keyStr] {
+			newKeys = append(newKeys, key)
+			keyExists[keyStr] = true
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashFilter(hash *Hash, predicate *Function, env *Environment) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call predicate with key and value
+		args := []Value{key, value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "predicate"},
+			Arguments: []ast.Expression{},
+		}
+		result := applyFunction(predicate, args, dummyCall, env)
+		
+		if isError(result) {
+			return result
+		}
+		
+		if IsTruthy(result) {
+			newPairs[hashKey] = value
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashMapValues(hash *Hash, transform *Function, env *Environment) Value {
+	newPairs := make(map[HashKey]Value)
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call transform with value
+		args := []Value{value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "transform"},
+			Arguments: []ast.Expression{},
+		}
+		result := applyFunction(transform, args, dummyCall, env)
+		
+		if isError(result) {
+			return result
+		}
+		
+		newPairs[hashKey] = result
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: hash.Keys}
+}
+
+func hashEach(hash *Hash, callback *Function, env *Environment) {
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call callback with key and value
+		args := []Value{key, value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "callback"},
+			Arguments: []ast.Expression{},
+		}
+		applyFunction(callback, args, dummyCall, env)
+	}
+}
+
+func hashSelectKeys(hash *Hash, keyArray *Array) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range keyArray.Elements {
+		hashKey := CreateHashKey(key)
+		if value, exists := hash.Pairs[hashKey]; exists {
+			newPairs[hashKey] = value
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashRejectKeys(hash *Hash, keyArray *Array) Value {
+	// Create set of keys to reject
+	rejectSet := make(map[string]bool)
+	for _, key := range keyArray.Elements {
+		rejectSet[key.Inspect()] = true
+	}
+	
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range hash.Keys {
+		if !rejectSet[key.Inspect()] {
+			hashKey := CreateHashKey(key)
+			newPairs[hashKey] = hash.Pairs[hashKey]
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashInvert(hash *Hash) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0, len(hash.Keys))
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Use value as new key, key as new value
+		newHashKey := CreateHashKey(value)
+		newPairs[newHashKey] = key
+		newKeys = append(newKeys, value)
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashToArray(hash *Hash) Value {
+	pairs := make([]Value, 0, len(hash.Keys))
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		pair := &Array{Elements: []Value{key, value}}
+		pairs = append(pairs, pair)
+	}
+	
+	return &Array{Elements: pairs}
 }
