@@ -183,6 +183,12 @@ func Eval(node ast.Node, env *Environment) Value {
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
+		
+		// Check if it's a hash method call
+		if hashMethod, ok := function.(*HashMethod); ok {
+			return applyHashMethod(hashMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -768,6 +774,133 @@ func applyFunction(fn Value, args []Value, callNode *ast.CallExpression, env *En
 	}
 }
 
+func applyHashMethod(hashMethod *HashMethod, args []Value, env *Environment) Value {
+	switch hashMethod.Method {
+	case "has_key?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for has_key?: want=1, got=%d", len(args))
+		}
+		key := args[0]
+		hashKey := CreateHashKey(key)
+		_, exists := hashMethod.Hash.Pairs[hashKey]
+		return &Boolean{Value: exists}
+		
+	case "has_value?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for has_value?: want=1, got=%d", len(args))
+		}
+		searchValue := args[0]
+		for _, value := range hashMethod.Hash.Pairs {
+			if compareValues(value, searchValue) {
+				return TRUE
+			}
+		}
+		return FALSE
+		
+	case "get":
+		if len(args) < 1 || len(args) > 2 {
+			return newError("wrong number of arguments for get: want=1 or 2, got=%d", len(args))
+		}
+		key := args[0]
+		hashKey := CreateHashKey(key)
+		if value, exists := hashMethod.Hash.Pairs[hashKey]; exists {
+			return value
+		}
+		if len(args) == 2 {
+			return args[1] // default value
+		}
+		return NULL
+		
+	case "set":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for set: want=2, got=%d", len(args))
+		}
+		return hashSet(hashMethod.Hash, args[0], args[1])
+		
+	case "delete":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for delete: want=1, got=%d", len(args))
+		}
+		return hashDelete(hashMethod.Hash, args[0])
+		
+	case "merge":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for merge: want=1, got=%d", len(args))
+		}
+		otherHash, ok := args[0].(*Hash)
+		if !ok {
+			return newError("argument to merge must be HASH, got %s", args[0].Type())
+		}
+		return hashMerge(hashMethod.Hash, otherHash)
+		
+	case "filter":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for filter: want=1, got=%d", len(args))
+		}
+		predicate, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to filter must be FUNCTION, got %s", args[0].Type())
+		}
+		return hashFilter(hashMethod.Hash, predicate, env)
+		
+	case "map_values":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for map_values: want=1, got=%d", len(args))
+		}
+		transform, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to map_values must be FUNCTION, got %s", args[0].Type())
+		}
+		return hashMapValues(hashMethod.Hash, transform, env)
+		
+	case "each":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for each: want=1, got=%d", len(args))
+		}
+		callback, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to each must be FUNCTION, got %s", args[0].Type())
+		}
+		hashEach(hashMethod.Hash, callback, env)
+		return hashMethod.Hash // return original hash
+		
+	case "select_keys":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for select_keys: want=1, got=%d", len(args))
+		}
+		keyArray, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to select_keys must be ARRAY, got %s", args[0].Type())
+		}
+		return hashSelectKeys(hashMethod.Hash, keyArray)
+		
+	case "reject_keys":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for reject_keys: want=1, got=%d", len(args))
+		}
+		keyArray, ok := args[0].(*Array)
+		if !ok {
+			return newError("argument to reject_keys must be ARRAY, got %s", args[0].Type())
+		}
+		return hashRejectKeys(hashMethod.Hash, keyArray)
+		
+	case "invert":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for invert: want=0, got=%d", len(args))
+		}
+		return hashInvert(hashMethod.Hash)
+		
+	case "to_array":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for to_array: want=0, got=%d", len(args))
+		}
+		return hashToArray(hashMethod.Hash)
+		
+	default:
+		return newError("unknown hash method: %s", hashMethod.Method)
+	}
+}
+
 func extendFunctionEnv(fn *Function, args []Value) *Environment {
 	env := NewEnclosedEnvironment(fn.Env)
 
@@ -1192,6 +1325,35 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 			}
 		}
 		return newError("undefined method %s for class %s", methodName, obj.Class.Name)
+	}
+	
+	// Check if it's a hash and handle property access
+	if hash, ok := object.(*Hash); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "keys":
+			return &Array{Elements: hash.Keys}
+		case "values":
+			values := make([]Value, 0, len(hash.Keys))
+			for _, key := range hash.Keys {
+				hashKey := CreateHashKey(key)
+				values = append(values, hash.Pairs[hashKey])
+			}
+			return &Array{Elements: values}
+		case "length", "size":
+			return &Integer{Value: int64(len(hash.Keys))}
+		case "empty":
+			return &Boolean{Value: len(hash.Keys) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "has_key?", "has_value?", "get", "set", "delete", "merge", 
+		     "filter", "map_values", "each", "select_keys", "reject_keys",
+		     "invert", "to_array":
+			return &HashMethod{Hash: hash, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for hash", node.Property.Value)
+		}
 	}
 	
 	// For other objects, try module access (backward compatibility)
@@ -1633,4 +1795,229 @@ func evalHashIndexAssignment(hash *Hash, index Value, value Value, env *Environm
 	hash.Pairs[hashKey] = value
 	
 	return value
+}
+
+// Hash method helper functions
+
+func hashSet(hash *Hash, key, value Value) Value {
+	hashKey := CreateHashKey(key)
+	newPairs := make(map[HashKey]Value)
+	for k, v := range hash.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Check if key already exists
+	if _, exists := newPairs[hashKey]; !exists {
+		// New key, add to keys array
+		newKeys := make([]Value, len(hash.Keys)+1)
+		copy(newKeys, hash.Keys)
+		newKeys[len(hash.Keys)] = key
+		newPairs[hashKey] = value
+		return &Hash{Pairs: newPairs, Keys: newKeys}
+	} else {
+		// Existing key, just update value
+		newPairs[hashKey] = value
+		return &Hash{Pairs: newPairs, Keys: hash.Keys}
+	}
+}
+
+func hashDelete(hash *Hash, key Value) Value {
+	hashKey := CreateHashKey(key)
+	if _, exists := hash.Pairs[hashKey]; !exists {
+		// Key doesn't exist, return original hash
+		return hash
+	}
+	
+	newPairs := make(map[HashKey]Value)
+	for k, v := range hash.Pairs {
+		if k != hashKey {
+			newPairs[k] = v
+		}
+	}
+	
+	// Remove key from keys array
+	newKeys := make([]Value, 0, len(hash.Keys)-1)
+	for _, k := range hash.Keys {
+		if !compareValues(k, key) {
+			newKeys = append(newKeys, k)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashMerge(hash1, hash2 *Hash) Value {
+	newPairs := make(map[HashKey]Value)
+	
+	// Copy all pairs from hash1
+	for k, v := range hash1.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Copy all pairs from hash2 (overwrites conflicts)
+	for k, v := range hash2.Pairs {
+		newPairs[k] = v
+	}
+	
+	// Build new keys array maintaining order
+	newKeys := make([]Value, 0, len(newPairs))
+	keyExists := make(map[string]bool)
+	
+	// Add keys from hash1 first
+	for _, key := range hash1.Keys {
+		keyStr := key.Inspect()
+		if !keyExists[keyStr] {
+			newKeys = append(newKeys, key)
+			keyExists[keyStr] = true
+		}
+	}
+	
+	// Add new keys from hash2
+	for _, key := range hash2.Keys {
+		keyStr := key.Inspect()
+		if !keyExists[keyStr] {
+			newKeys = append(newKeys, key)
+			keyExists[keyStr] = true
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashFilter(hash *Hash, predicate *Function, env *Environment) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call predicate with key and value
+		args := []Value{key, value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "predicate"},
+			Arguments: []ast.Expression{},
+		}
+		result := applyFunction(predicate, args, dummyCall, env)
+		
+		if isError(result) {
+			return result
+		}
+		
+		if IsTruthy(result) {
+			newPairs[hashKey] = value
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashMapValues(hash *Hash, transform *Function, env *Environment) Value {
+	newPairs := make(map[HashKey]Value)
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call transform with value
+		args := []Value{value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "transform"},
+			Arguments: []ast.Expression{},
+		}
+		result := applyFunction(transform, args, dummyCall, env)
+		
+		if isError(result) {
+			return result
+		}
+		
+		newPairs[hashKey] = result
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: hash.Keys}
+}
+
+func hashEach(hash *Hash, callback *Function, env *Environment) {
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Call callback with key and value
+		args := []Value{key, value}
+		// Create a dummy call expression for the function call
+		dummyCall := &ast.CallExpression{
+			Function:  &ast.Identifier{Value: "callback"},
+			Arguments: []ast.Expression{},
+		}
+		applyFunction(callback, args, dummyCall, env)
+	}
+}
+
+func hashSelectKeys(hash *Hash, keyArray *Array) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range keyArray.Elements {
+		hashKey := CreateHashKey(key)
+		if value, exists := hash.Pairs[hashKey]; exists {
+			newPairs[hashKey] = value
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashRejectKeys(hash *Hash, keyArray *Array) Value {
+	// Create set of keys to reject
+	rejectSet := make(map[string]bool)
+	for _, key := range keyArray.Elements {
+		rejectSet[key.Inspect()] = true
+	}
+	
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	for _, key := range hash.Keys {
+		if !rejectSet[key.Inspect()] {
+			hashKey := CreateHashKey(key)
+			newPairs[hashKey] = hash.Pairs[hashKey]
+			newKeys = append(newKeys, key)
+		}
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashInvert(hash *Hash) Value {
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0, len(hash.Keys))
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		
+		// Use value as new key, key as new value
+		newHashKey := CreateHashKey(value)
+		newPairs[newHashKey] = key
+		newKeys = append(newKeys, value)
+	}
+	
+	return &Hash{Pairs: newPairs, Keys: newKeys}
+}
+
+func hashToArray(hash *Hash) Value {
+	pairs := make([]Value, 0, len(hash.Keys))
+	
+	for _, key := range hash.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash.Pairs[hashKey]
+		pair := &Array{Elements: []Value{key, value}}
+		pairs = append(pairs, pair)
+	}
+	
+	return &Array{Elements: pairs}
 }

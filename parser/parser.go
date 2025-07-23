@@ -136,12 +136,30 @@ func (p *Parser) ParseProgram() *ast.Program {
 	program.Statements = []ast.Statement{}
 
 	for p.curToken.Type != lexer.EOF {
-		// Skip comments and newlines at the top level
-		if p.curToken.Type == lexer.COMMENT || p.curToken.Type == lexer.SEMICOLON {
+		// Handle method chaining continuation - check if next line starts with DOT
+		if p.curToken.Type == lexer.SEMICOLON {
+			// Look ahead to see if next non-whitespace token is DOT
+			tempLexer := *p.l
+			nextToken := tempLexer.NextToken()
+			
+			// Skip the semicolon and continue parsing if next token is DOT
+			if nextToken.Type == lexer.DOT {
+				p.nextToken() // Skip semicolon
+				continue      // Continue parsing the expression
+			} else {
+				// Normal semicolon - skip it
+				p.nextToken()
+				continue
+			}
+		}
+		
+		// Skip comments
+		if p.curToken.Type == lexer.COMMENT {
 			p.nextToken()
 			continue
 		}
 
+		// Parse normal statement
 		stmt := p.parseStatement()
 		if stmt != nil {
 			program.Statements = append(program.Statements, stmt)
@@ -209,11 +227,6 @@ func (p *Parser) parseAssignmentStatement() *ast.AssignmentStatement {
 
 	p.nextToken()
 	stmt.Value = p.parseExpression(LOWEST)
-
-	// Optional semicolon or newline
-	if p.peekToken.Type == lexer.SEMICOLON {
-		p.nextToken()
-	}
 
 	return stmt
 }
@@ -313,10 +326,6 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.curToken}
 	stmt.Expression = p.parseExpression(LOWEST)
 
-	if p.peekToken.Type == lexer.SEMICOLON {
-		p.nextToken()
-	}
-
 	return stmt
 }
 
@@ -329,7 +338,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 	leftExp := prefix()
 
-	for p.peekToken.Type != lexer.SEMICOLON && precedence < p.peekPrecedence() {
+	for !p.shouldStopParsing(precedence) {
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			return leftExp
@@ -1282,3 +1291,27 @@ func (p *Parser) parseMethodDeclaration() ast.Statement {
 
 // parseNewExpression is handled by parsePropertyAccess when it encounters "ClassName.new"
 // This is called from the property access parsing when we see ".new("
+
+// shouldStopParsing determines if we should stop parsing infix expressions
+// It returns true if we hit a semicolon and the next token isn't a DOT (method chaining)
+func (p *Parser) shouldStopParsing(precedence int) bool {
+	// If we're not at a semicolon, use normal precedence rules
+	if p.peekToken.Type != lexer.SEMICOLON {
+		return precedence >= p.peekPrecedence()
+	}
+	
+	// We're at a semicolon - check if this is method chaining
+	// Create a temporary copy of the lexer state to look ahead
+	tempLexer := *p.l
+	nextToken := tempLexer.NextToken() // Get the token after semicolon
+	
+	// If the next significant token is a DOT, it's method chaining
+	if nextToken.Type == lexer.DOT {
+		// Skip the semicolon in the actual parser
+		p.nextToken()
+		return false // Don't stop parsing
+	}
+	
+	// Otherwise, stop at semicolon
+	return true
+}

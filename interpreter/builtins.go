@@ -847,4 +847,43 @@ var builtins = map[string]*BuiltinFunction{
 			return &Hash{Pairs: newPairs, Keys: newKeys}
 		},
 	},
+	
+	"array_to_hash": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+			
+			array, ok := args[0].(*Array)
+			if !ok {
+				return newError("argument to `array_to_hash` must be ARRAY, got %s", args[0].Type())
+			}
+			
+			pairs := make(map[HashKey]Value)
+			keys := make([]Value, 0, len(array.Elements))
+			
+			for _, element := range array.Elements {
+				pair, ok := element.(*Array)
+				if !ok {
+					return newError("array elements must be arrays of [key, value] pairs, got %s", element.Type())
+				}
+				
+				if len(pair.Elements) < 2 {
+					return newError("each pair must have at least 2 elements (key and value), got %d", len(pair.Elements))
+				}
+				
+				key := pair.Elements[0]
+				value := pair.Elements[1]
+				hashKey := CreateHashKey(key)
+				
+				// Only add key if it doesn't exist yet (preserve first occurrence)
+				if _, exists := pairs[hashKey]; !exists {
+					keys = append(keys, key)
+				}
+				pairs[hashKey] = value
+			}
+			
+			return &Hash{Pairs: pairs, Keys: keys}
+		},
+	},
 }

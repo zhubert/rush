@@ -27,6 +27,7 @@ const (
 	CLASS_VALUE     ValueType = "CLASS"
 	INSTANCE_VALUE  ValueType = "INSTANCE"
 	BOUND_METHOD_VALUE ValueType = "BOUND_METHOD"
+	HASH_METHOD_VALUE  ValueType = "HASH_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -208,6 +209,17 @@ type BoundMethod struct {
 func (bm *BoundMethod) Type() ValueType { return BOUND_METHOD_VALUE }
 func (bm *BoundMethod) Inspect() string { 
   return fmt.Sprintf("#<BoundMethod:0x%p>", bm) 
+}
+
+// HashMethod represents a method bound to a specific hash instance
+type HashMethod struct {
+  Hash   *Hash
+  Method string
+}
+
+func (hm *HashMethod) Type() ValueType { return HASH_METHOD_VALUE }
+func (hm *HashMethod) Inspect() string { 
+  return fmt.Sprintf("#<HashMethod:%s on %s>", hm.Method, hm.Hash.Inspect()) 
 }
 
 // IsTruthy returns whether a value is considered truthy
