@@ -135,22 +135,26 @@ if len(args) != 1 {
 
 ## Current Development Context (Phase 11)
 
-### Standard Library Development
+### Dot Notation Implementation
 
-- Focus on `std/` directory modules
-- String operations in `std/string.rush`
-- Array utilities in `std/array.rush`
-- Math functions in `std/math.rush`
-- Collections/hash operations as built-in functions
+- **String methods**: Moved from `std/string.rush` to core interpreter with dot notation
+- **Array methods**: Moved from `std/array.rush` to core interpreter with dot notation
+- **Number methods**: Added mathematical operations with dot notation (abs, sqrt, pow, etc.)
+- **Hash methods**: Built-in hash/dictionary operations with dot notation
+- **Method chaining**: All dot notation methods support seamless chaining
+- **Standard library**: Now focuses on constants (PI, E) and multi-value operations
 - Upcoming: file I/O, JSON handling
 
 ### Implementation Notes
 
-- Standard library functions are Rush functions, not Go built-ins
-- Collections/hash operations are Go built-ins with `builtin_hash_` prefix
-- Module resolution happens in `interpreter/module.go`
-- Test standard library functions with Rush code examples
-- Hash literals use `{key: value}` syntax with support for string, integer, boolean, and float keys
+- **Dot notation methods**: Implemented as Go built-ins in `interpreter/interpreter.go`
+- **Method types**: StringMethod, ArrayMethod, NumberMethod, HashMethod value types in `interpreter/value.go`
+- **Property access**: Extended `evalPropertyAccess` function handles all dot notation
+- **Method application**: Separate apply functions (applyStringMethod, applyArrayMethod, etc.)
+- **Standard library**: Reduced to constants and multi-value operations in `std/` directory
+- **Collections/hash operations**: Go built-ins with `builtin_hash_` prefix (legacy)
+- **Module resolution**: Still happens in `interpreter/module.go`
+- **Hash literals**: Use `{key: value}` syntax with support for string, integer, boolean, and float keys
 
 ## AI Assistant Guidelines
 
@@ -164,6 +168,9 @@ if len(args) != 1 {
 ### Quick Navigation
 
 - Find built-ins: `rg "func.*args.*object.Object" interpreter/`
+- Find dot notation methods: `rg "Method.*struct" interpreter/value.go`
+- Find property access: `rg "evalPropertyAccess" interpreter/interpreter.go`
+- Find method application: `rg "apply.*Method" interpreter/interpreter.go`
 - Find AST nodes: `rg "type.*struct" ast/ast.go`
 - Find token types: `rg "= Token" token/token.go`
 - Find test patterns: Look at existing `*_test.go` files in each directory

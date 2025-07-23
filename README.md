@@ -72,18 +72,19 @@ make dev FILE=hello.rush
 - **Interactive REPL**: Explore Rush interactively
 
 ### Data Types & Operations
-- **Arrays**: Dynamic arrays with element assignment (`arr[i] = value`)
-- **Hashes/Dictionaries**: Key-value mappings with `{key: value}` syntax
-- **Strings**: String indexing and comprehensive manipulation
-- **Numbers**: Integers and floats with modulo operator (`%`)
+- **Arrays**: Dynamic arrays with element assignment and dot notation methods (`arr.length`, `arr.map()`)
+- **Hashes/Dictionaries**: Key-value mappings with `{key: value}` syntax and dot notation methods
+- **Strings**: String indexing and dot notation methods (`str.length`, `str.upper()`)
+- **Numbers**: Integers and floats with modulo operator and dot notation methods (`num.abs()`, `num.sqrt()`)
 - **Booleans**: Logical operations with short-circuit evaluation
 - **Null**: Explicit null handling
 
-### Standard Library
-- **Math Module** (`std/math`): Mathematical functions, constants, and utilities
-- **String Module** (`std/string`): String manipulation and text processing
-- **Array Module** (`std/array`): Functional programming utilities (map, filter, reduce)
-- **Collections Module**: Built-in hash/dictionary operations and utilities
+### Built-in Dot Notation & Standard Library
+- **String Dot Notation**: Built-in string methods (`str.trim()`, `str.upper()`, `str.split()`) - no imports needed!
+- **Array Dot Notation**: Built-in array methods (`arr.map()`, `arr.filter()`, `arr.reduce()`) - no imports needed!
+- **Number Dot Notation**: Built-in math methods (`num.abs()`, `num.sqrt()`, `num.pow()`) - no imports needed!
+- **Hash Dot Notation**: Built-in hash/dictionary operations and utilities - no imports needed!
+- **Math Module** (`std/math`): Mathematical constants (PI, E) and multi-value operations
 - **Import Aliasing**: Clean imports with `import { func as alias } from "module"`
 
 ### Development Experience
@@ -165,18 +166,25 @@ even = (number % 2) == 0  # Check if even
 
 ### Arrays, Strings, and Hashes
 ```rush
-# Array operations
+# Array operations with dot notation
 numbers = [1, 2, 3, 4, 5]
 first = numbers[0]              # Array indexing
 numbers[0] = 99                 # Array assignment
-length = len(numbers)           # Get length
-extended = push(numbers, 6)     # Add element
-subset = slice(numbers, 1, 4)   # Get slice
+length = numbers.length         # Get length
+numbers.push(6)                 # Add element (mutates array)
+subset = numbers.slice(1, 4)    # Get slice
 
-# String operations
+# Functional programming with arrays
+doubled = numbers.map(fn(x) { x * 2 })           # Transform elements
+evens = numbers.filter(fn(x) { x % 2 == 0 })     # Filter elements
+total = numbers.reduce(fn(acc, x) { acc + x }, 0) # Reduce to single value
+
+# String operations with dot notation
 text = "Hello, World!"
-chars = split(text, ", ")       # Split string
-hello = substr(text, 0, 5)      # Substring
+chars = text.split(", ")       # Split string
+hello = text.substr(0, 5)       # Substring
+upper_text = text.upper()       # Convert to uppercase
+length = text.length            # Get string length
 
 # Hash/Dictionary operations with dot notation
 person = {"name": "Alice", "age": 30, "active": true}
@@ -219,30 +227,41 @@ area = PI * square(3)           # ~28.27
 print("Result:", result, "Area:", area)
 ```
 
-### Standard Library
-Rush includes a comprehensive standard library with three main modules:
+### Built-in Dot Notation Methods
+Rush features comprehensive dot notation methods built directly into the language - no imports needed!
 
 ```rush
-# Math operations
-import { PI, E, sqrt, abs, min, max, sum } from "std/math"
+# String operations with dot notation
+text = "  hello, rush world  "
+words = text.trim().split(", ")     # ["hello", "rush world"]
+sentence = "and".join(words)        # "hello and rush world"
+print(sentence.upper())              # "HELLO AND RUSH WORLD"
+
+# Array operations with dot notation
+numbers = [1, 2, 3, 4, 5]
+doubled = numbers.map(fn(x) { x * 2 })          # [2, 4, 6, 8, 10]
+evens = numbers.filter(fn(x) { x % 2 == 0 })    # [2, 4]
+total = numbers.reduce(fn(acc, x) { acc + x }, 0) # 15
+
+# Number operations with dot notation
+result = (-16).abs().sqrt().pow(2)   # |(−16)| = 16, √16 = 4, 4² = 16
+print("Result:", result)             # 16
+
+# Method chaining works seamlessly
+processed = "  Hello World  ".trim().lower().replace(" ", "_")
+print(processed)                     # "hello_world"
+```
+
+### Standard Library
+The standard library now focuses on constants and multi-value operations:
+
+```rush
+# Math constants and utilities
+import { PI, E, min, max, sum } from "std/math"
 numbers = [1, 2, 3, 4, 5]
 print("π =", PI)                    # 3.141592653589793
-print("√16 =", sqrt(16))            # 4.0
 print("Sum:", sum(numbers))         # 15.0
-
-# String manipulation
-import { trim, upper, split, join, contains? } from "std/string"
-text = "  hello, rush world  "
-words = split(trim(text), ", ")     # ["hello", "rush world"]
-sentence = join(words, " and ")     # "hello and rush world"
-print(upper(sentence))              # "HELLO AND RUSH WORLD"
-
-# Array utilities with functional programming
-import { map, filter, reduce } from "std/array"
-numbers = [1, 2, 3, 4, 5]
-doubled = map(numbers, fn(x) { x * 2 })          # [2, 4, 6, 8, 10]
-evens = filter(numbers, fn(x) { x % 2 == 0 })    # [2, 4]
-total = reduce(numbers, fn(acc, x) { acc + x }, 0) # 15
+print("Max:", max(numbers))         # 5
 ```
 
 ### Object-Oriented Programming
@@ -306,14 +325,57 @@ throw RuntimeError("Something went wrong")
 - `ord(char)` - Get ASCII code of character
 - `chr(code)` - Get character from ASCII code
 
-### String Functions
-- `substr(string, start, length)` - Extract substring
-- `split(string, separator)` - Split string into array
+### String Methods (Dot Notation)
+No imports needed - all methods are built into string objects!
 
-### Array Functions
-- `push(array, element)` - Add element to array
-- `pop(array)` - Get last element of array
-- `slice(array, start, end)` - Extract array slice
+**Properties:**
+- `string.length` - Get string length
+- `string.empty` - Boolean, true if string is empty
+
+**Methods:**
+- `string.trim()` - Remove leading/trailing whitespace
+- `string.ltrim()` - Remove leading whitespace
+- `string.rtrim()` - Remove trailing whitespace
+- `string.upper()` - Convert to uppercase
+- `string.lower()` - Convert to lowercase
+- `string.contains?(substring)` - Check if string contains substring
+- `string.starts_with?(prefix)` - Check if string starts with prefix
+- `string.ends_with?(suffix)` - Check if string ends with suffix
+- `string.replace(old, new)` - Replace all occurrences
+- `string.substr(start, length)` - Extract substring
+- `string.split(separator)` - Split into array
+- `string.join(array)` - Join array elements with string as separator
+
+### Array Methods (Dot Notation)
+No imports needed - all methods are built into array objects!
+
+**Properties:**
+- `array.length` - Get array length
+- `array.empty` - Boolean, true if array is empty
+
+**Methods:**
+- `array.map(transform_fn)` - Transform each element
+- `array.filter(predicate_fn)` - Filter elements by predicate
+- `array.reduce(reducer_fn, initial)` - Reduce to single value
+- `array.find(predicate_fn)` - Find first matching element
+- `array.index_of(element)` - Get index of element (-1 if not found)
+- `array.includes?(element)` - Check if array contains element
+- `array.reverse()` - Create new reversed array
+- `array.sort()` - Create new sorted array
+- `array.push(element)` - Add element to end (mutates array)
+- `array.pop()` - Remove and return last element
+- `array.slice(start, end)` - Extract array slice
+
+### Number Methods (Dot Notation)
+No imports needed - all methods are built into number objects!
+
+**Methods:**
+- `number.abs()` - Absolute value
+- `number.floor()` - Round down to nearest integer
+- `number.ceil()` - Round up to nearest integer
+- `number.round()` - Round to nearest integer
+- `number.sqrt()` - Square root
+- `number.pow(exponent)` - Raise to power
 
 ### Hash/Dictionary Methods (Dot Notation)
 No imports needed - all methods are built into hash objects!
