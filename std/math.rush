@@ -1,40 +1,32 @@
 # Standard library math module
 # Provides common mathematical functions and constants
 
-export PI = 3.14159265359
+# Mathematical constants with high precision
+export PI = 3.141592653589793
+export E = 2.718281828459045
 
-export E = 2.71828182846
+# Basic operations
+export abs = builtin_abs
+export min = builtin_min
+export max = builtin_max
 
-export abs = fn(x) {
-  # Basic absolute value implementation (placeholder for now)
-  if (x < 0) {
-    return -x
-  }
-  return x
-}
+# Rounding functions
+export floor = builtin_floor
+export ceil = builtin_ceil
+export round = builtin_round
 
-export max = fn(a, b) {
-  # Basic max implementation (placeholder for now)
-  if (a > b) {
-    return a
-  }
-  return b
-}
+# Power operations
+export sqrt = builtin_sqrt
+export pow = builtin_pow
 
-export min = fn(a, b) {
-  # Basic min implementation (placeholder for now)
-  if (a < b) {
-    return a
-  }
-  return b
-}
+# Random number generation
+export random = builtin_random
+export random_int = builtin_random_int
 
-export pow = fn(base, exp) {
-  # Basic power implementation (placeholder for now)
-  return base
-}
+# Array math operations
+export sum = builtin_sum
+export average = builtin_average
 
-export sqrt = fn(x) {
-  # Basic square root implementation (placeholder for now)
-  return x
-}
+# Type checking functions
+export is_number? = builtin_is_number?
+export is_integer? = builtin_is_integer?
