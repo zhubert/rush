@@ -886,4 +886,64 @@ var builtins = map[string]*BuiltinFunction{
 			return &Hash{Pairs: pairs, Keys: keys}
 		},
 	},
+	"file": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			path, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to `file` must be STRING, got %s", args[0].Type())
+			}
+
+			// Validate path to prevent directory traversal attacks
+			if strings.Contains(path.Value, "..") {
+				return newError("invalid file path: path traversal not allowed")
+			}
+
+			return &File{
+				Path:   path.Value,
+				Handle: nil,
+				IsOpen: false,
+			}
+		},
+	},
+	"directory": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			path, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to `directory` must be STRING, got %s", args[0].Type())
+			}
+
+			// Validate path to prevent directory traversal attacks
+			if strings.Contains(path.Value, "..") {
+				return newError("invalid directory path: path traversal not allowed")
+			}
+
+			return &Directory{
+				Path: path.Value,
+			}
+		},
+	},
+	"path": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			value, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to `path` must be STRING, got %s", args[0].Type())
+			}
+
+			return &Path{
+				Value: value.Value,
+			}
+		},
+	},
 }

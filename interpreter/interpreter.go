@@ -2,7 +2,9 @@ package interpreter
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -202,6 +204,21 @@ func Eval(node ast.Node, env *Environment) Value {
 		// Check if it's a number method call
 		if numberMethod, ok := function.(*NumberMethod); ok {
 			return applyNumberMethod(numberMethod, args, env)
+		}
+		
+		// Check if it's a file method call
+		if fileMethod, ok := function.(*FileMethod); ok {
+			return applyFileMethod(fileMethod, args, env)
+		}
+		
+		// Check if it's a directory method call
+		if dirMethod, ok := function.(*DirectoryMethod); ok {
+			return applyDirectoryMethod(dirMethod, args, env)
+		}
+		
+		// Check if it's a path method call
+		if pathMethod, ok := function.(*PathMethod); ok {
+			return applyPathMethod(pathMethod, args, env)
 		}
 		
 		return applyFunction(function, args, node, env)
@@ -1949,6 +1966,56 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		}
 	}
 	
+	// Check if it's a file and handle property access
+	if file, ok := object.(*File); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "path":
+			return &String{Value: file.Path}
+		case "is_open":
+			return &Boolean{Value: file.IsOpen}
+		
+		// Methods (with parameters) - return bound methods
+		case "open", "read", "write", "close", "exists?", "size", "delete":
+			return &FileMethod{File: file, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for file", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a directory and handle property access
+	if dir, ok := object.(*Directory); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "path":
+			return &String{Value: dir.Path}
+		
+		// Methods (with parameters) - return bound methods
+		case "create", "list", "delete", "exists?":
+			return &DirectoryMethod{Directory: dir, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for directory", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a path and handle property access
+	if path, ok := object.(*Path); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "value":
+			return &String{Value: path.Value}
+		
+		// Methods (with parameters) - return bound methods
+		case "join", "basename", "dirname", "absolute", "clean":
+			return &PathMethod{Path: path, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for path", node.Property.Value)
+		}
+	}
+	
 	// For other objects, try module access (backward compatibility)
 	if ident, ok := node.Object.(*ast.Identifier); ok {
 		// This looks like module.member access
@@ -2613,4 +2680,307 @@ func hashToArray(hash *Hash) Value {
 	}
 	
 	return &Array{Elements: pairs}
+}
+
+// applyFileMethod handles file method calls
+func applyFileMethod(fileMethod *FileMethod, args []Value, env *Environment) Value {
+	file := fileMethod.File
+	
+	switch fileMethod.Method {
+	case "open":
+		if len(args) > 1 {
+			return newError("wrong number of arguments for file.open: want=0 or 1, got=%d", len(args))
+		}
+		
+		if file.IsOpen {
+			return newError("file is already open: %s", file.Path)
+		}
+		
+		// Default to read mode
+		mode := "r"
+		if len(args) == 1 {
+			modeArg, ok := args[0].(*String)
+			if !ok {
+				return newError("file mode argument must be STRING")
+			}
+			mode = modeArg.Value
+		}
+		
+		// Validate mode
+		switch mode {
+		case "r", "w", "a", "r+", "w+", "a+":
+			// Valid modes
+		default:
+			return newError("invalid file mode: %s", mode)
+		}
+		
+		// Try to open the file
+		var handle *os.File
+		var err error
+		
+		switch mode {
+		case "r":
+			handle, err = os.Open(file.Path)
+		case "w":
+			handle, err = os.Create(file.Path)
+		case "a":
+			handle, err = os.OpenFile(file.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		case "r+":
+			handle, err = os.OpenFile(file.Path, os.O_RDWR, 0644)
+		case "w+":
+			handle, err = os.OpenFile(file.Path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		case "a+":
+			handle, err = os.OpenFile(file.Path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
+		}
+		
+		if err != nil {
+			return newError("failed to open file %s: %s", file.Path, err.Error())
+		}
+		
+		file.Handle = handle
+		file.IsOpen = true
+		return file
+		
+	case "read":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for file.read: want=0, got=%d", len(args))
+		}
+		
+		if !file.IsOpen {
+			return newError("file is not open: %s", file.Path)
+		}
+		
+		handle, ok := file.Handle.(*os.File)
+		if !ok {
+			return newError("invalid file handle")
+		}
+		
+		content, err := ioutil.ReadAll(handle)
+		if err != nil {
+			return newError("failed to read file %s: %s", file.Path, err.Error())
+		}
+		
+		return &String{Value: string(content)}
+		
+	case "write":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for file.write: want=1, got=%d", len(args))
+		}
+		
+		content, ok := args[0].(*String)
+		if !ok {
+			return newError("file content argument must be STRING")
+		}
+		
+		if !file.IsOpen {
+			return newError("file is not open: %s", file.Path)
+		}
+		
+		handle, ok := file.Handle.(*os.File)
+		if !ok {
+			return newError("invalid file handle")
+		}
+		
+		_, err := handle.WriteString(content.Value)
+		if err != nil {
+			return newError("failed to write to file %s: %s", file.Path, err.Error())
+		}
+		
+		return &Integer{Value: int64(len(content.Value))}
+		
+	case "close":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for file.close: want=0, got=%d", len(args))
+		}
+		
+		if !file.IsOpen {
+			return newError("file is not open: %s", file.Path)
+		}
+		
+		handle, ok := file.Handle.(*os.File)
+		if !ok {
+			return newError("invalid file handle")
+		}
+		
+		err := handle.Close()
+		if err != nil {
+			return newError("failed to close file %s: %s", file.Path, err.Error())
+		}
+		
+		file.Handle = nil
+		file.IsOpen = false
+		return file
+		
+	case "exists?":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for file.exists?: want=0, got=%d", len(args))
+		}
+		
+		_, err := os.Stat(file.Path)
+		return &Boolean{Value: !os.IsNotExist(err)}
+		
+	case "size":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for file.size: want=0, got=%d", len(args))
+		}
+		
+		stat, err := os.Stat(file.Path)
+		if os.IsNotExist(err) {
+			return newError("file does not exist: %s", file.Path)
+		}
+		if err != nil {
+			return newError("failed to get file size for %s: %s", file.Path, err.Error())
+		}
+		
+		return &Integer{Value: stat.Size()}
+		
+	case "delete":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for file.delete: want=0, got=%d", len(args))
+		}
+		
+		if file.IsOpen {
+			// Close the file first
+			if handle, ok := file.Handle.(*os.File); ok {
+				handle.Close()
+			}
+			file.Handle = nil
+			file.IsOpen = false
+		}
+		
+		err := os.Remove(file.Path)
+		if err != nil {
+			return newError("failed to delete file %s: %s", file.Path, err.Error())
+		}
+		
+		return TRUE
+		
+	default:
+		return newError("unknown file method: %s", fileMethod.Method)
+	}
+}
+
+// applyDirectoryMethod handles directory method calls
+func applyDirectoryMethod(dirMethod *DirectoryMethod, args []Value, env *Environment) Value {
+	dir := dirMethod.Directory
+	
+	switch dirMethod.Method {
+	case "create":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for directory.create: want=0, got=%d", len(args))
+		}
+		
+		err := os.MkdirAll(dir.Path, 0755)
+		if err != nil {
+			return newError("failed to create directory %s: %s", dir.Path, err.Error())
+		}
+		
+		return dir
+		
+	case "list":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for directory.list: want=0, got=%d", len(args))
+		}
+		
+		entries, err := ioutil.ReadDir(dir.Path)
+		if err != nil {
+			return newError("failed to list directory %s: %s", dir.Path, err.Error())
+		}
+		
+		names := make([]Value, 0, len(entries))
+		for _, entry := range entries {
+			names = append(names, &String{Value: entry.Name()})
+		}
+		
+		return &Array{Elements: names}
+		
+	case "delete":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for directory.delete: want=0, got=%d", len(args))
+		}
+		
+		err := os.RemoveAll(dir.Path)
+		if err != nil {
+			return newError("failed to delete directory %s: %s", dir.Path, err.Error())
+		}
+		
+		return TRUE
+		
+	case "exists?":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for directory.exists?: want=0, got=%d", len(args))
+		}
+		
+		stat, err := os.Stat(dir.Path)
+		if os.IsNotExist(err) {
+			return FALSE
+		}
+		if err != nil {
+			return newError("failed to check directory existence for %s: %s", dir.Path, err.Error())
+		}
+		
+		return &Boolean{Value: stat.IsDir()}
+		
+	default:
+		return newError("unknown directory method: %s", dirMethod.Method)
+	}
+}
+
+// applyPathMethod handles path method calls
+func applyPathMethod(pathMethod *PathMethod, args []Value, env *Environment) Value {
+	path := pathMethod.Path
+	
+	switch pathMethod.Method {
+	case "join":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for path.join: want=1, got=%d", len(args))
+		}
+		
+		other, ok := args[0].(*String)
+		if !ok {
+			return newError("path join argument must be STRING")
+		}
+		
+		joined := filepath.Join(path.Value, other.Value)
+		return &Path{Value: joined}
+		
+	case "basename":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for path.basename: want=0, got=%d", len(args))
+		}
+		
+		base := filepath.Base(path.Value)
+		return &String{Value: base}
+		
+	case "dirname":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for path.dirname: want=0, got=%d", len(args))
+		}
+		
+		dir := filepath.Dir(path.Value)
+		return &String{Value: dir}
+		
+	case "absolute":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for path.absolute: want=0, got=%d", len(args))
+		}
+		
+		abs, err := filepath.Abs(path.Value)
+		if err != nil {
+			return newError("failed to get absolute path for %s: %s", path.Value, err.Error())
+		}
+		
+		return &Path{Value: abs}
+		
+	case "clean":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for path.clean: want=0, got=%d", len(args))
+		}
+		
+		clean := filepath.Clean(path.Value)
+		return &Path{Value: clean}
+		
+	default:
+		return newError("unknown path method: %s", pathMethod.Method)
+	}
 }

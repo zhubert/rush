@@ -12,12 +12,13 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 6. [Object-Oriented Programming](#object-oriented-programming)
 7. [Error Handling](#error-handling)
 8. [Module System](#module-system)
-9. [Standard Library](#standard-library)
-10. [Built-in Functions](#built-in-functions)
-11. [Examples](#examples)
-12. [REPL Usage](#repl-usage)
-13. [Common Patterns](#common-patterns)
-14. [Tips and Best Practices](#tips-and-best-practices)
+9. [File System Operations](#file-system-operations)
+10. [Standard Library](#standard-library)
+11. [Built-in Functions](#built-in-functions)
+12. [Examples](#examples)
+13. [REPL Usage](#repl-usage)
+14. [Common Patterns](#common-patterns)
+15. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
@@ -516,6 +517,439 @@ Built-in error types include:
 - `IndexError` - Array/string index out of bounds
 - `ArgumentError` - Function argument errors
 - `RuntimeError` - General runtime errors
+
+## File System Operations
+
+Rush provides comprehensive file system operations through built-in types with dot notation support. This makes working with files, directories, and paths intuitive and safe.
+
+### Working with Files
+
+Files in Rush are represented by File objects that provide methods for reading, writing, and manipulating files.
+
+#### Creating File Objects
+
+```rush
+# Create a file object
+config_file = file("config.txt")
+log_file = file("logs/application.log")
+```
+
+#### Basic File Operations
+
+**Writing to Files:**
+
+```rush
+# Simple file writing
+message_file = file("greeting.txt")
+message_file.open("w").write("Hello, Rush programming!").close()
+
+# Check if write was successful
+if message_file.exists?() {
+    print("File created successfully")
+    print("File size:", message_file.size(), "bytes")
+}
+```
+
+**Reading from Files:**
+
+```rush
+# Read entire file content
+if file("greeting.txt").exists?() {
+    content = file("greeting.txt").open("r").read()
+    print("File content:", content)
+}
+
+# More controlled reading
+data_file = file("data.txt")
+if data_file.exists?() {
+    f = data_file.open("r")
+    content = f.read()
+    f.close()
+    print("Data:", content)
+}
+```
+
+**File Information:**
+
+```rush
+log_file = file("app.log")
+
+# Check existence
+if log_file.exists?() {
+    print("Log file found")
+    print("Path:", log_file.path)
+    print("Size:", log_file.size(), "bytes")
+    print("Currently open:", log_file.is_open)
+} else {
+    print("Log file not found")
+}
+```
+
+#### File Modes
+
+Rush supports several file modes for different operations:
+
+```rush
+# Read mode (default)
+file("data.txt").open("r")    # or just .open()
+
+# Write mode (creates new file or truncates existing)
+file("output.txt").open("w")
+
+# Append mode (creates new file or appends to existing)
+file("log.txt").open("a")
+
+# Read/write modes
+file("data.txt").open("r+")   # Read and write (file must exist)
+file("data.txt").open("w+")   # Read and write (truncates or creates)
+file("log.txt").open("a+")    # Read and append (creates if needed)
+```
+
+#### Practical File Example
+
+```rush
+# Log file manager
+fn log_message(message) {
+    log_file = file("application.log")
+    
+    # Append message with timestamp
+    timestamp = "2024-01-01 12:00:00"  # In real code, use date/time functions
+    log_entry = "[" + timestamp + "] " + message + "\n"
+    
+    log_file.open("a").write(log_entry).close()
+    print("Logged:", message)
+}
+
+# Usage
+log_message("Application started")
+log_message("User logged in")
+log_message("Processing data")
+
+# Read log file
+if file("application.log").exists?() {
+    logs = file("application.log").open("r").read()
+    print("Complete log:")
+    print(logs)
+}
+```
+
+### Working with Directories
+
+Directory objects provide functionality for creating, listing, and managing directories.
+
+#### Basic Directory Operations
+
+```rush
+# Create directory objects
+project_dir = directory("my_project")
+temp_dir = directory("/tmp/rush_temp")
+
+# Create directories
+project_dir.create()
+print("Project directory created at:", project_dir.path)
+
+# Check if directory exists
+if project_dir.exists?() {
+    print("Directory exists and is ready to use")
+}
+```
+
+#### Listing Directory Contents
+
+```rush
+# List current directory
+current_dir = directory(".")
+if current_dir.exists?() {
+    files = current_dir.list()
+    print("Current directory contains", len(files), "items:")
+    for item in files {
+        print("  -", item)
+    }
+}
+
+# Create project structure
+project = directory("website_project")
+project.create()
+
+# Create subdirectories
+directory("website_project/css").create()
+directory("website_project/js").create()
+directory("website_project/images").create()
+
+# List project structure
+project_files = project.list()
+print("Project structure:")
+for item in project_files {
+    print("  ", item)
+}
+```
+
+#### Directory Management Example
+
+```rush
+# Project setup script
+fn setup_project(project_name) {
+    # Create main project directory
+    main_dir = directory(project_name)
+    if main_dir.exists?() {
+        print("Project", project_name, "already exists!")
+        return false
+    }
+    
+    # Create directory structure
+    main_dir.create()
+    directory(project_name + "/src").create()
+    directory(project_name + "/docs").create()
+    directory(project_name + "/tests").create()
+    
+    # Create initial files
+    readme = file(project_name + "/README.md")
+    readme.open("w").write("# " + project_name + "\n\nA Rush project.\n").close()
+    
+    main_file = file(project_name + "/src/main.rush")
+    main_file.open("w").write('print("Hello from ' + project_name + '!")\n').close()
+    
+    print("Project", project_name, "created successfully!")
+    return true
+}
+
+# Create a new project
+setup_project("my_app")
+
+# Verify project structure
+app_dir = directory("my_app")
+if app_dir.exists?() {
+    contents = app_dir.list()
+    print("Created project with:", contents)
+}
+```
+
+### Working with Paths
+
+Path objects provide cross-platform path manipulation and are essential for building portable file system operations.
+
+#### Path Construction and Manipulation
+
+```rush
+# Create path objects
+home_path = path("/home/user")
+config_path = path("config")
+
+# Join paths (cross-platform)
+full_config = home_path.join("config").join("app.conf")
+print("Config path:", full_config.value)
+
+# Path information
+full_path = path("/home/user/documents/report.pdf")
+print("Full path:", full_path.value)
+print("Directory:", full_path.dirname())
+print("Filename:", full_path.basename())
+```
+
+#### Path Cleaning and Normalization
+
+```rush
+# Clean messy paths
+messy_path = path("./project/../config//settings.txt")
+clean_path = messy_path.clean()
+print("Original:", messy_path.value)
+print("Cleaned:", clean_path.value)
+
+# Make paths absolute
+relative_path = path("data/input.txt")
+absolute_path = relative_path.absolute()
+print("Relative:", relative_path.value)
+print("Absolute:", absolute_path.value)
+```
+
+#### Cross-Platform Path Building
+
+```rush
+# Build paths that work on any operating system
+fn build_project_path(project, module, filename) {
+    return path("projects")
+        .join(project)
+        .join("src")
+        .join(module)
+        .join(filename)
+        .clean()
+}
+
+# Usage
+script_path = build_project_path("webapp", "auth", "login.rush")
+print("Script path:", script_path.value)
+
+# Create the file using the path
+script_file = file(script_path.value)
+# First ensure parent directories exist
+parent_dir = directory(script_path.dirname())
+parent_dir.create()
+
+# Now create the file
+script_file.open("w").write("# Login module\nprint(\"User authentication\")").close()
+```
+
+### Practical File System Examples
+
+#### Configuration File Manager
+
+```rush
+fn load_config(config_name) {
+    config_path = path("config").join(config_name + ".conf").absolute()
+    config_file = file(config_path.value)
+    
+    if config_file.exists?() {
+        return config_file.open("r").read()
+    } else {
+        print("Config file not found:", config_path.value)
+        return null
+    }
+}
+
+fn save_config(config_name, data) {
+    # Ensure config directory exists
+    config_dir = directory("config")
+    if !config_dir.exists?() {
+        config_dir.create()
+    }
+    
+    config_path = path("config").join(config_name + ".conf")
+    config_file = file(config_path.value)
+    
+    config_file.open("w").write(data).close()
+    print("Config saved:", config_path.value)
+}
+
+# Usage
+save_config("database", "host=localhost\nport=5432\nname=myapp")
+db_config = load_config("database")
+if db_config != null {
+    print("Database config:")
+    print(db_config)
+}
+```
+
+#### File Backup System
+
+```rush
+fn backup_file(source_path) {
+    source = file(source_path)
+    
+    if !source.exists?() {
+        print("Source file not found:", source_path)
+        return false
+    }
+    
+    # Create backup filename with timestamp
+    source_info = path(source_path)
+    backup_name = source_info.basename() + ".backup"
+    backup_path = source_info.dirname() + "/" + backup_name
+    
+    # Read source and write backup
+    content = source.open("r").read()
+    backup_file = file(backup_path)
+    backup_file.open("w").write(content).close()
+    
+    print("Backup created:", backup_path)
+    return true
+}
+
+fn restore_backup(original_path) {
+    source_info = path(original_path)
+    backup_path = source_info.dirname() + "/" + source_info.basename() + ".backup"
+    backup = file(backup_path)
+    
+    if !backup.exists?() {
+        print("Backup not found:", backup_path)
+        return false
+    }
+    
+    content = backup.open("r").read()
+    original = file(original_path)
+    original.open("w").write(content).close()
+    
+    print("File restored from backup")
+    return true
+}
+
+# Usage
+file("important.txt").open("w").write("Critical data").close()
+backup_file("important.txt")
+
+# Simulate data loss
+file("important.txt").open("w").write("Corrupted!").close()
+
+# Restore from backup
+restore_backup("important.txt")
+```
+
+#### Directory Synchronization
+
+```rush
+fn sync_directories(source_dir, target_dir) {
+    source = directory(source_dir)
+    target = directory(target_dir)
+    
+    if !source.exists?() {
+        print("Source directory not found:", source_dir)
+        return false
+    }
+    
+    # Create target directory if it doesn't exist
+    if !target.exists?() {
+        target.create()
+        print("Created target directory:", target_dir)
+    }
+    
+    # Copy all files from source to target
+    files = source.list()
+    copied_count = 0
+    
+    for filename in files {
+        source_file_path = path(source_dir).join(filename).value
+        target_file_path = path(target_dir).join(filename).value
+        
+        source_file = file(source_file_path)
+        if source_file.exists?() {
+            content = source_file.open("r").read()
+            target_file = file(target_file_path)
+            target_file.open("w").write(content).close()
+            copied_count = copied_count + 1
+        }
+    }
+    
+    print("Synchronized", copied_count, "files from", source_dir, "to", target_dir)
+    return true
+}
+
+# Setup example directories
+directory("documents").create()
+file("documents/letter.txt").open("w").write("Dear friend...").close()
+file("documents/report.txt").open("w").write("Annual report...").close()
+
+# Sync to backup
+sync_directories("documents", "documents_backup")
+
+# Verify sync
+backup_files = directory("documents_backup").list()
+print("Backup contains:", backup_files)
+```
+
+### File System Best Practices
+
+1. **Always check file existence** before performing operations
+2. **Close files** after operations to free resources
+3. **Use absolute paths** when possible for reliability
+4. **Create parent directories** before creating files in nested structures
+5. **Handle errors gracefully** with existence checks
+6. **Use path objects** for cross-platform compatibility
+
+### Security Considerations
+
+- Path traversal (`..`) is automatically blocked in constructors
+- File operations respect system permissions
+- Always validate user input when constructing file paths
+- Be careful with file modes - `w` mode will truncate existing files
 
 ## Standard Library
 

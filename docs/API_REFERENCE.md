@@ -9,8 +9,9 @@ This document provides comprehensive documentation for all built-in functions av
 3. [Array Built-in Functions](#array-built-in-functions)
 4. [Hash Built-in Functions](#hash-built-in-functions)
 5. [Math Built-in Functions](#math-built-in-functions)
-6. [Standard Library Modules](#standard-library-modules)
-7. [Error Types](#error-types)
+6. [File System Built-in Functions](#file-system-built-in-functions)
+7. [Standard Library Modules](#standard-library-modules)
+8. [Error Types](#error-types)
 
 ## Core Built-in Functions
 
@@ -1063,6 +1064,394 @@ builtin_average([1, 2, 3, 4]) # Returns: 2.5
 ```rush
 builtin_is_number?(42)     # Returns: true
 builtin_is_integer?(3.14)  # Returns: false
+```
+
+## File System Built-in Functions
+
+Rush provides comprehensive file system operations through three core built-in constructors and their associated methods using dot notation.
+
+### File System Constructors
+
+#### `file(path)`
+
+Creates a File object for file operations.
+
+**Syntax:**
+```rush
+file(path_string)
+```
+
+**Parameters:**
+- `path_string` (string): The file path
+
+**Returns:**
+- `File`: A File object for the specified path
+
+**Security:**
+- Path traversal (`..`) is blocked for security
+
+**Example:**
+```rush
+f = file("data.txt")
+print(f.path)     # Outputs: data.txt
+print(f.is_open)  # Outputs: false
+```
+
+#### `directory(path)`
+
+Creates a Directory object for directory operations.
+
+**Syntax:**
+```rush
+directory(path_string)
+```
+
+**Parameters:**
+- `path_string` (string): The directory path
+
+**Returns:**
+- `Directory`: A Directory object for the specified path
+
+**Example:**
+```rush
+dir = directory("/tmp/mydir")
+print(dir.path)   # Outputs: /tmp/mydir
+```
+
+#### `path(value)`
+
+Creates a Path object for path manipulation.
+
+**Syntax:**
+```rush
+path(path_string)
+```
+
+**Parameters:**
+- `path_string` (string): The path string
+
+**Returns:**
+- `Path`: A Path object with path manipulation methods
+
+**Example:**
+```rush
+p = path("/tmp/test")
+print(p.value)    # Outputs: /tmp/test
+```
+
+### File Object Methods and Properties
+
+File objects support comprehensive file operations with proper error handling.
+
+#### Properties
+
+- `path`: Returns the file path as a string
+- `is_open`: Returns true if the file is currently open
+
+#### Methods
+
+##### `open(mode)`
+
+Opens the file in the specified mode.
+
+**Parameters:**
+- `mode` (string, optional): File mode - "r" (read), "w" (write), "a" (append), "r+" (read/write), "w+" (write/read), "a+" (append/read). Default: "r"
+
+**Returns:**
+- `File`: The File object (for method chaining)
+
+**Example:**
+```rush
+f = file("data.txt").open("w")
+# or
+f = file("data.txt").open()  # defaults to read mode
+```
+
+##### `read()`
+
+Reads the entire file content.
+
+**Returns:**
+- `String`: The file content
+
+**Example:**
+```rush
+content = file("data.txt").open("r").read()
+print(content)
+```
+
+##### `write(content)`
+
+Writes content to the file.
+
+**Parameters:**
+- `content` (string): Content to write
+
+**Returns:**
+- `Integer`: Number of bytes written
+
+**Example:**
+```rush
+bytes_written = file("output.txt").open("w").write("Hello, Rush!")
+print("Wrote " + bytes_written + " bytes")
+```
+
+##### `close()`
+
+Closes the file.
+
+**Returns:**
+- `File`: The File object
+
+**Example:**
+```rush
+f = file("data.txt").open("r")
+content = f.read()
+f.close()
+```
+
+##### `exists?()`
+
+Checks if the file exists.
+
+**Returns:**
+- `Boolean`: true if file exists, false otherwise
+
+**Example:**
+```rush
+if file("config.txt").exists?() {
+    print("Config file found")
+}
+```
+
+##### `size()`
+
+Gets the file size in bytes.
+
+**Returns:**
+- `Integer`: File size in bytes
+
+**Example:**
+```rush
+file_size = file("data.txt").size()
+print("File size: " + file_size + " bytes")
+```
+
+##### `delete()`
+
+Deletes the file.
+
+**Returns:**
+- `Boolean`: true on successful deletion
+
+**Example:**
+```rush
+if file("temp.txt").delete() {
+    print("File deleted successfully")
+}
+```
+
+### Directory Object Methods and Properties
+
+Directory objects provide directory manipulation functionality.
+
+#### Properties
+
+- `path`: Returns the directory path as a string
+
+#### Methods
+
+##### `create()`
+
+Creates the directory (including parent directories if needed).
+
+**Returns:**
+- `Directory`: The Directory object
+
+**Example:**
+```rush
+directory("/tmp/new/nested/dir").create()
+```
+
+##### `list()`
+
+Lists the contents of the directory.
+
+**Returns:**
+- `Array`: Array of strings containing directory entry names
+
+**Example:**
+```rush
+contents = directory("/tmp").list()
+for entry in contents {
+    print(entry)
+}
+```
+
+##### `exists?()`
+
+Checks if the directory exists.
+
+**Returns:**
+- `Boolean`: true if directory exists, false otherwise
+
+**Example:**
+```rush
+if directory("/home/user").exists?() {
+    print("Directory exists")
+}
+```
+
+##### `delete()`
+
+Deletes the directory and all its contents.
+
+**Returns:**
+- `Boolean`: true on successful deletion
+
+**Example:**
+```rush
+directory("/tmp/old_data").delete()
+```
+
+### Path Object Methods and Properties
+
+Path objects provide cross-platform path manipulation.
+
+#### Properties
+
+- `value`: Returns the path string
+
+#### Methods
+
+##### `join(other)`
+
+Joins this path with another path component.
+
+**Parameters:**
+- `other` (string): Path component to join
+
+**Returns:**
+- `Path`: New Path object with joined path
+
+**Example:**
+```rush
+full_path = path("/tmp").join("data").join("file.txt")
+print(full_path.value)  # /tmp/data/file.txt (Unix) or \tmp\data\file.txt (Windows)
+```
+
+##### `basename()`
+
+Gets the final component of the path.
+
+**Returns:**
+- `String`: The basename
+
+**Example:**
+```rush
+name = path("/tmp/data/file.txt").basename()
+print(name)  # Outputs: file.txt
+```
+
+##### `dirname()`
+
+Gets the directory component of the path.
+
+**Returns:**
+- `String`: The directory path
+
+**Example:**
+```rush
+dir = path("/tmp/data/file.txt").dirname()
+print(dir)  # Outputs: /tmp/data
+```
+
+##### `absolute()`
+
+Converts the path to an absolute path.
+
+**Returns:**
+- `Path`: New Path object with absolute path
+
+**Example:**
+```rush
+abs_path = path("file.txt").absolute()
+print(abs_path.value)  # Outputs full absolute path
+```
+
+##### `clean()`
+
+Cleans the path by removing redundant components.
+
+**Returns:**
+- `Path`: New Path object with cleaned path
+
+**Example:**
+```rush
+clean_path = path("/tmp//data/../file.txt").clean()
+print(clean_path.value)  # Outputs: /tmp/file.txt
+```
+
+### File System Usage Examples
+
+#### Basic File Operations
+```rush
+# Write to a file
+file("greeting.txt").open("w").write("Hello, Rush!").close()
+
+# Read from a file
+if file("greeting.txt").exists?() {
+    content = file("greeting.txt").open("r").read()
+    print("File content: " + content)
+    file("greeting.txt").close()
+}
+
+# Get file information
+if file("greeting.txt").exists?() {
+    size = file("greeting.txt").size()
+    print("File size: " + size + " bytes")
+}
+```
+
+#### Directory Operations
+```rush
+# Create a directory structure
+data_dir = directory("project/data")
+data_dir.create()
+
+# List directory contents
+if data_dir.exists?() {
+    files = data_dir.list()
+    print("Directory contains " + len(files) + " items")
+}
+```
+
+#### Path Manipulation
+```rush
+# Build paths cross-platform
+config_path = path("config").join("app.conf").absolute()
+config_file = file(config_path.value)
+
+if config_file.exists?() {
+    print("Config found at: " + config_path.value)
+}
+
+# Path components
+full_path = path("/home/user/documents/file.txt")
+print("Directory: " + full_path.dirname())
+print("Filename: " + full_path.basename())
+```
+
+#### Method Chaining
+```rush
+# Path method chaining
+final_path = path("/tmp")
+    .join("project")
+    .join("data")
+    .join("output.txt")
+    .clean()
+
+print("Final path: " + final_path.value)
 ```
 
 ## Standard Library Modules
