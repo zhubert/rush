@@ -194,6 +194,11 @@ func Eval(node ast.Node, env *Environment) Value {
 			return applyStringMethod(stringMethod, args, env)
 		}
 		
+		// Check if it's an array method call
+		if arrayMethod, ok := function.(*ArrayMethod); ok {
+			return applyArrayMethod(arrayMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -1049,6 +1054,246 @@ func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environmen
 	}
 }
 
+func applyArrayMethod(arrayMethod *ArrayMethod, args []Value, env *Environment) Value {
+	arr := arrayMethod.Array
+	
+	switch arrayMethod.Method {
+	case "map":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for map: want=1, got=%d", len(args))
+		}
+		mapFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to map must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := []Value{}
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(mapFunc, []Value{elem})
+			mapped := Eval(mapFunc.Body, extendedEnv)
+			if isError(mapped) {
+				return mapped
+			}
+			result = append(result, unwrapReturnValue(mapped))
+		}
+		return &Array{Elements: result}
+		
+	case "filter":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for filter: want=1, got=%d", len(args))
+		}
+		filterFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to filter must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := []Value{}
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(filterFunc, []Value{elem})
+			filtered := Eval(filterFunc.Body, extendedEnv)
+			if isError(filtered) {
+				return filtered
+			}
+			if IsTruthy(unwrapReturnValue(filtered)) {
+				result = append(result, elem)
+			}
+		}
+		return &Array{Elements: result}
+		
+	case "reduce":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for reduce: want=2, got=%d", len(args))
+		}
+		reduceFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("first argument to reduce must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		result := args[1] // initial value
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(reduceFunc, []Value{result, elem})
+			result = Eval(reduceFunc.Body, extendedEnv)
+			if isError(result) {
+				return result
+			}
+			result = unwrapReturnValue(result)
+		}
+		return result
+		
+	case "find":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for find: want=1, got=%d", len(args))
+		}
+		findFunc, ok := args[0].(*Function)
+		if !ok {
+			return newError("argument to find must be FUNCTION, got %s", args[0].Type())
+		}
+		
+		for _, elem := range arr.Elements {
+			extendedEnv := extendFunctionEnv(findFunc, []Value{elem})
+			found := Eval(findFunc.Body, extendedEnv)
+			if isError(found) {
+				return found
+			}
+			if IsTruthy(unwrapReturnValue(found)) {
+				return elem
+			}
+		}
+		return NULL
+		
+	case "index_of":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for index_of: want=1, got=%d", len(args))
+		}
+		searchElement := args[0]
+		
+		for i, elem := range arr.Elements {
+			if compareValues(elem, searchElement) {
+				return &Integer{Value: int64(i)}
+			}
+		}
+		return &Integer{Value: -1}
+		
+	case "includes?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for includes?: want=1, got=%d", len(args))
+		}
+		searchElement := args[0]
+		
+		for _, elem := range arr.Elements {
+			if compareValues(elem, searchElement) {
+				return TRUE
+			}
+		}
+		return FALSE
+		
+	case "reverse":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for reverse: want=0, got=%d", len(args))
+		}
+		
+		result := make([]Value, len(arr.Elements))
+		for i, elem := range arr.Elements {
+			result[len(arr.Elements)-1-i] = elem
+		}
+		return &Array{Elements: result}
+		
+	case "sort":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for sort: want=0, got=%d", len(args))
+		}
+		
+		// Create a copy of the array
+		result := make([]Value, len(arr.Elements))
+		copy(result, arr.Elements)
+		
+		// Simple bubble sort
+		n := len(result)
+		for i := 0; i < n-1; i++ {
+			for j := 0; j < n-i-1; j++ {
+				if compareForSort(result[j], result[j+1]) > 0 {
+					result[j], result[j+1] = result[j+1], result[j]
+				}
+			}
+		}
+		return &Array{Elements: result}
+		
+	case "push":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for push: want=1, got=%d", len(args))
+		}
+		
+		newElements := make([]Value, len(arr.Elements)+1)
+		copy(newElements, arr.Elements)
+		newElements[len(arr.Elements)] = args[0]
+		return &Array{Elements: newElements}
+		
+	case "pop":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for pop: want=0, got=%d", len(args))
+		}
+		
+		if len(arr.Elements) == 0 {
+			return newError("cannot pop from empty array")
+		}
+		
+		return arr.Elements[len(arr.Elements)-1]
+		
+	case "slice":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for slice: want=2, got=%d", len(args))
+		}
+		
+		start, ok1 := args[0].(*Integer)
+		end, ok2 := args[1].(*Integer)
+		if !ok1 || !ok2 {
+			return newError("arguments to slice must be INTEGER, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		
+		startIdx := int(start.Value)
+		endIdx := int(end.Value)
+		
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		if endIdx > len(arr.Elements) {
+			endIdx = len(arr.Elements)
+		}
+		if startIdx >= endIdx {
+			return &Array{Elements: []Value{}}
+		}
+		
+		result := make([]Value, endIdx-startIdx)
+		copy(result, arr.Elements[startIdx:endIdx])
+		return &Array{Elements: result}
+		
+	default:
+		return newError("unknown array method: %s", arrayMethod.Method)
+	}
+}
+
+// compareForSort compares two values for sorting purposes
+func compareForSort(a, b Value) int {
+	switch aVal := a.(type) {
+	case *Integer:
+		if bVal, ok := b.(*Integer); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	case *Float:
+		if bVal, ok := b.(*Float); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	case *String:
+		if bVal, ok := b.(*String); ok {
+			if aVal.Value < bVal.Value {
+				return -1
+			} else if aVal.Value > bVal.Value {
+				return 1
+			}
+			return 0
+		}
+	}
+	// For mixed types or unsupported types, convert to string and compare
+	aStr := valueToString(a)
+	bStr := valueToString(b)
+	if aStr < bStr {
+		return -1
+	} else if aStr > bStr {
+		return 1
+	}
+	return 0
+}
+
 func extendFunctionEnv(fn *Function, args []Value) *Environment {
 	env := NewEnclosedEnvironment(fn.Env)
 
@@ -1520,6 +1765,25 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		
 		default:
 			return newError("unknown property %s for string", node.Property.Value)
+		}
+	}
+	
+	// Check if it's an array and handle property access
+	if arr, ok := object.(*Array); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "length":
+			return &Integer{Value: int64(len(arr.Elements))}
+		case "empty":
+			return &Boolean{Value: len(arr.Elements) == 0}
+		
+		// Methods (with parameters) - return bound methods
+		case "map", "filter", "reduce", "find", "index_of", "includes?", "reverse", 
+		     "sort", "push", "pop", "slice":
+			return &ArrayMethod{Array: arr, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for array", node.Property.Value)
 		}
 	}
 	
