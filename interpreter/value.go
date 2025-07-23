@@ -16,6 +16,7 @@ const (
 	STRING_VALUE   ValueType = "STRING"
 	BOOLEAN_VALUE  ValueType = "BOOLEAN"
 	ARRAY_VALUE    ValueType = "ARRAY"
+	HASH_VALUE     ValueType = "HASH"
 	NULL_VALUE     ValueType = "NULL"
 	FUNCTION_VALUE  ValueType = "FUNCTION"
 	BUILTIN_VALUE   ValueType = "BUILTIN"
@@ -78,6 +79,45 @@ func (a *Array) Inspect() string {
 		elements = append(elements, e.Inspect())
 	}
 	return "[" + strings.Join(elements, ", ") + "]"
+}
+
+// HashKey represents a key in a hash for efficient storage
+type HashKey struct {
+	Type  ValueType
+	Value interface{} // int64, string, bool, float64
+}
+
+// Hash represents hash/dictionary values
+type Hash struct {
+	Pairs map[HashKey]Value
+	Keys  []Value // maintain insertion order
+}
+
+func (h *Hash) Type() ValueType { return HASH_VALUE }
+func (h *Hash) Inspect() string {
+	pairs := []string{}
+	for _, key := range h.Keys {
+		value := h.Pairs[CreateHashKey(key)]
+		pairs = append(pairs, fmt.Sprintf("%s: %s", key.Inspect(), value.Inspect()))
+	}
+	return "{" + strings.Join(pairs, ", ") + "}"
+}
+
+// CreateHashKey creates a HashKey from a Value for internal storage
+func CreateHashKey(value Value) HashKey {
+	switch val := value.(type) {
+	case *Integer:
+		return HashKey{Type: INTEGER_VALUE, Value: val.Value}
+	case *String:
+		return HashKey{Type: STRING_VALUE, Value: val.Value}
+	case *Boolean:
+		return HashKey{Type: BOOLEAN_VALUE, Value: val.Value}
+	case *Float:
+		return HashKey{Type: FLOAT_VALUE, Value: val.Value}
+	default:
+		// This should not happen in practice due to type validation
+		return HashKey{Type: NULL_VALUE, Value: nil}
+	}
 }
 
 // Null represents null/nil values

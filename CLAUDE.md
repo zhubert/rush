@@ -15,7 +15,7 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 11 - Enhanced Standard Library (string operations, array utilities, math functions, file I/O, JSON handling)
+**Current Phase**: Phase 11 - Enhanced Standard Library (string operations, array utilities, math functions, collections, file I/O, JSON handling)
 
 ## Codebase Architecture
 
@@ -141,13 +141,16 @@ if len(args) != 1 {
 - String operations in `std/string.rush`
 - Array utilities in `std/array.rush`
 - Math functions in `std/math.rush`
-- Upcoming: file I/O, JSON handling, collections
+- Collections/hash operations as built-in functions
+- Upcoming: file I/O, JSON handling
 
 ### Implementation Notes
 
 - Standard library functions are Rush functions, not Go built-ins
+- Collections/hash operations are Go built-ins with `builtin_hash_` prefix
 - Module resolution happens in `interpreter/module.go`
 - Test standard library functions with Rush code examples
+- Hash literals use `{key: value}` syntax with support for string, integer, boolean, and float keys
 
 ## AI Assistant Guidelines
 

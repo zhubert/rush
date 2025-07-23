@@ -178,6 +178,43 @@ matrix = [[1, 2], [3, 4], [5, 6]]
 element = matrix[1][0]  # 3
 ```
 
+### Hashes/Dictionaries
+
+Store key-value pairs:
+
+```rush
+# Hash creation
+person = {"name": "Alice", "age": 30, "active": true}
+config = {42: "answer", "pi": 3.14, true: "enabled"}
+empty = {}
+
+# Hash access
+name = person["name"]      # "Alice"
+age = person["age"]        # 30
+
+# Hash assignment
+person["city"] = "NYC"     # Add new key
+person["age"] = 31         # Update existing key
+
+# Check for keys
+has_name = builtin_hash_has_key(person, "name")  # true
+has_phone = builtin_hash_has_key(person, "phone")  # false
+
+# Get all keys and values
+keys = builtin_hash_keys(person)    # ["name", "age", "active", "city"]
+values = builtin_hash_values(person) # ["Alice", 31, true, "NYC"]
+
+# Hash length
+size = len(person)         # 4
+
+# Nested hashes
+users = {
+  "alice": {"role": "admin", "score": 95},
+  "bob": {"role": "user", "score": 87}
+}
+alice_role = users["alice"]["role"]  # "admin"
+```
+
 ## Functions
 
 Functions are first-class values in Rush:

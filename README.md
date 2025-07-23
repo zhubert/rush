@@ -73,6 +73,7 @@ make dev FILE=hello.rush
 
 ### Data Types & Operations
 - **Arrays**: Dynamic arrays with element assignment (`arr[i] = value`)
+- **Hashes/Dictionaries**: Key-value mappings with `{key: value}` syntax
 - **Strings**: String indexing and comprehensive manipulation
 - **Numbers**: Integers and floats with modulo operator (`%`)
 - **Booleans**: Logical operations with short-circuit evaluation
@@ -82,6 +83,7 @@ make dev FILE=hello.rush
 - **Math Module** (`std/math`): Mathematical functions, constants, and utilities
 - **String Module** (`std/string`): String manipulation and text processing
 - **Array Module** (`std/array`): Functional programming utilities (map, filter, reduce)
+- **Collections Module**: Built-in hash/dictionary operations and utilities
 - **Import Aliasing**: Clean imports with `import { func as alias } from "module"`
 
 ### Development Experience
@@ -99,6 +101,7 @@ version = 1.0           # Float
 count = 42              # Integer
 ready = true            # Boolean
 items = [1, 2, 3]       # Array
+person = {"name": "Alice", "age": 30}  # Hash/Dictionary
 ```
 
 ### Functions
@@ -160,7 +163,7 @@ remainder = 10 % 3        # 1
 even = (number % 2) == 0  # Check if even
 ```
 
-### Arrays and Strings
+### Arrays, Strings, and Hashes
 ```rush
 # Array operations
 numbers = [1, 2, 3, 4, 5]
@@ -174,6 +177,15 @@ subset = slice(numbers, 1, 4)   # Get slice
 text = "Hello, World!"
 chars = split(text, ", ")       # Split string
 hello = substr(text, 0, 5)      # Substring
+
+# Hash/Dictionary operations
+person = {"name": "Alice", "age": 30, "active": true}
+name = person["name"]           # Hash indexing
+person["city"] = "NYC"          # Hash assignment
+person_keys = builtin_hash_keys(person)     # Get all keys
+person_values = builtin_hash_values(person) # Get all values
+has_age = builtin_hash_has_key(person, "age")  # Check key existence
+empty_hash = {}                 # Empty hash literal
 ```
 
 ### Module System
@@ -286,6 +298,15 @@ throw RuntimeError("Something went wrong")
 - `pop(array)` - Get last element of array
 - `slice(array, start, end)` - Extract array slice
 
+### Hash/Dictionary Functions
+- `builtin_hash_keys(hash)` - Get array of all keys
+- `builtin_hash_values(hash)` - Get array of all values
+- `builtin_hash_has_key(hash, key)` - Check if key exists
+- `builtin_hash_get(hash, key, default?)` - Get value with optional default
+- `builtin_hash_set(hash, key, value)` - Create new hash with key-value pair
+- `builtin_hash_delete(hash, key)` - Create new hash without key
+- `builtin_hash_merge(hash1, hash2)` - Merge two hashes (hash2 overwrites)
+
 ## 📖 Documentation
 
 - **[Language Specification](docs/LANGUAGE_SPECIFICATION.md)** - Complete syntax and grammar reference
@@ -341,6 +362,34 @@ print("Even numbers:", evens)
 # Array assignment example
 evens[0] = 999          # Modify first element
 print("Modified:", evens)
+```
+
+### Hash/Dictionary Processing
+```rush
+# User database example
+users = {
+  "alice": {"name": "Alice Smith", "age": 30, "role": "admin"},
+  "bob": {"name": "Bob Jones", "age": 25, "role": "user"}
+}
+
+# Access nested data
+alice_name = users["alice"]["name"]
+print("User:", alice_name)
+
+# Add new user
+users["charlie"] = {"name": "Charlie Brown", "age": 35, "role": "user"}
+
+# Check user permissions
+check_admin = fn(username) {
+  if (builtin_hash_has_key(users, username)) {
+    user = users[username]
+    return user["role"] == "admin"
+  }
+  return false
+}
+
+print("Alice is admin:", check_admin("alice"))  # true
+print("Bob is admin:", check_admin("bob"))      # false
 ```
 
 ### More Examples
@@ -423,7 +472,7 @@ Rush was developed through a systematic phased approach:
 - **✅ Phase 8**: Module System - Import/export functionality
 - **✅ Phase 9**: Error Handling - Try/catch/finally/throw mechanisms
 - **✅ Phase 10**: Object System - Classes, inheritance, and method enhancements
-- **🔄 Phase 11**: Enhanced Standard Library - String/array/math modules, JSON, file I/O
+- **🔄 Phase 11**: Enhanced Standard Library - String/array/math/collections modules, JSON, file I/O
 - **🔄 Phase 12**: Performance & Compilation - Bytecode optimization, JIT compilation
 - **🔄 Phase 13**: Developer Tooling - Language server, debugger, IDE integration
 

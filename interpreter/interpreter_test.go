@@ -2630,3 +2630,358 @@ func TestSwitchWithFloats(t *testing.T) {
   evaluated := testEval(input)
   testStringObject(t, evaluated, "pi")
 }
+
+func TestHashLiterals(t *testing.T) {
+  input := `hash = {"name": "Alice", "age": 30, 42: "answer", true: "yes"}
+  hash`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("Eval didn't return Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  expected := map[HashKey]int64{
+    HashKey{Type: STRING_VALUE, Value: "name"}:  0,
+    HashKey{Type: STRING_VALUE, Value: "age"}:   0,
+    HashKey{Type: INTEGER_VALUE, Value: int64(42)}: 0,
+    HashKey{Type: BOOLEAN_VALUE, Value: true}:   0,
+  }
+
+  if len(result.Pairs) != len(expected) {
+    t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+  }
+
+  for expectedKey := range expected {
+    _, ok := result.Pairs[expectedKey]
+    if !ok {
+      t.Errorf("no pair for given key in Pairs")
+    }
+  }
+}
+
+func TestEmptyHashLiteral(t *testing.T) {
+  input := "{}"
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("Eval didn't return Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Pairs) != 0 {
+    t.Fatalf("Hash.Pairs has wrong length. got=%d", len(result.Pairs))
+  }
+}
+
+func TestHashIndexExpression(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {
+      `{"foo": 5}["foo"]`,
+      5,
+    },
+    {
+      `{"foo": 5}["bar"]`,
+      nil,
+    },
+    {
+      `hash = {"one": 1, "two": 2, "three": 3}
+       hash["two"]`,
+      2,
+    },
+    {
+      `{4: 4}[4]`,
+      4,
+    },
+    {
+      `{true: 5}[true]`,
+      5,
+    },
+    {
+      `{false: 5}[false]`,
+      5,
+    },
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    integer, ok := tt.expected.(int)
+    if ok {
+      testIntegerObject(t, evaluated, int64(integer))
+    } else {
+      testNullObject(t, evaluated)
+    }
+  }
+}
+
+func TestHashIndexAssignment(t *testing.T) {
+  input := `
+  hash = {"existing": "value"}
+  hash["new"] = "added"
+  hash["existing"] = "updated"
+  hash`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("Eval didn't return Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  // Check that we have 2 key-value pairs
+  if len(result.Pairs) != 2 {
+    t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+  }
+
+  // Check "new" key
+  newKey := HashKey{Type: STRING_VALUE, Value: "new"}
+  newValue, exists := result.Pairs[newKey]
+  if !exists {
+    t.Errorf("no pair for key 'new' in Pairs")
+  } else {
+    testStringObject(t, newValue, "added")
+  }
+
+  // Check "existing" key was updated
+  existingKey := HashKey{Type: STRING_VALUE, Value: "existing"}
+  existingValue, exists := result.Pairs[existingKey]
+  if !exists {
+    t.Errorf("no pair for key 'existing' in Pairs")
+  } else {
+    testStringObject(t, existingValue, "updated")
+  }
+}
+
+func TestBuiltinHashKeys(t *testing.T) {
+  input := `
+  hash = {"name": "Alice", "age": 30, 42: "answer"}
+  builtin_hash_keys(hash)`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Array)
+  if !ok {
+    t.Fatalf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Elements) != 3 {
+    t.Fatalf("wrong num of elements. got=%d", len(result.Elements))
+  }
+
+  // Keys should be in insertion order
+  expectedKeys := []interface{}{"name", "age", int64(42)}
+  for i, expected := range expectedKeys {
+    switch exp := expected.(type) {
+    case string:
+      testStringObject(t, result.Elements[i], exp)
+    case int64:
+      testIntegerObject(t, result.Elements[i], exp)
+    }
+  }
+}
+
+func TestBuiltinHashValues(t *testing.T) {
+  input := `
+  hash = {"name": "Alice", "age": 30}
+  builtin_hash_values(hash)`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Array)
+  if !ok {
+    t.Fatalf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Elements) != 2 {
+    t.Fatalf("wrong num of elements. got=%d", len(result.Elements))
+  }
+
+  // Values should be in same order as keys
+  testStringObject(t, result.Elements[0], "Alice")
+  testIntegerObject(t, result.Elements[1], 30)
+}
+
+func TestBuiltinHashHasKey(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected bool
+  }{
+    {`builtin_hash_has_key({"name": "Alice"}, "name")`, true},
+    {`builtin_hash_has_key({"name": "Alice"}, "age")`, false},
+    {`builtin_hash_has_key({42: "answer"}, 42)`, true},
+    {`builtin_hash_has_key({true: "yes"}, true)`, true},
+    {`builtin_hash_has_key({true: "yes"}, false)`, false},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testBooleanObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestBuiltinHashGet(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected interface{}
+  }{
+    {`builtin_hash_get({"name": "Alice"}, "name")`, "Alice"},
+    {`builtin_hash_get({"name": "Alice"}, "age")`, nil},
+    {`builtin_hash_get({"name": "Alice"}, "age", "unknown")`, "unknown"},
+    {`builtin_hash_get({42: "answer"}, 42)`, "answer"},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    if tt.expected == nil {
+      testNullObject(t, evaluated)
+    } else if str, ok := tt.expected.(string); ok {
+      testStringObject(t, evaluated, str)
+    }
+  }
+}
+
+func TestBuiltinHashSet(t *testing.T) {
+  input := `
+  original = {"name": "Alice"}
+  updated = builtin_hash_set(original, "age", 30)
+  updated`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("object is not Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Pairs) != 2 {
+    t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+  }
+
+  // Check both keys exist
+  nameKey := HashKey{Type: STRING_VALUE, Value: "name"}
+  ageKey := HashKey{Type: STRING_VALUE, Value: "age"}
+
+  if _, exists := result.Pairs[nameKey]; !exists {
+    t.Errorf("name key not found in result")
+  }
+  if _, exists := result.Pairs[ageKey]; !exists {
+    t.Errorf("age key not found in result")
+  }
+}
+
+func TestBuiltinHashDelete(t *testing.T) {
+  input := `
+  original = {"name": "Alice", "age": 30}
+  result = builtin_hash_delete(original, "age")
+  result`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("object is not Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Pairs) != 1 {
+    t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+  }
+
+  nameKey := HashKey{Type: STRING_VALUE, Value: "name"}
+  ageKey := HashKey{Type: STRING_VALUE, Value: "age"}
+
+  if _, exists := result.Pairs[nameKey]; !exists {
+    t.Errorf("name key should still exist")
+  }
+  if _, exists := result.Pairs[ageKey]; exists {
+    t.Errorf("age key should be deleted")
+  }
+}
+
+func TestBuiltinHashMerge(t *testing.T) {
+  input := `
+  hash1 = {"name": "Alice", "age": 25}
+  hash2 = {"age": 30, "city": "NYC"}
+  result = builtin_hash_merge(hash1, hash2)
+  result`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Hash)
+  if !ok {
+    t.Fatalf("object is not Hash. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Pairs) != 3 {
+    t.Fatalf("Hash has wrong num of pairs. got=%d", len(result.Pairs))
+  }
+
+  // Check that age was overridden by hash2
+  ageKey := HashKey{Type: STRING_VALUE, Value: "age"}
+  ageValue, exists := result.Pairs[ageKey]
+  if !exists {
+    t.Errorf("age key not found")
+  } else {
+    testIntegerObject(t, ageValue, 30) // Should be 30 from hash2, not 25 from hash1
+  }
+}
+
+func TestHashLen(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    {`len({})`, 0},
+    {`len({"one": 1})`, 1},
+    {`len({"one": 1, "two": 2, "three": 3})`, 3},
+  }
+
+  for _, tt := range tests {
+    evaluated := testEval(tt.input)
+    testIntegerObject(t, evaluated, tt.expected)
+  }
+}
+
+func TestHashWithDifferentKeyTypes(t *testing.T) {
+  input := `hash = {"string": "value1", 42: "value2", true: "value3", 3.14: "value4"}
+  [hash["string"], hash[42], hash[true], hash[3.14]]`
+
+  evaluated := testEval(input)
+  result, ok := evaluated.(*Array)
+  if !ok {
+    t.Fatalf("object is not Array. got=%T (%+v)", evaluated, evaluated)
+  }
+
+  if len(result.Elements) != 4 {
+    t.Fatalf("wrong num of elements. got=%d", len(result.Elements))
+  }
+
+  testStringObject(t, result.Elements[0], "value1")
+  testStringObject(t, result.Elements[1], "value2")
+  testStringObject(t, result.Elements[2], "value3")
+  testStringObject(t, result.Elements[3], "value4")
+}
+
+func testHashObject(t *testing.T, obj Value, expected map[HashKey]int64) bool {
+  result, ok := obj.(*Hash)
+  if !ok {
+    t.Errorf("object is not Hash. got=%T (%+v)", obj, obj)
+    return false
+  }
+
+  if len(result.Pairs) != len(expected) {
+    t.Errorf("hash has wrong num of pairs. got=%d", len(result.Pairs))
+    return false
+  }
+
+  for expectedKey, expectedValue := range expected {
+    pair, ok := result.Pairs[expectedKey]
+    if !ok {
+      t.Errorf("no pair for given key in Pairs")
+      return false
+    }
+
+    err := testIntegerObject(t, pair, expectedValue)
+    if !err {
+      return false
+    }
+  }
+
+  return true
+}

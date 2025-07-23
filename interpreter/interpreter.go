@@ -118,6 +118,9 @@ func Eval(node ast.Node, env *Environment) Value {
 		}
 		return &Array{Elements: elements}
 	
+	case *ast.HashLiteral:
+		return evalHashLiteral(node, env)
+	
 	case *ast.IfExpression:
 		return evalIfExpression(node, env)
 	
@@ -527,6 +530,43 @@ func evalExpressions(exps []ast.Expression, env *Environment) []Value {
 	return result
 }
 
+func evalHashLiteral(node *ast.HashLiteral, env *Environment) Value {
+	pairs := make(map[HashKey]Value)
+	keys := []Value{}
+
+	for _, pair := range node.Pairs {
+		key := Eval(pair.Key, env)
+		if isError(key) {
+			return key
+		}
+
+		// Check if key is hashable (integer, string, boolean, float)
+		if !isHashable(key) {
+			return newError("unusable as hash key: %T", key)
+		}
+
+		value := Eval(pair.Value, env)
+		if isError(value) {
+			return value
+		}
+
+		hashKey := CreateHashKey(key)
+		pairs[hashKey] = value
+		keys = append(keys, key)
+	}
+
+	return &Hash{Pairs: pairs, Keys: keys}
+}
+
+func isHashable(value Value) bool {
+	switch value.(type) {
+	case *Integer, *String, *Boolean, *Float:
+		return true
+	default:
+		return false
+	}
+}
+
 func nativeBoolToBooleanValue(input bool) *Boolean {
 	if input {
 		return TRUE
@@ -796,6 +836,8 @@ func evalIndexExpression(left, index Value) Value {
 			return evalStringIndexExpression(left, intIdx)
 		}
 		return newError("string index must be a whole number, got: %g", floatIdx)
+	case left.Type() == HASH_VALUE:
+		return evalHashIndexExpression(left, index)
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
@@ -825,6 +867,22 @@ func evalStringIndexExpression(str, index Value) Value {
 	}
 
 	return &String{Value: string(stringObject.Value[idx])}
+}
+
+func evalHashIndexExpression(hash, index Value) Value {
+	hashObject := hash.(*Hash)
+	
+	if !isHashable(index) {
+		return newError("unusable as hash key: %T", index)
+	}
+
+	hashKey := CreateHashKey(index)
+	value, exists := hashObject.Pairs[hashKey]
+	if !exists {
+		return NULL
+	}
+
+	return value
 }
 
 func evalWhileStatement(ws *ast.WhileStatement, env *Environment) Value {
@@ -1525,6 +1583,11 @@ func evalIndexAssignment(node *ast.IndexAssignmentStatement, env *Environment) V
 		return evalArrayIndexAssignment(arr, index, value)
 	}
 	
+	// Handle hash index assignment
+	if hash, ok := left.(*Hash); ok {
+		return evalHashIndexAssignment(hash, index, value, env)
+	}
+	
 	// String index assignment is not supported (strings are immutable)
 	if _, ok := left.(*String); ok {
 		return newError("string index assignment not supported: strings are immutable")
@@ -1550,5 +1613,24 @@ func evalArrayIndexAssignment(array *Array, index Value, value Value) Value {
 	
 	// Assign the value
 	array.Elements[i] = value
+	return value
+}
+
+// evalHashIndexAssignment handles assignment to hash elements
+func evalHashIndexAssignment(hash *Hash, index Value, value Value, env *Environment) Value {
+	if !isHashable(index) {
+		return newError("unusable as hash key: %T", index)
+	}
+
+	hashKey := CreateHashKey(index)
+	
+	// If the key doesn't exist, add it to the keys slice
+	if _, exists := hash.Pairs[hashKey]; !exists {
+		hash.Keys = append(hash.Keys, index)
+	}
+	
+	// Set the value (mutating the hash in place)
+	hash.Pairs[hashKey] = value
+	
 	return value
 }

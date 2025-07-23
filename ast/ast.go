@@ -193,6 +193,32 @@ func (al *ArrayLiteral) String() string {
 	return out.String()
 }
 
+// HashLiteral represents hash literals like {"key": "value", 42: true}
+// HashPair represents a key-value pair in a hash literal
+type HashPair struct {
+	Key   Expression
+	Value Expression
+}
+
+type HashLiteral struct {
+	Token lexer.Token    // the '{' token
+	Pairs []HashPair     // ordered pairs to preserve insertion order
+}
+
+func (hl *HashLiteral) expressionNode()      {}
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+	pairs := []string{}
+	for _, pair := range hl.Pairs {
+		pairs = append(pairs, pair.Key.String()+": "+pair.Value.String())
+	}
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+	return out.String()
+}
+
 // ExpressionStatement represents expressions used as statements
 type ExpressionStatement struct {
 	Token      lexer.Token // the first token of the expression
