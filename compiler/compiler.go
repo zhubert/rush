@@ -71,6 +71,16 @@ func NewWithState(s *SymbolTable, constants []interpreter.Value) *Compiler {
 func (c *Compiler) Compile(node ast.Node) error {
 	switch node := node.(type) {
 	case *ast.Program:
+		// Pass 1: Symbol Discovery
+		// Traverse the entire AST to collect all symbol definitions
+		// This allows forward references and recursive functions to work
+		err := c.collectSymbols(node)
+		if err != nil {
+			return fmt.Errorf("symbol discovery error: %w", err)
+		}
+		
+		// Pass 2: Code Generation
+		// Now compile with all symbols pre-defined in the symbol table
 		for _, s := range node.Statements {
 			err := c.Compile(s)
 			if err != nil {
@@ -916,5 +926,155 @@ func (c *Compiler) storeSymbol(s Symbol) {
 		c.emit(bytecode.OpSetGlobal, s.Index)
 	case LocalScope:
 		c.emit(bytecode.OpSetLocal, s.Index)
+	}
+}
+
+// collectSymbols performs the first pass of compilation: symbol discovery
+// This pass traverses the AST to find all variable and function declarations
+// and populates the symbol table before code generation begins
+func (c *Compiler) collectSymbols(program *ast.Program) error {
+	for _, stmt := range program.Statements {
+		err := c.collectSymbolsFromStatement(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// collectSymbolsFromStatement recursively collects symbols from a statement
+func (c *Compiler) collectSymbolsFromStatement(stmt ast.Statement) error {
+	switch node := stmt.(type) {
+	case *ast.AssignmentStatement:
+		// For assignment statements like "factorial = fn(n) { ... }"
+		// We need to define the symbol before analyzing the right-hand side
+		// to handle recursive functions
+		if _, ok := node.Value.(*ast.FunctionLiteral); ok {
+			// This is a function assignment, define the symbol immediately
+			c.symbolTable.Define(node.Name.Value)
+		}
+		
+		// Also collect symbols from the right-hand side
+		return c.collectSymbolsFromExpression(node.Value)
+		
+	case *ast.ExpressionStatement:
+		return c.collectSymbolsFromExpression(node.Expression)
+		
+	case *ast.BlockStatement:
+		// Enter new scope for blocks
+		c.enterScope()
+		for _, s := range node.Statements {
+			err := c.collectSymbolsFromStatement(s)
+			if err != nil {
+				c.leaveScope() // Clean up scope on error
+				return err
+			}
+		}
+		c.leaveScope()
+		return nil
+		
+	default:
+		// For other statement types, no symbols to collect
+		return nil
+	}
+}
+
+// collectSymbolsFromExpression recursively collects symbols from expressions
+func (c *Compiler) collectSymbolsFromExpression(expr ast.Expression) error {
+	switch node := expr.(type) {
+	case *ast.FunctionLiteral:
+		// Enter new scope for function parameters and body
+		c.enterScope()
+		
+		// Define parameters as local variables
+		for _, p := range node.Parameters {
+			c.symbolTable.Define(p.Value)
+		}
+		
+		// Collect symbols from function body
+		err := c.collectSymbolsFromStatement(node.Body)
+		if err != nil {
+			c.leaveScope() // Clean up scope on error
+			return err
+		}
+		
+		c.leaveScope()
+		return nil
+		
+	case *ast.CallExpression:
+		// Collect symbols from function expression and arguments
+		err := c.collectSymbolsFromExpression(node.Function)
+		if err != nil {
+			return err
+		}
+		for _, arg := range node.Arguments {
+			err := c.collectSymbolsFromExpression(arg)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+		
+	case *ast.InfixExpression:
+		// Collect symbols from both sides of infix expressions
+		err := c.collectSymbolsFromExpression(node.Left)
+		if err != nil {
+			return err
+		}
+		return c.collectSymbolsFromExpression(node.Right)
+		
+	case *ast.PrefixExpression:
+		return c.collectSymbolsFromExpression(node.Right)
+		
+	case *ast.IfExpression:
+		// Collect symbols from condition, consequence, and alternative
+		err := c.collectSymbolsFromExpression(node.Condition)
+		if err != nil {
+			return err
+		}
+		err = c.collectSymbolsFromStatement(node.Consequence)
+		if err != nil {
+			return err
+		}
+		if node.Alternative != nil {
+			return c.collectSymbolsFromStatement(node.Alternative)
+		}
+		return nil
+		
+	case *ast.IndexExpression:
+		// Collect symbols from object and index
+		err := c.collectSymbolsFromExpression(node.Left)
+		if err != nil {
+			return err
+		}
+		return c.collectSymbolsFromExpression(node.Index)
+		
+	case *ast.ArrayLiteral:
+		// Collect symbols from all array elements
+		for _, element := range node.Elements {
+			err := c.collectSymbolsFromExpression(element)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+		
+	case *ast.HashLiteral:
+		// Collect symbols from all hash keys and values
+		for _, pair := range node.Pairs {
+			err := c.collectSymbolsFromExpression(pair.Key)
+			if err != nil {
+				return err
+			}
+			err = c.collectSymbolsFromExpression(pair.Value)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+		
+	default:
+		// For literals and identifiers, no symbols to collect
+		return nil
 	}
 }
