@@ -132,14 +132,14 @@ func TestJSONErrorHandling(t *testing.T) {
 	jsonNamespace := &JSONNamespace{}
 	
 	// Test JSON.parse with wrong argument type
-	parseResult := applyJSONNamespaceMethod(jsonNamespace, "parse", &Integer{Value: 42})
+	parseResult := ApplyJSONNamespaceMethod(jsonNamespace, "parse", &Integer{Value: 42})
 	_, ok = parseResult.(*Error)
 	if !ok {
 		t.Fatalf("expected Error result for wrong argument type in JSON.parse, got %T", parseResult)
 	}
 	
 	// Test JSON.stringify with unsupported type (should not error, but test the path)
-	stringifyResult := applyJSONNamespaceMethod(jsonNamespace, "stringify", &String{Value: "test"})
+	stringifyResult := ApplyJSONNamespaceMethod(jsonNamespace, "stringify", &String{Value: "test"})
 	str, ok := stringifyResult.(*String)
 	if !ok {
 		t.Fatalf("expected String result from JSON.stringify, got %T", stringifyResult)

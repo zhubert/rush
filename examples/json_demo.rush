@@ -4,22 +4,22 @@
 print("=== Rush JSON Module Demo ===")
 print()
 
-// 1. Basic JSON Parsing
+# 1. Basic JSON Parsing
 print("1. Basic JSON Parsing:")
 print("---------------------")
 
 # Parse different JSON types
-number_json = json_parse("42")
+number_json = JSON.parse("42")
 print("Number JSON:", number_json.data)
 print("Type:", number_json.type)
 
-string_json = json_parse("\"Hello, Rush!\"")
+string_json = JSON.parse("\"Hello, Rush!\"")
 print("String JSON:", string_json.data)
 
-boolean_json = json_parse("true")
+boolean_json = JSON.parse("true")
 print("Boolean JSON:", boolean_json.data)
 
-null_json = json_parse("null")
+null_json = JSON.parse("null")
 print("Null JSON:", null_json.data)
 
 print()
@@ -41,7 +41,7 @@ user_data = "{
   \"active\": true
 }"
 
-user = json_parse(user_data)
+user = JSON.parse(user_data)
 print("User object type:", user.type)
 print("User validation:", user.validate())
 print("User pretty format:")
@@ -125,7 +125,7 @@ print("7. JSON Array Operations:")
 print("-------------------------")
 
 # Parse and manipulate JSON arrays
-colors_json = json_parse("[\"red\", \"green\", \"blue\", \"yellow\"]")
+colors_json = JSON.parse("[\"red\", \"green\", \"blue\", \"yellow\"]")
 print("Colors array:", colors_json.data)
 print("Array length:", colors_json.length())
 print("Array keys (indices):", colors_json.keys())
@@ -142,7 +142,7 @@ print("8. JSON Merging:")
 print("----------------")
 
 # Create additional user data
-additional_data = json_parse("{
+additional_data = JSON.parse("{
   \"department\": \"Engineering\",
   \"salary\": 95000,
   \"skills\": [\"JavaScript\", \"Python\", \"Rush\"]
@@ -173,11 +173,11 @@ rush_data = {
 }
 
 # Stringify Rush data structures
-json_string = json_stringify(rush_data)
+json_string = JSON.stringify(rush_data)
 print("Rush data as JSON:", json_string)
 
 # Parse it back and format prettily
-parsed_back = json_parse(json_string)
+parsed_back = JSON.parse(json_string)
 print("Pretty formatted Rush data:")
 print(parsed_back.pretty("    "))
 
@@ -187,7 +187,7 @@ print()
 print("10. JSON Formatting Options:")
 print("-----------------------------")
 
-sample_object = json_parse("{\"name\": \"test\", \"data\": [1, 2, 3]}")
+sample_object = JSON.parse("{\"name\": \"test\", \"data\": [1, 2, 3]}")
 
 print("Compact format:", sample_object.compact())
 print("Pretty format (default):")
@@ -202,7 +202,7 @@ print("11. Method Chaining:")
 print("-------------------")
 
 # Complex method chaining for data transformation
-api_response = json_parse("{
+api_response = JSON.parse("{
   \"status\": \"success\",
   \"data\": {
     \"users\": [
@@ -221,7 +221,7 @@ print("First user name:", first_user_name)
 print("Total user count:", user_count)
 
 # Create a summary object using chaining
-summary = json_parse("{}")
+summary = JSON.parse("{}")
            .set("total_users", user_count)
            .set("first_user", first_user_name)
            .set("status", api_response.get("status"))
@@ -240,7 +240,7 @@ print("Valid JSON validation:", user.validate())
 print("Another valid JSON validation:", colors_json.validate())
 
 # JSON objects are always considered valid since they were successfully parsed
-sample_json = json_parse("\"simple string\"")
+sample_json = JSON.parse("\"simple string\"")
 print("Simple string JSON validation:", sample_json.validate())
 
 print()

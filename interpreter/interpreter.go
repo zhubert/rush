@@ -225,7 +225,7 @@ func Eval(node ast.Node, env *Environment) Value {
 		
 		// Check if it's a JSON method call
 		if jsonMethod, ok := function.(*JSONMethod); ok {
-			return applyJSONMethod(jsonMethod, args, env)
+			return ApplyJSONMethod(jsonMethod, args, env)
 		}
 		
 		// Check if it's a Time method call
@@ -1934,13 +1934,13 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		case "parse":
 			return &BuiltinFunction{
 				Fn: func(args ...Value) Value {
-					return applyJSONNamespaceMethod(jsonNamespace, "parse", args...)
+					return ApplyJSONNamespaceMethod(jsonNamespace, "parse", args...)
 				},
 			}
 		case "stringify":
 			return &BuiltinFunction{
 				Fn: func(args ...Value) Value {
-					return applyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
+					return ApplyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
 				},
 			}
 		default:
@@ -2145,13 +2145,13 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 				case "parse":
 					return &BuiltinFunction{
 						Fn: func(args ...Value) Value {
-							return applyJSONNamespaceMethod(jsonNamespace, "parse", args...)
+							return ApplyJSONNamespaceMethod(jsonNamespace, "parse", args...)
 						},
 					}
 				case "stringify":
 					return &BuiltinFunction{
 						Fn: func(args ...Value) Value {
-							return applyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
+							return ApplyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
 						},
 					}
 				default:
@@ -3166,8 +3166,8 @@ func applyPathMethod(pathMethod *PathMethod, args []Value, env *Environment) Val
 	}
 }
 
-// applyJSONMethod handles JSON method calls
-func applyJSONNamespaceMethod(jsonNamespace *JSONNamespace, method string, args ...Value) Value {
+// ApplyJSONMethod handles JSON method calls
+func ApplyJSONNamespaceMethod(jsonNamespace *JSONNamespace, method string, args ...Value) Value {
 	switch method {
 	case "parse":
 		if len(args) != 1 {
@@ -3197,7 +3197,7 @@ func applyJSONNamespaceMethod(jsonNamespace *JSONNamespace, method string, args 
 	}
 }
 
-func applyJSONMethod(jsonMethod *JSONMethod, args []Value, env *Environment) Value {
+func ApplyJSONMethod(jsonMethod *JSONMethod, args []Value, env *Environment) Value {
 	jsonObj := jsonMethod.JSON
 	
 	switch jsonMethod.Method {

@@ -912,6 +912,13 @@ func (vm *VM) executePropertyAccess(object interpreter.Value, propertyName strin
 		return vm.executeNumberProperty(obj, propertyName)
 	case *interpreter.Object:
 		return vm.executeObjectProperty(obj, propertyName)
+	case *interpreter.BuiltinFunction:
+		return vm.executeBuiltinFunctionProperty(obj, propertyName)
+	case *interpreter.JSON:
+		return vm.executeJSONProperty(obj, propertyName)
+	case *interpreter.Error:
+		// Errors don't have properties, just return the error itself
+		return fmt.Errorf("cannot access property on error: %s", obj.Message)
 	default:
 		return fmt.Errorf("property access not supported for type: %T", object)
 	}
@@ -1055,6 +1062,69 @@ func (vm *VM) executeObjectProperty(obj *interpreter.Object, propertyName string
 	return fmt.Errorf("undefined method '%s' for class %s", propertyName, class.Name)
 }
 
+func (vm *VM) executeBuiltinFunctionProperty(builtin *interpreter.BuiltinFunction, propertyName string) error {
+	// Call the builtin function to get the namespace object
+	namespaceObj := builtin.Fn()
+	
+	// Handle different namespace types
+	switch namespace := namespaceObj.(type) {
+	case *interpreter.JSONNamespace:
+		return vm.executeJSONNamespaceProperty(namespace, propertyName)
+	case *interpreter.TimeNamespace:
+		return vm.executeTimeNamespaceProperty(namespace, propertyName)
+	default:
+		return fmt.Errorf("property access not supported for namespace type: %T", namespaceObj)
+	}
+}
+
+func (vm *VM) executeJSONNamespaceProperty(namespace *interpreter.JSONNamespace, propertyName string) error {
+	switch propertyName {
+	case "parse":
+		// Return a builtin function that will call applyJSONNamespaceMethod
+		parseFunction := &interpreter.BuiltinFunction{
+			Fn: func(args ...interpreter.Value) interpreter.Value {
+				return interpreter.ApplyJSONNamespaceMethod(namespace, "parse", args...)
+			},
+		}
+		return vm.push(parseFunction)
+	case "stringify":
+		// Return a builtin function that will call applyJSONNamespaceMethod
+		stringifyFunction := &interpreter.BuiltinFunction{
+			Fn: func(args ...interpreter.Value) interpreter.Value {
+				return interpreter.ApplyJSONNamespaceMethod(namespace, "stringify", args...)
+			},
+		}
+		return vm.push(stringifyFunction)
+	default:
+		return fmt.Errorf("undefined method %s for JSON namespace", propertyName)
+	}
+}
+
+func (vm *VM) executeTimeNamespaceProperty(namespace *interpreter.TimeNamespace, propertyName string) error {
+	// Placeholder for Time namespace methods - can be implemented later
+	return fmt.Errorf("Time namespace methods not implemented in bytecode yet")
+}
+
+func (vm *VM) executeJSONProperty(jsonObj *interpreter.JSON, propertyName string) error {
+	switch propertyName {
+	// Simple properties (no parameters)
+	case "data":
+		return vm.push(jsonObj.Data)
+	case "type":
+		return vm.push(&interpreter.String{Value: string(jsonObj.Data.Type())})
+	case "valid":
+		return vm.push(&interpreter.Boolean{Value: true}) // If we have a JSON object, it's valid
+	
+	// Methods (with parameters) - return bound methods
+	case "get", "set", "has", "keys", "values", "length", "size",
+		 "pretty", "compact", "path", "validate", "merge":
+		return vm.push(&interpreter.JSONMethod{JSON: jsonObj, Method: propertyName})
+	
+	default:
+		return fmt.Errorf("unknown property %s for JSON", propertyName)
+	}
+}
+
 // ObjectBoundMethod represents a method bound to an object for bytecode execution
 type ObjectBoundMethod struct {
 	Object *interpreter.Object
@@ -1080,6 +1150,8 @@ func (vm *VM) executeCall(numArgs int) error {
 		return vm.callHashMethod(callee, numArgs)
 	case *interpreter.NumberMethod:
 		return vm.callNumberMethod(callee, numArgs)
+	case *interpreter.JSONMethod:
+		return vm.callJSONMethod(callee, numArgs)
 	case *interpreter.Class:
 		return vm.callClassConstructor(callee, numArgs)
 	case *ObjectBoundMethod:
@@ -1296,6 +1368,22 @@ func (vm *VM) callNumberMethod(method *interpreter.NumberMethod, numArgs int) er
 		return fmt.Errorf("unknown number method: %s", method.Method)
 	}
 
+	return vm.push(result)
+}
+
+func (vm *VM) callJSONMethod(method *interpreter.JSONMethod, numArgs int) error {
+	args := vm.stack[vm.sp-numArgs : vm.sp]
+	vm.sp = vm.sp - numArgs - 1
+	
+	// Convert args to slice of interpreter.Value
+	argValues := make([]interpreter.Value, numArgs)
+	for i := 0; i < numArgs; i++ {
+		argValues[i] = args[i]
+	}
+	
+	// Use the existing applyJSONMethod function from interpreter
+	result := interpreter.ApplyJSONMethod(method, argValues, nil)
+	
 	return vm.push(result)
 }
 
