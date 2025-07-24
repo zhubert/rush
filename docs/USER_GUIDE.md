@@ -12,13 +12,14 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 6. [Object-Oriented Programming](#object-oriented-programming)
 7. [Error Handling](#error-handling)
 8. [Module System](#module-system)
-9. [File System Operations](#file-system-operations)
-10. [Standard Library](#standard-library)
-11. [Built-in Functions](#built-in-functions)
-12. [Examples](#examples)
-13. [REPL Usage](#repl-usage)
-14. [Common Patterns](#common-patterns)
-15. [Tips and Best Practices](#tips-and-best-practices)
+9. [JSON Processing](#json-processing)
+10. [File System Operations](#file-system-operations)
+11. [Standard Library](#standard-library)
+12. [Built-in Functions](#built-in-functions)
+13. [Examples](#examples)
+14. [REPL Usage](#repl-usage)
+15. [Common Patterns](#common-patterns)
+16. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
@@ -517,6 +518,381 @@ Built-in error types include:
 - `IndexError` - Array/string index out of bounds
 - `ArgumentError` - Function argument errors
 - `RuntimeError` - General runtime errors
+
+## JSON Processing
+
+Rush provides comprehensive JSON processing capabilities with an elegant object-oriented API. The JSON module offers parsing, manipulation, querying, and serialization with full support for method chaining and dot notation.
+
+### Overview
+
+JSON processing in Rush is designed around two core functions:
+- `json_parse()` - Parse JSON strings into JSON objects
+- `json_stringify()` - Convert Rush values to JSON strings
+
+JSON objects support comprehensive dot notation methods for data manipulation, making complex JSON operations simple and readable.
+
+### Basic JSON Operations
+
+#### Parsing JSON Data
+
+Use `json_parse()` to convert JSON strings into Rush JSON objects:
+
+```rush
+# Parse basic values
+number_data = json_parse("42")
+string_data = json_parse("\"Hello, Rush!\"")
+boolean_data = json_parse("true")
+null_data = json_parse("null")
+
+# Parse complex structures
+user_json = json_parse("{
+  \"id\": 1001,
+  \"name\": \"Alice Johnson\",
+  \"email\": \"alice@example.com\",
+  \"active\": true
+}")
+
+array_json = json_parse("[1, 2, 3, 4, 5]")
+
+# Nested structures
+complex_json = json_parse("{
+  \"users\": [
+    {\"name\": \"Alice\", \"role\": \"admin\"},
+    {\"name\": \"Bob\", \"role\": \"user\"}
+  ],
+  \"metadata\": {
+    \"version\": \"2.0\",
+    \"created\": \"2024-01-15\"
+  }
+}")
+```
+
+#### Converting to JSON Strings
+
+Use `json_stringify()` to convert Rush values to JSON:
+
+```rush
+# Convert basic values
+json_stringify("hello")          # "\"hello\""
+json_stringify(42)               # "42"
+json_stringify(true)             # "true"
+json_stringify(null)             # "null"
+
+# Convert arrays
+json_stringify([1, 2, 3])        # "[1,2,3]"
+
+# Convert hash objects
+user = {"name": "John", "age": 30}
+json_stringify(user)             # "{\"age\":30,\"name\":\"John\"}"
+
+# Complex nested structures
+data = {"users": [{"name": "Alice"}], "count": 1}
+json_stringify(data)             # "{\"count\":1,\"users\":[{\"name\":\"Alice\"}]}"
+```
+
+### JSON Object Properties and Methods
+
+When you parse JSON, you get a JSON object with rich dot notation support:
+
+#### Core Properties
+
+```rush
+user = json_parse("{\"name\": \"John\", \"age\": 30}")
+
+# Access underlying data
+user.data                        # Returns the parsed hash/array/value
+user.type                        # Returns the data type as string
+user.valid                       # Always true for parsed JSON
+```
+
+#### Data Access Methods
+
+```rush
+# Get values by key or index
+user.get("name")                 # "John"
+user.get("age")                  # 30
+user.get("missing")              # null
+
+# Array access
+arr = json_parse("[\"a\", \"b\", \"c\"]")
+arr.get(0)                       # "a"
+arr.get(1)                       # "b"
+
+# Check if keys/indices exist
+user.has?("name")                # true
+user.has?("email")               # false
+arr.has?(2)                      # true
+arr.has?(5)                      # false
+```
+
+#### Collection Operations
+
+```rush
+# Get all keys or values
+user.keys()                      # ["name", "age"]
+user.values()                    # ["John", 30]
+
+# Get collection size
+user.length()                    # 2
+user.size()                      # Same as length()
+```
+
+#### Data Modification
+
+JSON objects are immutable - modification methods return new objects:
+
+```rush
+# Set new values
+updated_user = user.set("email", "john@example.com")
+                  .set("active", true)
+
+# Verify changes
+updated_user.get("email")        # "john@example.com"
+updated_user.get("active")       # true
+
+# Original remains unchanged
+user.has?("email")               # false
+```
+
+### Advanced JSON Operations
+
+#### Path-Based Navigation
+
+Use dot-separated paths to navigate nested structures:
+
+```rush
+data = json_parse("{
+  \"company\": {
+    \"employees\": [
+      {\"name\": \"Alice\", \"department\": \"Engineering\"},
+      {\"name\": \"Bob\", \"department\": \"Marketing\"}
+    ],
+    \"info\": {
+      \"founded\": 2020,
+      \"location\": \"San Francisco\"
+    }
+  }
+}")
+
+# Navigate with paths
+data.path("company.info.founded")           # 2020
+data.path("company.employees.0.name")       # "Alice"
+data.path("company.employees.1.department") # "Marketing"
+
+# Non-existent paths return null
+data.path("company.missing.field")          # null
+```
+
+#### JSON Object Merging
+
+Combine JSON objects while maintaining immutability:
+
+```rush
+base_config = json_parse("{
+  \"database\": {\"host\": \"localhost\", \"port\": 5432},
+  \"debug\": false
+}")
+
+overrides = json_parse("{
+  \"database\": {\"host\": \"production.db\"},
+  \"logging\": {\"level\": \"info\"}
+}")
+
+# Merge objects (overrides takes precedence)
+final_config = base_config.merge(overrides)
+
+# Access merged data
+final_config.path("database.host")          # "production.db"
+final_config.path("database.port")          # 5432 (preserved)
+final_config.path("logging.level")          # "info" (added)
+```
+
+#### JSON Formatting
+
+Control JSON output formatting:
+
+```rush
+data = json_parse("{\"name\": \"John\", \"items\": [1, 2, 3]}")
+
+# Compact format (no extra whitespace)
+data.compact()
+# Returns: "{\"items\":[1,2,3],\"name\":\"John\"}"
+
+# Pretty format with default indentation
+data.pretty()
+# Returns:
+# {
+#   "items": [
+#     1,
+#     2,
+#     3
+#   ],
+#   "name": "John"
+# }
+
+# Custom indentation
+data.pretty("    ")              # 4-space indents
+data.pretty("\t")                # Tab indents
+```
+
+### Method Chaining
+
+JSON methods support fluent chaining for complex operations:
+
+```rush
+# Build and transform data with chaining
+result = json_parse("{}")
+          .set("timestamp", "2024-01-15")
+          .set("user", json_parse("{\"name\": \"Alice\"}"))
+          .set("status", "active")
+          .merge(json_parse("{\"version\": \"2.0\"}"))
+
+# Access chained results
+result.get("user").get("name")   # "Alice"
+result.get("version")            # "2.0"
+
+# Complex data transformation
+api_response = json_parse("{\"data\": {\"users\": [{\"id\": 1, \"name\": \"Alice\"}]}}")
+processed = api_response.path("data.users.0")
+                       .set("processed_at", "2024-01-15")
+                       .set("verified", true)
+```
+
+### JSON Processing Patterns
+
+#### Configuration File Processing
+
+```rush
+# Load and parse configuration
+config_content = file("config.json").read()
+config = json_parse(config_content)
+
+# Extract configuration values
+database_url = config.path("database.connection.url")
+api_key = config.path("services.api.key")
+debug_mode = config.path("app.debug")
+
+# Validate required settings
+if !config.has?("database") {
+    print("Error: Database configuration missing")
+}
+```
+
+#### API Response Handling
+
+```rush
+# Parse API response
+api_data = json_parse(http_response_body)
+
+# Check for errors
+if api_data.has?("error") {
+    error_msg = api_data.get("error")
+    print("API Error:", error_msg)
+    return
+}
+
+# Process successful response
+users = api_data.path("data.users")
+user_count = users.length()
+
+print("Loaded", user_count, "users")
+for i = 0; i < user_count; i = i + 1 {
+    user = users.get(i)
+    print("- " + user.get("name"))
+}
+```
+
+#### Data Transformation and Export
+
+```rush
+# Transform data structure
+source_data = json_parse(input_json)
+
+# Add metadata and transform
+enhanced_data = source_data.set("processed_at", current_timestamp())
+                          .set("version", "2.0")
+                          .set("processor", "Rush JSON Module")
+
+# Export as formatted JSON
+formatted_output = enhanced_data.pretty("  ")
+file("output.json").write(formatted_output)
+```
+
+#### Dynamic JSON Construction
+
+```rush
+# Build JSON programmatically
+report = json_parse("{}")
+
+# Add sections dynamically
+report = report.set("header", json_parse("{
+  \"title\": \"System Report\",
+  \"generated\": \"2024-01-15\"
+}"))
+
+# Add array data
+metrics = json_parse("[]")
+for i = 0; i < data_points.length(); i = i + 1 {
+    point = json_parse("{}")
+           .set("timestamp", data_points.get(i).timestamp)
+           .set("value", data_points.get(i).value)
+    metrics = metrics.set(i, point)
+}
+
+report = report.set("metrics", metrics)
+
+# Export final report
+final_json = report.pretty()
+```
+
+### Error Handling
+
+JSON operations can fail in several ways:
+
+```rush
+# Parsing errors
+try {
+    invalid_json = json_parse("{invalid: json}")
+} catch error {
+    print("Parse error:", error.message)
+}
+
+# Serialization errors
+try {
+    # Hash with non-string keys can't be serialized
+    invalid_hash = {42: "numeric key"}
+    json_stringify(invalid_hash)
+} catch error {
+    print("Stringify error:", error.message)
+}
+
+# Safe parsing with validation
+parse_safely = fn(json_string) {
+    try {
+        parsed = json_parse(json_string)
+        return parsed
+    } catch error {
+        print("Invalid JSON:", error.message)
+        return null
+    }
+}
+```
+
+### Performance Tips
+
+1. **Reuse parsed objects**: Parse once, access many times
+2. **Use path navigation**: More efficient than nested `.get()` calls
+3. **Batch modifications**: Chain `.set()` calls rather than creating intermediate objects
+4. **Choose appropriate formatting**: Use `.compact()` for storage, `.pretty()` for debugging
+
+### JSON Best Practices
+
+1. **Validate input**: Always handle parse errors gracefully
+2. **Use meaningful variable names**: JSON objects can contain complex nested data
+3. **Leverage method chaining**: Creates more readable data transformation pipelines
+4. **Use path navigation**: Simplifies access to deeply nested values
+5. **Handle missing data**: Use `.has?()` to check existence before accessing
+6. **Prefer immutable operations**: JSON objects return new instances, don't modify originals
 
 ## File System Operations
 

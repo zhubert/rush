@@ -380,8 +380,38 @@ func TestStringWithEscapes(t *testing.T) {
     t.Fatalf("Expected STRING, got %q", tok.Type)
   }
   
-  // The lexer doesn't process escape sequences and stops at first unescaped quote
-  expected := `hello\nworld\t\`
+  // The lexer now processes escape sequences properly
+  expected := "hello\nworld\t\"quoted\""
+  if tok.Literal != expected {
+    t.Fatalf("String literal wrong. expected=%q, got=%q", expected, tok.Literal)
+  }
+}
+
+func TestSingleQuoteStrings(t *testing.T) {
+  input := `'hello world'`
+  l := New(input)
+  
+  tok := l.NextToken()
+  if tok.Type != STRING {
+    t.Fatalf("Expected STRING, got %q", tok.Type)
+  }
+  
+  expected := "hello world"
+  if tok.Literal != expected {
+    t.Fatalf("String literal wrong. expected=%q, got=%q", expected, tok.Literal)
+  }
+}
+
+func TestSingleQuoteStringWithEscapes(t *testing.T) {
+  input := `'hello\nworld\'quoted\''`
+  l := New(input)
+  
+  tok := l.NextToken()
+  if tok.Type != STRING {
+    t.Fatalf("Expected STRING, got %q", tok.Type)
+  }
+  
+  expected := "hello\nworld'quoted'"
   if tok.Literal != expected {
     t.Fatalf("String literal wrong. expected=%q, got=%q", expected, tok.Literal)
   }

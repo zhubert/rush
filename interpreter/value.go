@@ -37,6 +37,9 @@ const (
 	FILE_METHOD_VALUE   ValueType = "FILE_METHOD"
 	DIRECTORY_METHOD_VALUE ValueType = "DIRECTORY_METHOD"
 	PATH_METHOD_VALUE   ValueType = "PATH_METHOD"
+	JSON_VALUE          ValueType = "JSON"
+	JSON_METHOD_VALUE   ValueType = "JSON_METHOD"
+	JSON_NAMESPACE_VALUE ValueType = "JSON_NAMESPACE"
 )
 
 // Value represents a value in the Rush language
@@ -330,6 +333,35 @@ type PathMethod struct {
 func (pm *PathMethod) Type() ValueType { return PATH_METHOD_VALUE }
 func (pm *PathMethod) Inspect() string {
   return fmt.Sprintf("#<PathMethod:%s on %s>", pm.Method, pm.Path.Inspect())
+}
+
+// JSON represents a JSON object with parsed data
+type JSON struct {
+  Data Value // The underlying parsed data (Hash, Array, String, Integer, Float, Boolean, or Null)
+}
+
+func (j *JSON) Type() ValueType { return JSON_VALUE }
+func (j *JSON) Inspect() string {
+  return fmt.Sprintf("#<JSON:%s>", j.Data.Inspect())
+}
+
+// JSONMethod represents a method bound to a specific JSON instance
+type JSONMethod struct {
+  JSON   *JSON
+  Method string
+}
+
+func (jm *JSONMethod) Type() ValueType { return JSON_METHOD_VALUE }
+func (jm *JSONMethod) Inspect() string {
+  return fmt.Sprintf("#<JSONMethod:%s on %s>", jm.Method, jm.JSON.Inspect())
+}
+
+// JSONNamespace represents the JSON namespace with static methods
+type JSONNamespace struct{}
+
+func (jn *JSONNamespace) Type() ValueType { return JSON_NAMESPACE_VALUE }
+func (jn *JSONNamespace) Inspect() string {
+  return "#<JSONNamespace>"
 }
 
 // IsTruthy returns whether a value is considered truthy

@@ -9,9 +9,10 @@ This document provides comprehensive documentation for all built-in functions av
 3. [Array Built-in Functions](#array-built-in-functions)
 4. [Hash Built-in Functions](#hash-built-in-functions)
 5. [Math Built-in Functions](#math-built-in-functions)
-6. [File System Built-in Functions](#file-system-built-in-functions)
-7. [Standard Library Modules](#standard-library-modules)
-8. [Error Types](#error-types)
+6. [JSON Built-in Functions](#json-built-in-functions)
+7. [File System Built-in Functions](#file-system-built-in-functions)
+8. [Standard Library Modules](#standard-library-modules)
+9. [Error Types](#error-types)
 
 ## Core Built-in Functions
 
@@ -1064,6 +1065,428 @@ builtin_average([1, 2, 3, 4]) # Returns: 2.5
 ```rush
 builtin_is_number?(42)     # Returns: true
 builtin_is_integer?(3.14)  # Returns: false
+```
+
+## JSON Built-in Functions
+
+Rush provides comprehensive JSON processing capabilities with object-oriented dot notation for parsing, manipulation, and serialization.
+
+### JSON Parsing and Serialization
+
+Rush provides a clean static method API for JSON processing.
+
+#### `JSON.parse(json_string)`
+
+Static method that parses a JSON string and returns a JSON object with dot notation methods.
+
+**Syntax:**
+```rush
+JSON.parse(json_string)
+```
+
+**Parameters:**
+- `json_string` (`STRING`): A valid JSON string to parse
+
+**Returns:**
+- `JSON`: A JSON object containing the parsed data with dot notation methods
+
+**Errors:**
+- Returns error if argument is not a string
+- Returns error if JSON string is invalid or malformed
+
+**Examples:**
+```rush
+# Parse basic JSON types
+JSON.parse("42")                    # JSON object containing integer 42
+JSON.parse("\"hello\"")             # JSON object containing string "hello"
+JSON.parse("true")                  # JSON object containing boolean true
+JSON.parse("null")                  # JSON object containing null
+
+# Parse complex structures
+user = JSON.parse("{\"name\": \"John\", \"age\": 30}")
+data = JSON.parse("[1, 2, 3]")
+nested = JSON.parse("{\"user\": {\"profile\": {\"city\": \"SF\"}}}")
+
+# Method chaining with parsed JSON
+name = JSON.parse("{\"user\": {\"name\": \"Alice\"}}").get("user").get("name")
+
+# Error cases
+JSON.parse("{invalid json}")        # Error: invalid JSON
+JSON.parse(42)                      # Error: argument must be STRING
+```
+
+#### `JSON.stringify(value)`
+
+Static method that converts a Rush value to a JSON string representation.
+
+**Syntax:**
+```rush
+JSON.stringify(value)
+```
+
+**Parameters:**
+- `value` (any): A Rush value to convert to JSON
+
+**Returns:**
+- `STRING`: JSON string representation of the value
+
+**Examples:**
+```rush
+# Stringify various types
+JSON.stringify(42)                          # "42"
+JSON.stringify("hello")                     # "\"hello\""
+JSON.stringify(true)                        # "true"
+JSON.stringify([1, 2, 3])                   # "[1,2,3]"
+JSON.stringify({"name": "John", "age": 30}) # "{\"age\":30,\"name\":\"John\"}"
+
+# Round-trip parsing and stringifying
+original = "{\"key\": \"value\"}"
+parsed = JSON.parse(original)
+back_to_string = JSON.stringify(parsed)
+```
+
+**Returns:**
+- `STRING`: JSON string representation of the value
+
+**Errors:**
+- Returns error if value cannot be serialized to JSON
+- Returns error for hash objects with non-string keys
+
+**Examples:**
+```rush
+# Basic value serialization
+json_stringify("hello")             # Returns: "\"hello\""
+json_stringify(42)                  # Returns: "42"
+json_stringify(true)                # Returns: "true"
+json_stringify(null)                # Returns: "null"
+
+# Array serialization
+json_stringify([1, 2, 3])           # Returns: "[1,2,3]"
+json_stringify(["a", "b"])          # Returns: "[\"a\",\"b\"]"
+
+# Hash serialization (object)
+json_stringify({"name": "John"})    # Returns: "{\"name\":\"John\"}"
+
+# Nested structures
+nested = {"user": {"name": "Alice", "data": [1, 2]}}
+json_stringify(nested)              # Returns: "{\"user\":{\"data\":[1,2],\"name\":\"Alice\"}}"
+
+# Error case - non-string keys not supported in JSON
+invalid = {42: "value"}
+json_stringify(invalid)             # Error: JSON object keys must be strings
+```
+
+### JSON Object Methods
+
+When you parse JSON using `json_parse()`, you get a JSON object that supports comprehensive dot notation methods for manipulation and querying.
+
+#### Properties
+
+##### `.data`
+Returns the underlying parsed data structure.
+
+```rush
+obj = json_parse("{\"name\": \"John\"}")
+obj.data                            # Returns: Hash with "name" -> "John"
+```
+
+##### `.type`
+Returns the type of the underlying data as a string.
+
+```rush
+json_parse("42").type               # Returns: "INTEGER"
+json_parse("\"hello\"").type        # Returns: "STRING"
+json_parse("{}").type               # Returns: "HASH"
+json_parse("[]").type               # Returns: "ARRAY"
+```
+
+##### `.valid`
+Always returns `true` for successfully parsed JSON objects.
+
+```rush
+json_parse("{}").valid              # Returns: true
+```
+
+#### Data Access Methods
+
+##### `.get(key)`
+Retrieves a value by key (for objects) or index (for arrays).
+
+**Parameters:**
+- `key` (`STRING` for objects, `INTEGER` for arrays): The key or index to retrieve
+
+**Returns:**
+- The value at the specified key/index, or `null` if not found
+
+```rush
+# Object access
+user = json_parse("{\"name\": \"John\", \"age\": 30}")
+user.get("name")                    # Returns: "John"
+user.get("age")                     # Returns: 30
+user.get("missing")                 # Returns: null
+
+# Array access
+arr = json_parse("[\"a\", \"b\", \"c\"]")
+arr.get(0)                          # Returns: "a"
+arr.get(1)                          # Returns: "b"
+arr.get(10)                         # Returns: null
+```
+
+##### `.set(key, value)`
+Sets a value at the specified key/index. Returns a new JSON object.
+
+**Parameters:**
+- `key` (`STRING` for objects, `INTEGER` for arrays): The key or index
+- `value` (any): The value to set
+
+**Returns:**
+- `JSON`: A new JSON object with the updated value
+
+```rush
+# Object modification
+user = json_parse("{\"name\": \"John\"}")
+updated = user.set("age", 30)
+updated.get("age")                  # Returns: 30
+
+# Array modification
+arr = json_parse("[1, 2, 3]")
+updated = arr.set(1, 99)
+updated.get(1)                      # Returns: 99
+
+# Method chaining
+result = json_parse("{}")
+          .set("name", "Alice")
+          .set("age", 25)
+          .set("active", true)
+```
+
+##### `.has?(key)`
+Checks if a key exists in an object or if an index is valid in an array.
+
+**Parameters:**
+- `key` (`STRING` for objects, `INTEGER` for arrays): The key or index to check
+
+**Returns:**
+- `BOOLEAN`: `true` if key/index exists, `false` otherwise
+
+```rush
+# Object key checking
+user = json_parse("{\"name\": \"John\", \"age\": 30}")
+user.has?("name")                   # Returns: true
+user.has?("email")                  # Returns: false
+
+# Array index checking
+arr = json_parse("[1, 2, 3]")
+arr.has?(1)                         # Returns: true
+arr.has?(5)                         # Returns: false
+```
+
+#### Collection Methods
+
+##### `.keys()`
+Returns all keys (for objects) or indices (for arrays) as an array.
+
+**Returns:**
+- `ARRAY`: Array of keys or indices
+
+```rush
+# Object keys
+obj = json_parse("{\"b\": 2, \"a\": 1}")
+obj.keys()                          # Returns: ["b", "a"] (insertion order)
+
+# Array indices
+arr = json_parse("[\"x\", \"y\", \"z\"]")
+arr.keys()                          # Returns: [0, 1, 2]
+```
+
+##### `.values()`
+Returns all values as an array.
+
+**Returns:**
+- `ARRAY`: Array of all values
+
+```rush
+# Object values
+obj = json_parse("{\"name\": \"John\", \"age\": 30}")
+obj.values()                        # Returns: ["John", 30] (insertion order)
+
+# Array values (returns the array itself)
+arr = json_parse("[1, 2, 3]")
+arr.values()                        # Returns: [1, 2, 3]
+```
+
+##### `.length()` / `.size()`
+Returns the number of elements in the JSON data.
+
+**Returns:**
+- `INTEGER`: Number of elements
+
+```rush
+# Object length
+json_parse("{\"a\": 1, \"b\": 2}").length()    # Returns: 2
+
+# Array length
+json_parse("[1, 2, 3, 4]").size()              # Returns: 4
+
+# String length
+json_parse("\"hello\"").length()                # Returns: 5
+```
+
+#### Formatting Methods
+
+##### `.pretty([indent])`
+Returns a pretty-formatted JSON string with indentation.
+
+**Parameters:**
+- `indent` (`STRING`, optional): Custom indentation string (default: "  ")
+
+**Returns:**
+- `STRING`: Pretty-formatted JSON string
+
+```rush
+obj = json_parse("{\"name\": \"John\", \"data\": [1, 2]}")
+
+# Default indentation
+obj.pretty()
+# Returns:
+# {
+#   "data": [
+#     1,
+#     2  
+#   ],
+#   "name": "John"
+# }
+
+# Custom indentation
+obj.pretty("    ")                  # 4-space indentation
+obj.pretty("\t")                    # Tab indentation
+```
+
+##### `.compact()`
+Returns a compact JSON string without extra whitespace.
+
+**Returns:**
+- `STRING`: Compact JSON string
+
+```rush
+obj = json_parse("{ \"name\" : \"John\" , \"age\" : 30 }")
+obj.compact()                       # Returns: "{\"age\":30,\"name\":\"John\"}"
+```
+
+#### Advanced Methods
+
+##### `.validate()`
+Validates the JSON object. Always returns `true` for parsed JSON.
+
+**Returns:**
+- `BOOLEAN`: Always `true` for valid JSON objects
+
+```rush
+json_parse("{}").validate()         # Returns: true
+json_parse("\"test\"").validate()   # Returns: true
+```
+
+##### `.merge(other)`
+Merges two JSON objects. Only works with object types (hashes).
+
+**Parameters:**
+- `other` (`JSON`): Another JSON object to merge
+
+**Returns:**
+- `JSON`: New JSON object with merged data
+
+```rush
+obj1 = json_parse("{\"a\": 1, \"b\": 2}")
+obj2 = json_parse("{\"b\": 3, \"c\": 4}")
+
+merged = obj1.merge(obj2)
+merged.get("a")                     # Returns: 1
+merged.get("b")                     # Returns: 3 (obj2 overwrites)
+merged.get("c")                     # Returns: 4
+
+# Error case
+json_parse("[1, 2]").merge(json_parse("[3, 4]"))  # Error: can only merge objects
+```
+
+##### `.path(path_string)`
+Retrieves a value using a dot-separated path string.
+
+**Parameters:**
+- `path_string` (`STRING`): Dot-separated path (e.g., "user.profile.name")
+
+**Returns:**
+- The value at the path, or `null` if path doesn't exist
+
+```rush
+data = json_parse("{
+  \"user\": {
+    \"profile\": {
+      \"name\": \"Alice\",
+      \"contacts\": [\"email@example.com\", \"555-1234\"]
+    }
+  }
+}")
+
+# Navigate nested objects
+data.path("user.profile.name")      # Returns: "Alice"
+data.path("user.profile.contacts.0") # Returns: "email@example.com"
+
+# Non-existent paths
+data.path("user.missing.field")     # Returns: null
+data.path("nonexistent")            # Returns: null
+```
+
+### Method Chaining
+
+All JSON methods that return JSON objects support method chaining for fluent data manipulation:
+
+```rush
+# Complex chaining example
+result = json_parse("{}")
+          .set("user", json_parse("{\"name\": \"John\"}"))
+          .set("timestamp", "2024-01-15")
+          .merge(json_parse("{\"active\": true}"))
+
+# Access chained result
+result.get("user").get("name")      # Returns: "John"
+result.get("active")                # Returns: true
+
+# Data transformation chain
+api_data = json_parse("{\"users\": [{\"id\": 1, \"name\": \"Alice\"}]}")
+first_user = api_data.path("users.0")
+                    .set("last_seen", "2024-01-15")
+                    .set("verified", true)
+```
+
+### JSON Usage Patterns
+
+#### Configuration Processing
+```rush
+config = json_parse(file_content)
+database_url = config.path("database.connection.url")
+debug_mode = config.path("app.debug")
+```
+
+#### API Response Handling
+```rush
+response = json_parse(api_response)
+if response.has("error") {
+    print("API Error:", response.get("error"))
+} else {
+    data = response.get("data")
+    print("Success:", data.pretty())
+}
+```
+
+#### Data Transformation
+```rush
+# Transform and format data
+source = json_parse(input_json)
+transformed = source.set("processed_at", current_time())
+                   .set("version", "2.0")
+                   .merge(metadata)
+
+output = transformed.pretty()
 ```
 
 ## File System Built-in Functions
