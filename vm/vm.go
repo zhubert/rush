@@ -608,8 +608,14 @@ func (vm *VM) executeBinaryOperation(op bytecode.Opcode) error {
 		return vm.executeBinaryIntegerOperation(op, left, right)
 	case leftType == interpreter.FLOAT_VALUE && rightType == interpreter.FLOAT_VALUE:
 		return vm.executeBinaryFloatOperation(op, left, right)
+	case leftType == interpreter.INTEGER_VALUE && rightType == interpreter.FLOAT_VALUE:
+		return vm.executeBinaryMixedNumberOperation(op, left, right)
+	case leftType == interpreter.FLOAT_VALUE && rightType == interpreter.INTEGER_VALUE:
+		return vm.executeBinaryMixedNumberOperation(op, left, right)
 	case leftType == interpreter.STRING_VALUE && rightType == interpreter.STRING_VALUE:
 		return vm.executeBinaryStringOperation(op, left, right)
+	case leftType == interpreter.STRING_VALUE || rightType == interpreter.STRING_VALUE:
+		return vm.executeBinaryStringCoercionOperation(op, left, right)
 	default:
 		return fmt.Errorf("unsupported types for binary operation: %T %T", left, right)
 	}
@@ -1460,5 +1466,78 @@ func (vm *VM) executeMethodCall(object interpreter.Value, methodName string, arg
 		
 	default:
 		return fmt.Errorf("cannot call method on %T", object)
+	}
+}
+
+// valueToString converts any value to its string representation for coercion
+func valueToString(val interpreter.Value) string {
+	switch val.Type() {
+	case interpreter.STRING_VALUE:
+		return val.(*interpreter.String).Value
+	case interpreter.INTEGER_VALUE:
+		return fmt.Sprintf("%d", val.(*interpreter.Integer).Value)
+	case interpreter.FLOAT_VALUE:
+		return fmt.Sprintf("%g", val.(*interpreter.Float).Value)
+	case interpreter.BOOLEAN_VALUE:
+		if val.(*interpreter.Boolean).Value {
+			return "true"
+		}
+		return "false"
+	case interpreter.NULL_VALUE:
+		return "null"
+	default:
+		return val.Inspect() // fallback to existing representation
+	}
+}
+
+func (vm *VM) executeBinaryMixedNumberOperation(op bytecode.Opcode, left, right interpreter.Value) error {
+	var leftFloat, rightFloat float64
+	
+	if left.Type() == interpreter.INTEGER_VALUE {
+		leftFloat = float64(left.(*interpreter.Integer).Value)
+	} else {
+		leftFloat = left.(*interpreter.Float).Value
+	}
+	
+	if right.Type() == interpreter.INTEGER_VALUE {
+		rightFloat = float64(right.(*interpreter.Integer).Value)
+	} else {
+		rightFloat = right.(*interpreter.Float).Value
+	}
+	
+	var result float64
+	switch op {
+	case bytecode.OpAdd:
+		result = leftFloat + rightFloat
+	case bytecode.OpSub:
+		result = leftFloat - rightFloat
+	case bytecode.OpMul:
+		result = leftFloat * rightFloat
+	case bytecode.OpDiv:
+		if rightFloat == 0 {
+			return fmt.Errorf("division by zero")
+		}
+		result = leftFloat / rightFloat
+	case bytecode.OpMod:
+		if rightFloat == 0 {
+			return fmt.Errorf("modulo by zero")
+		}
+		result = float64(int64(leftFloat) % int64(rightFloat))
+	default:
+		return fmt.Errorf("unknown operator: %d", op)
+	}
+	
+	return vm.push(&interpreter.Float{Value: result})
+}
+
+func (vm *VM) executeBinaryStringCoercionOperation(op bytecode.Opcode, left, right interpreter.Value) error {
+	leftStr := valueToString(left)
+	rightStr := valueToString(right)
+	
+	switch op {
+	case bytecode.OpAdd:
+		return vm.push(&interpreter.String{Value: leftStr + rightStr})
+	default:
+		return fmt.Errorf("unsupported operator for string coercion: %d", op)
 	}
 }
