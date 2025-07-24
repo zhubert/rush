@@ -85,16 +85,40 @@ func (l *Lexer) readNumber() (string, TokenType) {
 	return l.input[position:l.position], tokenType
 }
 
-// readString reads a string literal
-func (l *Lexer) readString() string {
-	position := l.position + 1 // skip opening quote
-	for {
-		l.readChar()
-		if l.ch == '"' || l.ch == 0 {
-			break
+// readString reads a string literal with the given quote character
+func (l *Lexer) readString(quote byte) string {
+	var result []byte
+	l.readChar() // skip opening quote
+	
+	for l.ch != quote && l.ch != 0 {
+		if l.ch == '\\' && l.peekChar() != 0 {
+			// Handle escape sequences
+			l.readChar() // consume backslash
+			switch l.ch {
+			case 'n':
+				result = append(result, '\n')
+			case 't':
+				result = append(result, '\t')
+			case 'r':
+				result = append(result, '\r')
+			case '\\':
+				result = append(result, '\\')
+			case '"':
+				result = append(result, '"')
+			case '\'':
+				result = append(result, '\'')
+			default:
+				// For unknown escape sequences, include both backslash and character
+				result = append(result, '\\')
+				result = append(result, l.ch)
+			}
+		} else {
+			result = append(result, l.ch)
 		}
+		l.readChar()
 	}
-	return l.input[position:l.position]
+	
+	return string(result)
 }
 
 // readComment reads a comment starting with #
@@ -202,7 +226,12 @@ func (l *Lexer) NextToken() Token {
 		}
 	case '"':
 		tok.Type = STRING
-		tok.Literal = l.readString()
+		tok.Literal = l.readString('"')
+		tok.Line = line
+		tok.Column = column
+	case '\'':
+		tok.Type = STRING
+		tok.Literal = l.readString('\'')
 		tok.Line = line
 		tok.Column = column
 	case '@':

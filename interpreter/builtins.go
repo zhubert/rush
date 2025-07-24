@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -9,6 +10,11 @@ import (
 )
 
 var builtins = map[string]*BuiltinFunction{
+	"JSON": {
+		Fn: func(args ...Value) Value {
+			return &JSONNamespace{}
+		},
+	},
 	"len": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 1 {
@@ -946,4 +952,116 @@ var builtins = map[string]*BuiltinFunction{
 			}
 		},
 	},
+}
+
+// parseJSON converts a JSON string to a Rush JSON object
+func parseJSON(jsonStr string) Value {
+	var data interface{}
+	err := json.Unmarshal([]byte(jsonStr), &data)
+	if err != nil {
+		return newError("invalid JSON: %s", err.Error())
+	}
+
+	rushValue := convertFromGoValue(data)
+	return &JSON{Data: rushValue}
+}
+
+// stringifyValue converts a Rush value to a JSON string
+func stringifyValue(value Value) (string, error) {
+	goValue, err := convertToGoValue(value)
+	if err != nil {
+		return "", err
+	}
+
+	bytes, err := json.Marshal(goValue)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+// convertFromGoValue converts Go interface{} from json.Unmarshal to Rush Value
+func convertFromGoValue(data interface{}) Value {
+	switch v := data.(type) {
+	case nil:
+		return NULL
+	case bool:
+		return &Boolean{Value: v}
+	case float64:
+		// JSON numbers are always float64
+		if v == float64(int64(v)) {
+			return &Integer{Value: int64(v)}
+		}
+		return &Float{Value: v}
+	case string:
+		return &String{Value: v}
+	case []interface{}:
+		elements := make([]Value, len(v))
+		for i, elem := range v {
+			elements[i] = convertFromGoValue(elem)
+		}
+		return &Array{Elements: elements}
+	case map[string]interface{}:
+		pairs := make(map[HashKey]Value)
+		keys := make([]Value, 0, len(v))
+		for k, val := range v {
+			key := &String{Value: k}
+			hashKey := CreateHashKey(key)
+			pairs[hashKey] = convertFromGoValue(val)
+			keys = append(keys, key)
+		}
+		return &Hash{Pairs: pairs, Keys: keys}
+	default:
+		return newError("unsupported JSON type: %T", v)
+	}
+}
+
+// convertToGoValue converts Rush Value to Go interface{} for json.Marshal
+func convertToGoValue(value Value) (interface{}, error) {
+	switch v := value.(type) {
+	case *Null:
+		return nil, nil
+	case *Boolean:
+		return v.Value, nil
+	case *Integer:
+		return v.Value, nil
+	case *Float:
+		return v.Value, nil
+	case *String:
+		return v.Value, nil
+	case *Array:
+		goArray := make([]interface{}, len(v.Elements))
+		for i, elem := range v.Elements {
+			goValue, err := convertToGoValue(elem)
+			if err != nil {
+				return nil, err
+			}
+			goArray[i] = goValue
+		}
+		return goArray, nil
+	case *Hash:
+		goMap := make(map[string]interface{})
+		for _, key := range v.Keys {
+			hashKey := CreateHashKey(key)
+			value := v.Pairs[hashKey]
+			
+			// Only string keys are supported in JSON
+			keyStr, ok := key.(*String)
+			if !ok {
+				return nil, fmt.Errorf("JSON object keys must be strings, got %s", key.Type())
+			}
+			
+			goValue, err := convertToGoValue(value)
+			if err != nil {
+				return nil, err
+			}
+			goMap[keyStr.Value] = goValue
+		}
+		return goMap, nil
+	case *JSON:
+		return convertToGoValue(v.Data)
+	default:
+		return nil, fmt.Errorf("unsupported value type for JSON: %s", v.Type())
+	}
 }

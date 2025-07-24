@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -219,6 +220,11 @@ func Eval(node ast.Node, env *Environment) Value {
 		// Check if it's a path method call
 		if pathMethod, ok := function.(*PathMethod); ok {
 			return applyPathMethod(pathMethod, args, env)
+		}
+		
+		// Check if it's a JSON method call
+		if jsonMethod, ok := function.(*JSONMethod); ok {
+			return applyJSONMethod(jsonMethod, args, env)
 		}
 		
 		return applyFunction(function, args, node, env)
@@ -1905,6 +1911,47 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		}
 	}
 	
+	// Check if it's a JSON object and handle property access
+	// Handle JSON namespace static methods
+	if jsonNamespace, ok := object.(*JSONNamespace); ok {
+		switch node.Property.Value {
+		case "parse":
+			return &BuiltinFunction{
+				Fn: func(args ...Value) Value {
+					return applyJSONNamespaceMethod(jsonNamespace, "parse", args...)
+				},
+			}
+		case "stringify":
+			return &BuiltinFunction{
+				Fn: func(args ...Value) Value {
+					return applyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
+				},
+			}
+		default:
+			return newError("undefined method %s for JSON namespace", node.Property.Value)
+		}
+	}
+
+	if jsonObj, ok := object.(*JSON); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "data":
+			return jsonObj.Data
+		case "type":
+			return &String{Value: string(jsonObj.Data.Type())}
+		case "valid":
+			return &Boolean{Value: true} // If we have a JSON object, it's valid
+		
+		// Methods (with parameters) - return bound methods
+		case "get", "set", "has?", "keys", "values", "length", "size",
+		     "pretty", "compact", "path", "validate", "merge":
+			return &JSONMethod{JSON: jsonObj, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for JSON", node.Property.Value)
+		}
+	}
+	
 	// Check if it's a string and handle property access
 	if str, ok := object.(*String); ok {
 		switch node.Property.Value {
@@ -2016,9 +2063,35 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		}
 	}
 	
-	// For other objects, try module access (backward compatibility)
+	// For other objects, check if it's a builtin that evaluates to a namespace
 	if ident, ok := node.Object.(*ast.Identifier); ok {
-		// This looks like module.member access
+		// Check if this is a builtin namespace like JSON
+		if builtin, exists := builtins[ident.Value]; exists {
+			// Evaluate the builtin to get the namespace object
+			namespaceObj := builtin.Fn()
+			
+			// Now handle property access on the namespace object
+			if jsonNamespace, ok := namespaceObj.(*JSONNamespace); ok {
+				switch node.Property.Value {
+				case "parse":
+					return &BuiltinFunction{
+						Fn: func(args ...Value) Value {
+							return applyJSONNamespaceMethod(jsonNamespace, "parse", args...)
+						},
+					}
+				case "stringify":
+					return &BuiltinFunction{
+						Fn: func(args ...Value) Value {
+							return applyJSONNamespaceMethod(jsonNamespace, "stringify", args...)
+						},
+					}
+				default:
+					return newError("undefined method %s for JSON namespace", node.Property.Value)
+				}
+			}
+		}
+		
+		// This looks like module.member access (fallback)
 		return newError("module access not yet fully implemented: %s.%s", 
 			ident.Value, node.Property.Value)
 	}
@@ -2983,4 +3056,371 @@ func applyPathMethod(pathMethod *PathMethod, args []Value, env *Environment) Val
 	default:
 		return newError("unknown path method: %s", pathMethod.Method)
 	}
+}
+
+// applyJSONMethod handles JSON method calls
+func applyJSONNamespaceMethod(jsonNamespace *JSONNamespace, method string, args ...Value) Value {
+	switch method {
+	case "parse":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for JSON.parse: want=1, got=%d", len(args))
+		}
+		
+		input, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to JSON.parse must be STRING, got %T", args[0])
+		}
+		
+		return parseJSON(input.Value)
+	
+	case "stringify":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for JSON.stringify: want=1, got=%d", len(args))
+		}
+		
+		jsonStr, err := stringifyValue(args[0])
+		if err != nil {
+			return newError("error stringifying value: %s", err.Error())
+		}
+		return &String{Value: jsonStr}
+	
+	default:
+		return newError("undefined method %s for JSON namespace", method)
+	}
+}
+
+func applyJSONMethod(jsonMethod *JSONMethod, args []Value, env *Environment) Value {
+	jsonObj := jsonMethod.JSON
+	
+	switch jsonMethod.Method {
+	case "get":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for json.get: want=1, got=%d", len(args))
+		}
+		
+		key := args[0]
+		result := getJSONValue(jsonObj.Data, key)
+		
+		// Wrap complex types in JSON objects to enable method chaining
+		switch result.(type) {
+		case *Hash, *Array:
+			return &JSON{Data: result}
+		default:
+			return result
+		}
+	
+	case "set":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for json.set: want=2, got=%d", len(args))
+		}
+		
+		key := args[0]
+		value := args[1]
+		newData := setJSONValue(jsonObj.Data, key, value)
+		return &JSON{Data: newData}
+	
+	case "has?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for json.has?: want=1, got=%d", len(args))
+		}
+		
+		key := args[0]
+		return hasJSONKey(jsonObj.Data, key)
+	
+	case "keys":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for json.keys: want=0, got=%d", len(args))
+		}
+		
+		return getJSONKeys(jsonObj.Data)
+	
+	case "values":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for json.values: want=0, got=%d", len(args))
+		}
+		
+		return getJSONValues(jsonObj.Data)
+	
+	case "length", "size":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for json.%s: want=0, got=%d", jsonMethod.Method, len(args))
+		}
+		
+		return getJSONLength(jsonObj.Data)
+	
+	case "pretty":
+		if len(args) > 1 {
+			return newError("wrong number of arguments for json.pretty: want=0 or 1, got=%d", len(args))
+		}
+		
+		indent := "  " // default indent
+		if len(args) == 1 {
+			indentArg, ok := args[0].(*String)
+			if !ok {
+				return newError("indent argument must be STRING")
+			}
+			indent = indentArg.Value
+		}
+		
+		return prettyJSON(jsonObj.Data, indent)
+	
+	case "compact":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for json.compact: want=0, got=%d", len(args))
+		}
+		
+		jsonStr, err := stringifyValue(jsonObj.Data)
+		if err != nil {
+			return newError("failed to compact JSON: %s", err.Error())
+		}
+		return &String{Value: jsonStr}
+	
+	case "validate":
+		if len(args) != 0 {
+			return newError("wrong number of arguments for json.validate: want=0, got=%d", len(args))
+		}
+		
+		// Since we have a valid JSON object, it's always valid
+		return &Boolean{Value: true}
+	
+	case "merge":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for json.merge: want=1, got=%d", len(args))
+		}
+		
+		other, ok := args[0].(*JSON)
+		if !ok {
+			return newError("merge argument must be JSON")
+		}
+		
+		return mergeJSON(jsonObj.Data, other.Data)
+	
+	case "path":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for json.path: want=1, got=%d", len(args))
+		}
+		
+		pathStr, ok := args[0].(*String)
+		if !ok {
+			return newError("path argument must be STRING")
+		}
+		
+		return getJSONPath(jsonObj.Data, pathStr.Value)
+	
+	default:
+		return newError("unknown JSON method: %s", jsonMethod.Method)
+	}
+}
+
+// JSON helper functions
+
+// getJSONValue gets a value from JSON data by key
+func getJSONValue(data Value, key Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		hashKey := CreateHashKey(key)
+		if value, exists := d.Pairs[hashKey]; exists {
+			return value
+		}
+		return NULL
+	case *Array:
+		if index, ok := key.(*Integer); ok {
+			idx := int(index.Value)
+			if idx >= 0 && idx < len(d.Elements) {
+				return d.Elements[idx]
+			}
+		}
+		return NULL
+	default:
+		return newError("cannot get property from non-object/array JSON value")
+	}
+}
+
+// setJSONValue sets a value in JSON data by key (returns new data)
+func setJSONValue(data Value, key Value, value Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		newPairs := make(map[HashKey]Value)
+		for k, v := range d.Pairs {
+			newPairs[k] = v
+		}
+		
+		hashKey := CreateHashKey(key)
+		newPairs[hashKey] = value
+		
+		// Add key if it doesn't exist
+		newKeys := make([]Value, len(d.Keys))
+		copy(newKeys, d.Keys)
+		if _, exists := d.Pairs[hashKey]; !exists {
+			newKeys = append(newKeys, key)
+		}
+		
+		return &Hash{Pairs: newPairs, Keys: newKeys}
+	case *Array:
+		if index, ok := key.(*Integer); ok {
+			idx := int(index.Value)
+			if idx >= 0 && idx < len(d.Elements) {
+				newElements := make([]Value, len(d.Elements))
+				copy(newElements, d.Elements)
+				newElements[idx] = value
+				return &Array{Elements: newElements}
+			}
+		}
+		return newError("invalid array index for JSON set")
+	default:
+		return newError("cannot set property on non-object/array JSON value")
+	}
+}
+
+// hasJSONKey checks if JSON data has a key
+func hasJSONKey(data Value, key Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		hashKey := CreateHashKey(key)
+		_, exists := d.Pairs[hashKey]
+		return &Boolean{Value: exists}
+	case *Array:
+		if index, ok := key.(*Integer); ok {
+			idx := int(index.Value)
+			return &Boolean{Value: idx >= 0 && idx < len(d.Elements)}
+		}
+		return &Boolean{Value: false}
+	default:
+		return &Boolean{Value: false}
+	}
+}
+
+// getJSONKeys gets all keys from JSON data
+func getJSONKeys(data Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		return &Array{Elements: d.Keys}
+	case *Array:
+		keys := make([]Value, len(d.Elements))
+		for i := range d.Elements {
+			keys[i] = &Integer{Value: int64(i)}
+		}
+		return &Array{Elements: keys}
+	default:
+		return &Array{Elements: []Value{}}
+	}
+}
+
+// getJSONValues gets all values from JSON data
+func getJSONValues(data Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		values := make([]Value, 0, len(d.Keys))
+		for _, key := range d.Keys {
+			hashKey := CreateHashKey(key)
+			values = append(values, d.Pairs[hashKey])
+		}
+		return &Array{Elements: values}
+	case *Array:
+		return d // Arrays are already collections of values
+	default:
+		return &Array{Elements: []Value{data}}
+	}
+}
+
+// getJSONLength gets the length of JSON data
+func getJSONLength(data Value) Value {
+	switch d := data.(type) {
+	case *Hash:
+		return &Integer{Value: int64(len(d.Keys))}
+	case *Array:
+		return &Integer{Value: int64(len(d.Elements))}
+	case *String:
+		return &Integer{Value: int64(len(d.Value))}
+	default:
+		return &Integer{Value: 0}
+	}
+}
+
+// prettyJSON formats JSON data with indentation
+func prettyJSON(data Value, indent string) Value {
+	goValue, err := convertToGoValue(data)
+	if err != nil {
+		return newError("failed to convert to Go value: %s", err.Error())
+	}
+	
+	bytes, err := json.MarshalIndent(goValue, "", indent)
+	if err != nil {
+		return newError("failed to format JSON: %s", err.Error())
+	}
+	
+	return &String{Value: string(bytes)}
+}
+
+// mergeJSON merges two JSON values
+func mergeJSON(data1 Value, data2 Value) Value {
+	hash1, ok1 := data1.(*Hash)
+	hash2, ok2 := data2.(*Hash)
+	
+	if !ok1 || !ok2 {
+		return newError("can only merge JSON objects (hashes)")
+	}
+	
+	newPairs := make(map[HashKey]Value)
+	newKeys := make([]Value, 0)
+	
+	// Copy from first hash
+	for k, v := range hash1.Pairs {
+		newPairs[k] = v
+	}
+	copy(newKeys, hash1.Keys)
+	
+	// Merge from second hash
+	for _, key := range hash2.Keys {
+		hashKey := CreateHashKey(key)
+		value := hash2.Pairs[hashKey]
+		
+		// If key doesn't exist in first hash, add it
+		if _, exists := hash1.Pairs[hashKey]; !exists {
+			newKeys = append(newKeys, key)
+		}
+		
+		newPairs[hashKey] = value
+	}
+	
+	return &JSON{Data: &Hash{Pairs: newPairs, Keys: newKeys}}
+}
+
+// getJSONPath gets a value from JSON using a dot-separated path
+func getJSONPath(data Value, path string) Value {
+	parts := strings.Split(path, ".")
+	current := data
+	
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		
+		switch curr := current.(type) {
+		case *Hash:
+			key := &String{Value: part}
+			hashKey := CreateHashKey(key)
+			if value, exists := curr.Pairs[hashKey]; exists {
+				current = value
+			} else {
+				return NULL
+			}
+		case *Array:
+			// Try to parse as integer index
+			var idx int64
+			if _, err := fmt.Sscanf(part, "%d", &idx); err == nil {
+				if idx >= 0 && idx < int64(len(curr.Elements)) {
+					current = curr.Elements[idx]
+				} else {
+					return NULL
+				}
+			} else {
+				return NULL
+			}
+		default:
+			return NULL
+		}
+	}
+	
+	return current
 }

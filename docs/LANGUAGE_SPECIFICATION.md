@@ -363,6 +363,56 @@ clean_path = path("./data/../config.txt").clean().absolute()
 - **Security**: Path traversal attacks (`..`) are blocked in constructors
 - **Error handling**: Operations return appropriate error messages for invalid operations
 
+### JSON
+
+JSON objects provide comprehensive JSON processing capabilities with object-oriented dot notation:
+
+```rush
+# Parse JSON strings into JSON objects
+user_data = json_parse("{\"name\": \"Alice\", \"age\": 30}")
+array_data = json_parse("[1, 2, 3, 4, 5]")
+
+# Convert Rush values to JSON strings
+json_string = json_stringify({"name": "Bob", "active": true})
+```
+
+JSON objects support comprehensive dot notation methods:
+
+```rush
+# Data access
+user_data.get("name")              # "Alice"
+user_data.has?("email")            # false
+user_data.keys()                   # ["name", "age"]
+user_data.length()                 # 2
+
+# Data modification (returns new JSON objects)
+updated = user_data.set("email", "alice@example.com")
+                  .set("verified", true)
+
+# Path-based navigation
+nested = json_parse("{\"user\": {\"profile\": {\"city\": \"NYC\"}}}")
+city = nested.path("user.profile.city")  # "NYC"
+
+# Formatting
+user_data.compact()                # Compact JSON string
+user_data.pretty()                 # Pretty-formatted with indentation
+user_data.pretty("    ")           # Custom indentation
+
+# Advanced operations
+config1 = json_parse("{\"debug\": true}")
+config2 = json_parse("{\"port\": 8080}")
+merged = config1.merge(config2)    # Combine JSON objects
+```
+
+**Features:**
+- **Full JSON standard compliance**: Supports all JSON data types
+- **Object-oriented API**: Comprehensive dot notation methods
+- **Method chaining**: Fluent operations for complex transformations
+- **Path navigation**: Dot-separated path access for nested data
+- **Immutable operations**: Methods return new objects, preserving originals
+- **Rich formatting**: Compact and pretty-print options with custom indentation
+- **Error handling**: Robust parsing and serialization error reporting
+
 ## Variables
 
 Variables are dynamically typed and declared by assignment:
