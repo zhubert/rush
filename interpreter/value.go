@@ -40,6 +40,15 @@ const (
 	JSON_VALUE          ValueType = "JSON"
 	JSON_METHOD_VALUE   ValueType = "JSON_METHOD"
 	JSON_NAMESPACE_VALUE ValueType = "JSON_NAMESPACE"
+	TIME_VALUE          ValueType = "TIME"
+	TIME_METHOD_VALUE   ValueType = "TIME_METHOD"
+	TIME_NAMESPACE_VALUE ValueType = "TIME_NAMESPACE"
+	DURATION_VALUE      ValueType = "DURATION"
+	DURATION_METHOD_VALUE ValueType = "DURATION_METHOD"
+	DURATION_NAMESPACE_VALUE ValueType = "DURATION_NAMESPACE"
+	TIMEZONE_VALUE      ValueType = "TIMEZONE"
+	TIMEZONE_METHOD_VALUE ValueType = "TIMEZONE_METHOD" 
+	TIMEZONE_NAMESPACE_VALUE ValueType = "TIMEZONE_NAMESPACE"
 )
 
 // Value represents a value in the Rush language
@@ -362,6 +371,95 @@ type JSONNamespace struct{}
 func (jn *JSONNamespace) Type() ValueType { return JSON_NAMESPACE_VALUE }
 func (jn *JSONNamespace) Inspect() string {
   return "#<JSONNamespace>"
+}
+
+// Time represents a specific moment in time
+type Time struct {
+  Value    int64     // Unix timestamp in nanoseconds
+  Location string    // Timezone location (e.g., "UTC", "Local", "America/New_York")
+}
+
+func (t *Time) Type() ValueType { return TIME_VALUE }
+func (t *Time) Inspect() string {
+  return fmt.Sprintf("#<Time:%d in %s>", t.Value, t.Location)
+}
+
+// Duration represents a span of time
+type Duration struct {
+  Value int64 // Duration in nanoseconds
+}
+
+func (d *Duration) Type() ValueType { return DURATION_VALUE }
+func (d *Duration) Inspect() string {
+  return fmt.Sprintf("#<Duration:%dns>", d.Value)
+}
+
+// TimeZone represents timezone information
+type TimeZone struct {
+  Name   string  // Timezone name (e.g., "UTC", "America/New_York")
+  Offset int     // Offset from UTC in seconds
+}
+
+func (tz *TimeZone) Type() ValueType { return TIMEZONE_VALUE }
+func (tz *TimeZone) Inspect() string {
+  return fmt.Sprintf("#<TimeZone:%s offset:%d>", tz.Name, tz.Offset)
+}
+
+// TimeMethod represents a method bound to a specific time instance
+type TimeMethod struct {
+  Time   *Time
+  Method string
+}
+
+func (tm *TimeMethod) Type() ValueType { return TIME_METHOD_VALUE }
+func (tm *TimeMethod) Inspect() string {
+  return fmt.Sprintf("#<TimeMethod:%s on %s>", tm.Method, tm.Time.Inspect())
+}
+
+// DurationMethod represents a method bound to a specific duration instance
+type DurationMethod struct {
+  Duration *Duration
+  Method   string
+}
+
+func (dm *DurationMethod) Type() ValueType { return DURATION_METHOD_VALUE }
+func (dm *DurationMethod) Inspect() string {
+  return fmt.Sprintf("#<DurationMethod:%s on %s>", dm.Method, dm.Duration.Inspect())
+}
+
+// TimeZoneMethod represents a method bound to a specific timezone instance
+type TimeZoneMethod struct {
+  TimeZone *TimeZone
+  Method   string
+}
+
+func (tzm *TimeZoneMethod) Type() ValueType { return TIMEZONE_METHOD_VALUE }
+func (tzm *TimeZoneMethod) Inspect() string {
+  return fmt.Sprintf("#<TimeZoneMethod:%s on %s>", tzm.Method, tzm.TimeZone.Inspect())
+}
+
+// TimeNamespace represents the Time namespace with static methods
+type TimeNamespace struct{}
+
+func (tn *TimeNamespace) Type() ValueType { return TIME_NAMESPACE_VALUE }
+func (tn *TimeNamespace) Inspect() string {
+  return "#<TimeNamespace>"
+}
+
+// DurationNamespace represents the Duration namespace with static methods
+type DurationNamespace struct{}
+
+func (dn *DurationNamespace) Type() ValueType { return DURATION_NAMESPACE_VALUE }
+func (dn *DurationNamespace) Inspect() string {
+  return "#<DurationNamespace>"
+}
+
+// TimeZoneNamespace represents the TimeZone namespace with static methods
+type TimeZoneNamespace struct{}
+
+func (tzn *TimeZoneNamespace) Type() ValueType { return TIMEZONE_NAMESPACE_VALUE }
+func (tzn *TimeZoneNamespace) Inspect() string {
+  return "#<TimeZoneNamespace>"
 }
 
 // IsTruthy returns whether a value is considered truthy

@@ -227,6 +227,21 @@ func Eval(node ast.Node, env *Environment) Value {
 			return applyJSONMethod(jsonMethod, args, env)
 		}
 		
+		// Check if it's a Time method call
+		if timeMethod, ok := function.(*TimeMethod); ok {
+			return applyTimeMethod(timeMethod, args, env)
+		}
+		
+		// Check if it's a Duration method call
+		if durationMethod, ok := function.(*DurationMethod); ok {
+			return applyDurationMethod(durationMethod, args, env)
+		}
+		
+		// Check if it's a TimeZone method call
+		if timeZoneMethod, ok := function.(*TimeZoneMethod); ok {
+			return applyTimeZoneMethod(timeZoneMethod, args, env)
+		}
+		
 		return applyFunction(function, args, node, env)
 	
 	case *ast.ReturnStatement:
@@ -2063,6 +2078,59 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		}
 	}
 	
+	// Check if it's a Time object and handle property access
+	if timeObj, ok := object.(*Time); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "unix":
+			return &Integer{Value: timeObj.Value / 1000000000} // Convert nanoseconds to seconds
+		case "location":
+			return &String{Value: timeObj.Location}
+		
+		// Methods (with parameters) - return bound methods
+		case "format", "format_iso", "format_rfc3339", "year", "month", "day", 
+		     "hour", "minute", "second", "millisecond", "weekday", "to_utc", 
+		     "to_local", "add_duration", "subtract_duration", "difference",
+		     "is_before?", "is_after?", "is_equal?":
+			return &TimeMethod{Time: timeObj, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for Time", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a Duration object and handle property access
+	if durObj, ok := object.(*Duration); ok {
+		switch node.Property.Value {
+		// Methods (with parameters) - return bound methods
+		case "total_seconds", "total_minutes", "total_hours", "total_days",
+		     "hours", "minutes", "seconds", "milliseconds", "add", "subtract",
+		     "multiply", "divide", "abs", "is_positive?", "is_negative?", "is_zero?":
+			return &DurationMethod{Duration: durObj, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for Duration", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a TimeZone object and handle property access
+	if tzObj, ok := object.(*TimeZone); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "name":
+			return &String{Value: tzObj.Name}
+		case "offset":
+			return &Integer{Value: int64(tzObj.Offset)}
+		
+		// Methods (with parameters) - return bound methods
+		case "abbreviation":
+			return &TimeZoneMethod{TimeZone: tzObj, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for TimeZone", node.Property.Value)
+		}
+	}
+	
 	// For other objects, check if it's a builtin that evaluates to a namespace
 	if ident, ok := node.Object.(*ast.Identifier); ok {
 		// Check if this is a builtin namespace like JSON
@@ -2087,6 +2155,45 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 					}
 				default:
 					return newError("undefined method %s for JSON namespace", node.Property.Value)
+				}
+			}
+			
+			if timeNamespace, ok := namespaceObj.(*TimeNamespace); ok {
+				switch node.Property.Value {
+				case "now", "parse", "new":
+					return &BuiltinFunction{
+						Fn: func(args ...Value) Value {
+							return applyTimeNamespaceMethod(timeNamespace, node.Property.Value, args...)
+						},
+					}
+				default:
+					return newError("undefined method %s for Time namespace", node.Property.Value)
+				}
+			}
+			
+			if durationNamespace, ok := namespaceObj.(*DurationNamespace); ok {
+				switch node.Property.Value {
+				case "seconds", "minutes", "hours", "days", "parse":
+					return &BuiltinFunction{
+						Fn: func(args ...Value) Value {
+							return applyDurationNamespaceMethod(durationNamespace, node.Property.Value, args...)
+						},
+					}
+				default:
+					return newError("undefined method %s for Duration namespace", node.Property.Value)
+				}
+			}
+			
+			if tzNamespace, ok := namespaceObj.(*TimeZoneNamespace); ok {
+				switch node.Property.Value {
+				case "utc", "local", "parse":
+					return &BuiltinFunction{
+						Fn: func(args ...Value) Value {
+							return applyTimeZoneNamespaceMethod(tzNamespace, node.Property.Value, args...)
+						},
+					}
+				default:
+					return newError("undefined method %s for TimeZone namespace", node.Property.Value)
 				}
 			}
 		}
@@ -3423,4 +3530,650 @@ func getJSONPath(data Value, path string) Value {
 	}
 	
 	return current
+}
+
+// applyTimeNamespaceMethod handles Time namespace method calls (Time.now, Time.parse, Time.new)
+func applyTimeNamespaceMethod(timeNamespace *TimeNamespace, method string, args ...Value) Value {
+	switch method {
+	case "now":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		now := time.Now()
+		return &Time{
+			Value:    now.UnixNano(),
+			Location: "Local",
+		}
+	
+	case "parse":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		timeStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to Time.parse must be STRING, got %s", args[0].Type())
+		}
+		
+		// Try common time formats
+		formats := []string{
+			time.RFC3339,
+			"2006-01-02 15:04:05",
+			"2006-01-02T15:04:05",
+			"2006-01-02",
+			time.Kitchen,
+		}
+		
+		var parsedTime time.Time
+		var err error
+		
+		for _, format := range formats {
+			parsedTime, err = time.Parse(format, timeStr.Value)
+			if err == nil {
+				break
+			}
+		}
+		
+		if err != nil {
+			return newError("failed to parse time string: %s", timeStr.Value)
+		}
+		
+		return &Time{
+			Value:    parsedTime.UnixNano(),
+			Location: "Local",
+		}
+	
+	case "new":
+		if len(args) != 6 {
+			return newError("wrong number of arguments. got=%d, want=6 (year, month, day, hour, minute, second)", len(args))
+		}
+		
+		// Validate all arguments are integers
+		intArgs := make([]int, 6)
+		for i, arg := range args {
+			intVal, ok := arg.(*Integer)
+			if !ok {
+				return newError("argument %d to Time.new must be INTEGER, got %s", i+1, arg.Type())
+			}
+			intArgs[i] = int(intVal.Value)
+		}
+		
+		newTime := time.Date(intArgs[0], time.Month(intArgs[1]), intArgs[2], 
+			intArgs[3], intArgs[4], intArgs[5], 0, time.Local)
+		
+		return &Time{
+			Value:    newTime.UnixNano(),
+			Location: "Local",
+		}
+	
+	default:
+		return newError("undefined method %s for Time namespace", method)
+	}
+}
+
+// applyDurationNamespaceMethod handles Duration namespace method calls
+func applyDurationNamespaceMethod(durationNamespace *DurationNamespace, method string, args ...Value) Value {
+	switch method {
+	case "seconds":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var seconds float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			seconds = float64(arg.Value)
+		case *Float:
+			seconds = arg.Value
+		default:
+			return newError("argument to Duration.seconds must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		return &Duration{Value: int64(seconds * float64(time.Second))}
+	
+	case "minutes":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var minutes float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			minutes = float64(arg.Value)
+		case *Float:
+			minutes = arg.Value
+		default:
+			return newError("argument to Duration.minutes must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		return &Duration{Value: int64(minutes * float64(time.Minute))}
+	
+	case "hours":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var hours float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			hours = float64(arg.Value)
+		case *Float:
+			hours = arg.Value
+		default:
+			return newError("argument to Duration.hours must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		return &Duration{Value: int64(hours * float64(time.Hour))}
+	
+	case "days":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var days float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			days = float64(arg.Value)
+		case *Float:
+			days = arg.Value
+		default:
+			return newError("argument to Duration.days must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		return &Duration{Value: int64(days * float64(24*time.Hour))}
+	
+	case "parse":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		durStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to Duration.parse must be STRING, got %s", args[0].Type())
+		}
+		
+		dur, err := time.ParseDuration(durStr.Value)
+		if err != nil {
+			return newError("failed to parse duration string: %s", durStr.Value)
+		}
+		
+		return &Duration{Value: int64(dur)}
+	
+	default:
+		return newError("undefined method %s for Duration namespace", method)
+	}
+}
+
+// applyTimeZoneNamespaceMethod handles TimeZone namespace method calls
+func applyTimeZoneNamespaceMethod(tzNamespace *TimeZoneNamespace, method string, args ...Value) Value {
+	switch method {
+	case "utc":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &TimeZone{
+			Name:   "UTC",
+			Offset: 0,
+		}
+	
+	case "local":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		_, offset := time.Now().Zone()
+		
+		return &TimeZone{
+			Name:   "Local",
+			Offset: offset,
+		}
+	
+	case "parse":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		tzName, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to TimeZone.parse must be STRING, got %s", args[0].Type())
+		}
+		
+		loc, err := time.LoadLocation(tzName.Value)
+		if err != nil {
+			return newError("failed to parse timezone: %s", tzName.Value)
+		}
+		
+		_, offset := time.Now().In(loc).Zone()
+		
+		return &TimeZone{
+			Name:   tzName.Value,
+			Offset: offset,
+		}
+	
+	default:
+		return newError("undefined method %s for TimeZone namespace", method)
+	}
+}
+
+// applyTimeMethod handles Time instance method calls
+func applyTimeMethod(timeMethod *TimeMethod, args []Value, env *Environment) Value {
+	timeObj := timeMethod.Time
+	t := time.Unix(0, timeObj.Value)
+	
+	// Handle timezone
+	var loc *time.Location
+	var err error
+	
+	switch timeObj.Location {
+	case "UTC":
+		loc = time.UTC
+	case "Local":
+		loc = time.Local
+	default:
+		loc, err = time.LoadLocation(timeObj.Location)
+		if err != nil {
+			loc = time.Local
+		}
+	}
+	
+	t = t.In(loc)
+	
+	switch timeMethod.Method {
+	case "format":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		formatStr, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to format must be STRING, got %s", args[0].Type())
+		}
+		
+		// Convert Go reference time to actual format
+		formatted := t.Format(formatStr.Value)
+		return &String{Value: formatted}
+	
+	case "format_iso":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &String{Value: t.Format(time.RFC3339)}
+	
+	case "format_rfc3339":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &String{Value: t.Format(time.RFC3339)}
+	
+	case "year":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Year())}
+	
+	case "month":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Month())}
+	
+	case "day":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Day())}
+	
+	case "hour":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Hour())}
+	
+	case "minute":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Minute())}
+	
+	case "second":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Second())}
+	
+	case "millisecond":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Nanosecond() / 1000000)}
+	
+	case "weekday":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Integer{Value: int64(t.Weekday())}
+	
+	case "to_utc":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		utcTime := t.UTC()
+		return &Time{
+			Value:    utcTime.UnixNano(),
+			Location: "UTC",
+		}
+	
+	case "to_local":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		localTime := t.Local()
+		return &Time{
+			Value:    localTime.UnixNano(),
+			Location: "Local",
+		}
+	
+	case "add_duration":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		dur, ok := args[0].(*Duration)
+		if !ok {
+			return newError("argument to add_duration must be DURATION, got %s", args[0].Type())
+		}
+		
+		newTime := t.Add(time.Duration(dur.Value))
+		return &Time{
+			Value:    newTime.UnixNano(),
+			Location: timeObj.Location,
+		}
+	
+	case "subtract_duration":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		dur, ok := args[0].(*Duration)
+		if !ok {
+			return newError("argument to subtract_duration must be DURATION, got %s", args[0].Type())
+		}
+		
+		newTime := t.Add(-time.Duration(dur.Value))
+		return &Time{
+			Value:    newTime.UnixNano(),
+			Location: timeObj.Location,
+		}
+	
+	case "difference":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherTime, ok := args[0].(*Time)
+		if !ok {
+			return newError("argument to difference must be TIME, got %s", args[0].Type())
+		}
+		
+		other := time.Unix(0, otherTime.Value)
+		diff := t.Sub(other)
+		
+		return &Duration{Value: int64(diff)}
+	
+	case "is_before?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherTime, ok := args[0].(*Time)
+		if !ok {
+			return newError("argument to is_before? must be TIME, got %s", args[0].Type())
+		}
+		
+		other := time.Unix(0, otherTime.Value)
+		return &Boolean{Value: t.Before(other)}
+	
+	case "is_after?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherTime, ok := args[0].(*Time)
+		if !ok {
+			return newError("argument to is_after? must be TIME, got %s", args[0].Type())
+		}
+		
+		other := time.Unix(0, otherTime.Value)
+		return &Boolean{Value: t.After(other)}
+	
+	case "is_equal?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherTime, ok := args[0].(*Time)
+		if !ok {
+			return newError("argument to is_equal? must be TIME, got %s", args[0].Type())
+		}
+		
+		other := time.Unix(0, otherTime.Value)
+		return &Boolean{Value: t.Equal(other)}
+	
+	default:
+		return newError("undefined method %s for Time", timeMethod.Method)
+	}
+}
+
+// applyDurationMethod handles Duration instance method calls
+func applyDurationMethod(durationMethod *DurationMethod, args []Value, env *Environment) Value {
+	durObj := durationMethod.Duration
+	dur := time.Duration(durObj.Value)
+	
+	switch durationMethod.Method {
+	case "total_seconds":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Float{Value: dur.Seconds()}
+	
+	case "total_minutes":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Float{Value: dur.Minutes()}
+	
+	case "total_hours":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Float{Value: dur.Hours()}
+	
+	case "total_days":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Float{Value: dur.Hours() / 24}
+	
+	case "hours":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		hours := int64(dur / time.Hour)
+		return &Integer{Value: hours % 24}
+	
+	case "minutes":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		minutes := int64(dur / time.Minute)
+		return &Integer{Value: minutes % 60}
+	
+	case "seconds":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		seconds := int64(dur / time.Second)
+		return &Integer{Value: seconds % 60}
+	
+	case "milliseconds":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		milliseconds := int64(dur / time.Millisecond)
+		return &Integer{Value: milliseconds % 1000}
+	
+	case "add":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherDur, ok := args[0].(*Duration)
+		if !ok {
+			return newError("argument to add must be DURATION, got %s", args[0].Type())
+		}
+		
+		result := dur + time.Duration(otherDur.Value)
+		return &Duration{Value: int64(result)}
+	
+	case "subtract":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		otherDur, ok := args[0].(*Duration)
+		if !ok {
+			return newError("argument to subtract must be DURATION, got %s", args[0].Type())
+		}
+		
+		result := dur - time.Duration(otherDur.Value)
+		return &Duration{Value: int64(result)}
+	
+	case "multiply":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var factor float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			factor = float64(arg.Value)
+		case *Float:
+			factor = arg.Value
+		default:
+			return newError("argument to multiply must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		result := time.Duration(float64(dur) * factor)
+		return &Duration{Value: int64(result)}
+	
+	case "divide":
+		if len(args) != 1 {
+			return newError("wrong number of arguments. got=%d, want=1", len(args))
+		}
+		
+		var divisor float64
+		switch arg := args[0].(type) {
+		case *Integer:
+			divisor = float64(arg.Value)
+		case *Float:
+			divisor = arg.Value
+		default:
+			return newError("argument to divide must be INTEGER or FLOAT, got %s", args[0].Type())
+		}
+		
+		if divisor == 0 {
+			return newError("division by zero")
+		}
+		
+		result := time.Duration(float64(dur) / divisor)
+		return &Duration{Value: int64(result)}
+	
+	case "abs":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		if dur < 0 {
+			return &Duration{Value: int64(-dur)}
+		}
+		return durObj
+	
+	case "is_positive?":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Boolean{Value: dur > 0}
+	
+	case "is_negative?":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Boolean{Value: dur < 0}
+	
+	case "is_zero?":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		return &Boolean{Value: dur == 0}
+	
+	default:
+		return newError("undefined method %s for Duration", durationMethod.Method)
+	}
+}
+
+// applyTimeZoneMethod handles TimeZone instance method calls
+func applyTimeZoneMethod(timeZoneMethod *TimeZoneMethod, args []Value, env *Environment) Value {
+	tzObj := timeZoneMethod.TimeZone
+	
+	switch timeZoneMethod.Method {
+	case "abbreviation":
+		if len(args) != 0 {
+			return newError("wrong number of arguments. got=%d, want=0", len(args))
+		}
+		
+		var loc *time.Location
+		var err error
+		
+		switch tzObj.Name {
+		case "UTC":
+			loc = time.UTC
+		case "Local":
+			loc = time.Local
+		default:
+			loc, err = time.LoadLocation(tzObj.Name)
+			if err != nil {
+				return newError("failed to load timezone: %s", tzObj.Name)
+			}
+		}
+		
+		abbrev, _ := time.Now().In(loc).Zone()
+		return &String{Value: abbrev}
+	
+	default:
+		return newError("undefined method %s for TimeZone", timeZoneMethod.Method)
+	}
 }
