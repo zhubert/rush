@@ -286,7 +286,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(bytecode.OpSetInstance, varNameIndex)
 		} else {
 			// Regular variable assignment
-			symbol := c.symbolTable.Define(node.Name.Value)
+			// Try to resolve existing symbol first, define new one if not found
+			symbol, ok := c.symbolTable.Resolve(node.Name.Value)
+			if !ok {
+				symbol = c.symbolTable.Define(node.Name.Value)
+			}
 			c.storeSymbol(symbol)
 		}
 
