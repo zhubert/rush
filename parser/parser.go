@@ -331,6 +331,11 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 // parseExpression parses expressions using Pratt parsing
 func (p *Parser) parseExpression(precedence int) ast.Expression {
+	// Skip any leading semicolons (newlines)
+	for p.curToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
@@ -339,6 +344,11 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	leftExp := prefix()
 
 	for !p.shouldStopParsing(precedence) {
+		// Skip semicolons before looking for infix operators
+		for p.peekToken.Type == lexer.SEMICOLON {
+			p.nextToken()
+		}
+
 		infix := p.infixParseFns[p.peekToken.Type]
 		if infix == nil {
 			return leftExp
@@ -421,7 +431,17 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
 
+	// Skip optional semicolons/newlines after opening paren
+	for p.curToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
 	exp := p.parseExpression(LOWEST)
+
+	// Skip optional semicolons/newlines before closing paren
+	for p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
 
 	if !p.expectPeek(lexer.RPAREN) {
 		return nil
@@ -505,6 +525,11 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 func (p *Parser) parseExpressionList(end lexer.TokenType) []ast.Expression {
 	args := []ast.Expression{}
 
+	// Skip optional semicolons/newlines after opening bracket
+	for p.peekToken.Type == lexer.SEMICOLON {
+		p.nextToken()
+	}
+
 	if p.peekToken.Type == end {
 		p.nextToken()
 		return args
@@ -513,8 +538,20 @@ func (p *Parser) parseExpressionList(end lexer.TokenType) []ast.Expression {
 	p.nextToken()
 	args = append(args, p.parseExpression(LOWEST))
 
-	for p.peekToken.Type == lexer.COMMA {
+	for p.peekToken.Type == lexer.COMMA || p.peekToken.Type == lexer.SEMICOLON {
+		// Skip comma or semicolon/newline
 		p.nextToken()
+		
+		// Skip any additional semicolons/newlines
+		for p.peekToken.Type == lexer.SEMICOLON {
+			p.nextToken()
+		}
+		
+		// Check if we've reached the end
+		if p.peekToken.Type == end {
+			break
+		}
+		
 		p.nextToken()
 		args = append(args, p.parseExpression(LOWEST))
 	}
@@ -1300,13 +1337,25 @@ func (p *Parser) shouldStopParsing(precedence int) bool {
 		return precedence >= p.peekPrecedence()
 	}
 	
-	// We're at a semicolon - check if this is method chaining
+	// We're at a semicolon - check if this is method chaining or a continuation operator
 	// Create a temporary copy of the lexer state to look ahead
 	tempLexer := *p.l
 	nextToken := tempLexer.NextToken() // Get the token after semicolon
 	
 	// If the next significant token is a DOT, it's method chaining
 	if nextToken.Type == lexer.DOT {
+		// Skip the semicolon in the actual parser
+		p.nextToken()
+		return false // Don't stop parsing
+	}
+	
+	// If the next token is a binary operator (&&, ||, +, -, etc.), continue parsing
+	if nextToken.Type == lexer.AND || nextToken.Type == lexer.OR ||
+		nextToken.Type == lexer.PLUS || nextToken.Type == lexer.MINUS ||
+		nextToken.Type == lexer.MULT || nextToken.Type == lexer.DIV ||
+		nextToken.Type == lexer.EQ || nextToken.Type == lexer.NOT_EQ ||
+		nextToken.Type == lexer.LT || nextToken.Type == lexer.GT ||
+		nextToken.Type == lexer.LTE || nextToken.Type == lexer.GTE {
 		// Skip the semicolon in the actual parser
 		p.nextToken()
 		return false // Don't stop parsing
