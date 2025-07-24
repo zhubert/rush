@@ -320,29 +320,32 @@ find_path = fn(maze, width, start, end) {
   while (current != end) {
     row = current / width
     col = current % width
+    moved = false
     
     # Try moving right first
-    if (col + 1 < width) {
+    if (!moved && col + 1 < width) {
       next_pos = current + 1
       if (maze[next_pos] == 0) {
         path = push(path, next_pos)
         current = next_pos
-        continue
+        moved = true
       }
     }
     
     # Try moving down
-    if (row + 1 < 5) {  # 5 is maze height
+    if (!moved && row + 1 < 5) {  # 5 is maze height
       next_pos = current + width
       if (maze[next_pos] == 0) {
         path = push(path, next_pos)
         current = next_pos
-        continue
+        moved = true
       }
     }
     
     # If stuck, break
-    break
+    if (!moved) {
+      break
+    }
   }
   
   return path
