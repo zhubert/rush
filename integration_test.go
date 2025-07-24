@@ -218,8 +218,7 @@ print(result)
       for _, line := range lines {
         line = strings.TrimSpace(line)
         if line != "" && 
-           !strings.HasPrefix(line, "Rush interpreter") && 
-           !strings.HasPrefix(line, "Rush tree-walking interpreter") && 
+           !strings.HasPrefix(line, "Rush") && 
            line != "Result: null" && 
            !strings.HasPrefix(line, "Execution complete!") {
           printedLines = append(printedLines, line)
@@ -631,7 +630,7 @@ for (i = 0; i < 3; i = i + 1) {
         for _, line := range lines {
           line = strings.TrimSpace(line)
           if line != "" && 
-             !strings.HasPrefix(line, "Rush interpreter") && 
+             !strings.HasPrefix(line, "Rush") && 
              !strings.HasPrefix(line, "Result:") && 
              !strings.HasPrefix(line, "Execution complete!") &&
              !strings.HasPrefix(line, "Error:") {
@@ -727,7 +726,7 @@ print("Module result:", result)
   for _, line := range lines {
     line = strings.TrimSpace(line)
     if line != "" && 
-       !strings.HasPrefix(line, "Rush interpreter") && 
+       !strings.HasPrefix(line, "Rush") && 
        !strings.HasPrefix(line, "Result:") && 
        !strings.HasPrefix(line, "Execution complete!") {
       printedLines = append(printedLines, line)
@@ -1173,7 +1172,7 @@ func runIntegrationTest(t *testing.T, program, expected string) {
   for _, line := range lines {
     line = strings.TrimSpace(line)
     if line != "" && 
-       !strings.HasPrefix(line, "Rush interpreter") && 
+       !strings.HasPrefix(line, "Rush") && 
        line != "Result: null" && 
        !strings.HasPrefix(line, "Execution complete!") {
       printedLines = append(printedLines, line)
@@ -1362,8 +1361,7 @@ print("Formatted:", formatted)`,
       for _, line := range lines {
         line = strings.TrimSpace(line)
         if line != "" && 
-           !strings.HasPrefix(line, "Rush interpreter") && 
-           !strings.HasPrefix(line, "Rush tree-walking interpreter") && 
+           !strings.HasPrefix(line, "Rush") && 
            line != "Result: null" && 
            !strings.HasPrefix(line, "Execution complete!") {
           printedLines = append(printedLines, line)
