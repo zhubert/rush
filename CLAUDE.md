@@ -15,7 +15,7 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 11 - Enhanced Standard Library (string operations, array utilities, math functions, collections, file I/O, JSON handling)
+**Current Phase**: Phase 11 - Enhanced Standard Library (string operations, array utilities, math functions, collections, file I/O, JSON handling) - **JSON COMPLETE**
 
 ## Codebase Architecture
 
@@ -141,16 +141,20 @@ if len(args) != 1 {
 - **Array methods**: Moved from `std/array.rush` to core interpreter with dot notation
 - **Number methods**: Added mathematical operations with dot notation (abs, sqrt, pow, etc.)
 - **Hash methods**: Built-in hash/dictionary operations with dot notation
+- **JSON methods**: Comprehensive JSON processing with dot notation (parse, stringify, get, set, path, merge, format)
+- **File system methods**: File, Directory, and Path objects with dot notation operations
 - **Method chaining**: All dot notation methods support seamless chaining
 - **Standard library**: Now focuses on constants (PI, E) and multi-value operations
-- Upcoming: file I/O, JSON handling
 
 ### Implementation Notes
 
 - **Dot notation methods**: Implemented as Go built-ins in `interpreter/interpreter.go`
-- **Method types**: StringMethod, ArrayMethod, NumberMethod, HashMethod value types in `interpreter/value.go`
+- **Method types**: StringMethod, ArrayMethod, NumberMethod, HashMethod, JSONMethod, FileMethod, DirectoryMethod, PathMethod value types in `interpreter/value.go`
 - **Property access**: Extended `evalPropertyAccess` function handles all dot notation
-- **Method application**: Separate apply functions (applyStringMethod, applyArrayMethod, etc.)
+- **Method application**: Separate apply functions (applyStringMethod, applyArrayMethod, applyJSONMethod, etc.)
+- **JSON processing**: Core functions `json_parse()` and `json_stringify()` in `interpreter/builtins.go`
+- **JSON object**: New JSON value type with comprehensive dot notation methods (get, set, has, keys, values, length, pretty, compact, validate, merge, path)
+- **JSON features**: Full JSON standard compliance, method chaining, path navigation, immutable operations, rich formatting
 - **Standard library**: Reduced to constants and multi-value operations in `std/` directory
 - **Collections/hash operations**: Go built-ins with `builtin_hash_` prefix (legacy)
 - **Module resolution**: Still happens in `interpreter/module.go`
@@ -171,6 +175,9 @@ if len(args) != 1 {
 - Find dot notation methods: `rg "Method.*struct" interpreter/value.go`
 - Find property access: `rg "evalPropertyAccess" interpreter/interpreter.go`
 - Find method application: `rg "apply.*Method" interpreter/interpreter.go`
+- Find JSON functions: `rg "json_parse\|json_stringify" interpreter/builtins.go`
+- Find JSON methods: `rg "applyJSONMethod" interpreter/interpreter.go`
+- Find JSON helpers: `rg "getJSONValue\|setJSONValue\|parseJSON" interpreter/interpreter.go`
 - Find AST nodes: `rg "type.*struct" ast/ast.go`
 - Find token types: `rg "= Token" token/token.go`
 - Find test patterns: Look at existing `*_test.go` files in each directory
