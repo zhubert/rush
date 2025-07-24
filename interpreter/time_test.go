@@ -20,8 +20,7 @@ func TestTimeNamespaceMethods(t *testing.T) {
 	
 	// Test Time.parse()
 	parseResult := applyTimeNamespaceMethod(timeNamespace, "parse", &String{Value: "2024-01-15 14:30:00"})
-	parsedTime, ok := parseResult.(*Time)
-	if !ok {
+	if _, ok := parseResult.(*Time); !ok {
 		t.Fatalf("expected Time result from Time.parse(), got %T", parseResult)
 	}
 	
@@ -649,11 +648,3 @@ func TestTimeInspectMethods(t *testing.T) {
 	}
 }
 
-// Helper function to check if a value is an error
-func isError(val Value) bool {
-	if val == nil {
-		return false
-	}
-	_, ok := val.(*Error)
-	return ok
-}
