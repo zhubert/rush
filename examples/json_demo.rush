@@ -1,5 +1,5 @@
-// JSON Module Demonstration - Rush Programming Language
-// This example showcases the comprehensive JSON functionality with object-oriented dot notation
+# JSON Module Demonstration - Rush Programming Language
+# This example showcases the comprehensive JSON functionality with object-oriented dot notation
 
 print("=== Rush JSON Module Demo ===")
 print()
@@ -8,7 +8,7 @@ print()
 print("1. Basic JSON Parsing:")
 print("---------------------")
 
-// Parse different JSON types
+# Parse different JSON types
 number_json = json_parse("42")
 print("Number JSON:", number_json.data)
 print("Type:", number_json.type)
@@ -24,11 +24,11 @@ print("Null JSON:", null_json.data)
 
 print()
 
-// 2. Complex JSON Structures
+# 2. Complex JSON Structures
 print("2. Complex JSON Structures:")
 print("---------------------------")
 
-// Parse a complex user object
+# Parse a complex user object
 user_data = "{
   \"id\": 1001,
   \"name\": \"Alice Johnson\", 
@@ -49,21 +49,21 @@ print(user.pretty())
 
 print()
 
-// 3. JSON Property Access and Navigation
+# 3. JSON Property Access and Navigation
 print("3. JSON Property Access:")
 print("------------------------")
 
-// Direct property access
+# Direct property access
 print("User ID:", user.get("id"))
 print("User name:", user.get("name"))
 print("User email:", user.get("email"))
 
-// Nested object access
+# Nested object access
 profile = user.get("profile")
 print("User age:", profile.get("age"))
 print("User city:", profile.get("city"))
 
-// Array access within nested objects
+# Array access within nested objects
 interests = profile.get("interests")
 print("First interest:", interests.get(0))
 print("Second interest:", interests.get(1))
@@ -71,26 +71,26 @@ print("All interests:", interests.data)
 
 print()
 
-// 4. JSON Path Navigation
+# 4. JSON Path Navigation
 print("4. JSON Path Navigation:")
 print("------------------------")
 
-// Use dot notation paths for deep access
+# Use dot notation paths for deep access
 print("User age via path:", user.path("profile.age"))
 print("User city via path:", user.path("profile.city"))
 print("First interest via path:", user.path("profile.interests.0"))
 print("Second interest via path:", user.path("profile.interests.1"))
 
-// Non-existent paths return null
+# Non-existent paths return null
 print("Non-existent path:", user.path("profile.missing.field"))
 
 print()
 
-// 5. JSON Object Manipulation
+# 5. JSON Object Manipulation
 print("5. JSON Object Manipulation:")
 print("----------------------------")
 
-// Create a new user with modifications
+# Create a new user with modifications
 updated_user = user.set("active", false)
                   .set("last_login", "2024-01-15")
                   .set("profile", profile.set("city", "New York"))
@@ -101,54 +101,54 @@ print("New last_login field:", updated_user.get("last_login"))
 
 print()
 
-// 6. JSON Querying and Inspection
+# 6. JSON Querying and Inspection
 print("6. JSON Querying and Inspection:")
 print("--------------------------------")
 
-// Check for key existence
+# Check for key existence
 print("Has 'name' key:", user.has("name"))
 print("Has 'salary' key:", user.has("salary"))
 
-// Get all keys and values
+# Get all keys and values
 print("Top-level keys:", user.keys())
 print("Profile keys:", profile.keys())
 
-// Object size and length
+# Object size and length
 print("User object size:", user.length())
 print("Profile object size:", profile.length())
 print("Interests array size:", interests.length())
 
 print()
 
-// 7. JSON Array Operations
+# 7. JSON Array Operations
 print("7. JSON Array Operations:")
 print("-------------------------")
 
-// Parse and manipulate JSON arrays
+# Parse and manipulate JSON arrays
 colors_json = json_parse("[\"red\", \"green\", \"blue\", \"yellow\"]")
 print("Colors array:", colors_json.data)
 print("Array length:", colors_json.length())
 print("Array keys (indices):", colors_json.keys())
 print("Array values:", colors_json.values())
 
-// Access array elements
+# Access array elements
 print("First color:", colors_json.get(0))
 print("Last color:", colors_json.get(3))
 
 print()
 
-// 8. JSON Merging
+# 8. JSON Merging
 print("8. JSON Merging:")
 print("----------------")
 
-// Create additional user data
+# Create additional user data
 additional_data = json_parse("{
   \"department\": \"Engineering\",
   \"salary\": 95000,
   \"skills\": [\"JavaScript\", \"Python\", \"Rush\"]
 }")
 
-// Merge objects
+# Merge objects
 complete_user = user.merge(additional_data)
 print("Merged user keys:", complete_user.keys())
 print("User department:", complete_user.get("department"))
@@ -157,11 +157,11 @@ print("User skills:", complete_user.get("skills").data)
 
 print()
 
-// 9. JSON Serialization and Formatting
+# 9. JSON Serialization and Formatting
 print("9. JSON Serialization and Formatting:")
 print("------------------------------------")
 
-// Convert Rush data to JSON
+# Convert Rush data to JSON
 rush_data = {
   "language": "Rush",
   "version": "1.0",
@@ -172,18 +172,18 @@ rush_data = {
   }
 }
 
-// Stringify Rush data structures
+# Stringify Rush data structures
 json_string = json_stringify(rush_data)
 print("Rush data as JSON:", json_string)
 
-// Parse it back and format prettily
+# Parse it back and format prettily
 parsed_back = json_parse(json_string)
 print("Pretty formatted Rush data:")
 print(parsed_back.pretty("    "))
 
 print()
 
-// 10. Compact vs Pretty JSON
+# 10. Compact vs Pretty JSON
 print("10. JSON Formatting Options:")
 print("-----------------------------")
 
@@ -197,11 +197,11 @@ print(sample_object.pretty("...."))
 
 print()
 
-// 11. Method Chaining Examples
+# 11. Method Chaining Examples
 print("11. Method Chaining:")
 print("-------------------")
 
-// Complex method chaining for data transformation
+# Complex method chaining for data transformation
 api_response = json_parse("{
   \"status\": \"success\",
   \"data\": {
@@ -213,14 +213,14 @@ api_response = json_parse("{
   }
 }")
 
-// Chain methods to extract and process data
+# Chain methods to extract and process data
 first_user_name = api_response.path("data.users.0.name")
 user_count = api_response.path("data.users").length()
 
 print("First user name:", first_user_name)
 print("Total user count:", user_count)
 
-// Create a summary object using chaining
+# Create a summary object using chaining
 summary = json_parse("{}")
            .set("total_users", user_count)
            .set("first_user", first_user_name)
@@ -231,15 +231,15 @@ print(summary.pretty())
 
 print()
 
-// 12. Error Handling and Validation
+# 12. Error Handling and Validation
 print("12. Error Handling:")
 print("------------------")
 
-// All valid JSON objects return true for validation
+# All valid JSON objects return true for validation
 print("Valid JSON validation:", user.validate())
 print("Another valid JSON validation:", colors_json.validate())
 
-// JSON objects are always considered valid since they were successfully parsed
+# JSON objects are always considered valid since they were successfully parsed
 sample_json = json_parse("\"simple string\"")
 print("Simple string JSON validation:", sample_json.validate())
 

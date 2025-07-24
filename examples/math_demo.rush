@@ -14,7 +14,7 @@ print("min(10, 5, 8) =", min(10, 5, 8))
 print("max(10, 5, 8) =", max(10, 5, 8))
 
 print("\n=== Rounding Functions ===")
-let value = 3.7
+value = 3.7
 print("Original value:", value)
 print("floor(3.7) =", floor(value))
 print("ceil(3.7) =", ceil(value))
@@ -30,12 +30,12 @@ print("random() =", random())
 print("random_int(1, 10) =", random_int(1, 10))
 
 print("\n=== Array Math Operations ===")
-let numbers = [1, 2, 3, 4, 5]
+numbers = [1, 2, 3, 4, 5]
 print("Array:", numbers)
 print("sum(numbers) =", sum(numbers))
 print("average(numbers) =", average(numbers))
 
-let mixed_numbers = [1.5, 2, 3.14]
+mixed_numbers = [1.5, 2, 3.14]
 print("Mixed array:", mixed_numbers)
 print("sum(mixed) =", sum(mixed_numbers))
 print("average(mixed) =", average(mixed_numbers))
@@ -49,16 +49,16 @@ print("is_integer?(3.14) =", is_integer?(3.14))
 
 print("\n=== Calculations ===")
 # Calculate area of a circle
-let radius = 5
-let area = PI * pow(radius, 2)
+radius = 5
+area = PI * pow(radius, 2)
 print("Circle area (radius", radius, ") =", area)
 
 # Calculate distance between two points
-let x1 = 3
-let y1 = 4
-let x2 = 0
-let y2 = 0
-let distance = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2))
+x1 = 3
+y1 = 4
+x2 = 0
+y2 = 0
+distance = sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2))
 print("Distance from (", x1, ",", y1, ") to (", x2, ",", y2, ") =", distance)
 
 print("\n=== Error Handling Examples ===")
