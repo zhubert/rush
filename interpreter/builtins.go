@@ -9,6 +9,60 @@ import (
 	"time"
 )
 
+// Builtins is a list of builtin function names for the compiler
+var Builtins = []string{
+	"JSON",
+	"Time", 
+	"Duration",
+	"TimeZone",
+	"len",
+	"print",
+	"type",
+	"ord",
+	"chr", 
+	"substr",
+	"split",
+	"push",
+	"pop",
+	"slice",
+	"Error",
+	"ValidationError", 
+	"TypeError",
+	"IndexError",
+	"ArgumentError",
+	"RuntimeError",
+	"to_string",
+	"builtin_abs",
+	"builtin_min",
+	"builtin_max",
+	"builtin_floor", 
+	"builtin_ceil",
+	"builtin_round",
+	"builtin_sqrt",
+	"builtin_pow",
+	"builtin_random",
+	"builtin_random_int",
+	"builtin_sum", 
+	"builtin_average",
+	"builtin_hash_keys",
+	"builtin_hash_values",
+	"builtin_hash_has_key",
+	"builtin_hash_get",
+	"builtin_hash_set",
+	"builtin_hash_delete",
+	"builtin_hash_merge",
+	"array_to_hash",
+	"file",
+	"directory", 
+	"path",
+}
+
+// GetBuiltin returns a builtin function by name
+func GetBuiltin(name string) (*BuiltinFunction, bool) {
+	builtin, ok := builtins[name]
+	return builtin, ok
+}
+
 var builtins = map[string]*BuiltinFunction{
 	"JSON": {
 		Fn: func(args ...Value) Value {

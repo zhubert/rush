@@ -1,0 +1,10 @@
+x = 15
+y = 25
+result = x + y
+print("Sum:", result)
+
+arr = [1, 2, 3]
+print("Array:", arr)
+
+person = {"name": "Alice", "age": 30}
+print("Person:", person)

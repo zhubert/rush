@@ -20,6 +20,8 @@ const (
 	NULL_VALUE     ValueType = "NULL"
 	FUNCTION_VALUE  ValueType = "FUNCTION"
 	BUILTIN_VALUE   ValueType = "BUILTIN"
+	COMPILED_FUNCTION_VALUE ValueType = "COMPILED_FUNCTION"
+	CLOSURE_VALUE   ValueType = "CLOSURE"
 	RETURN_VALUE    ValueType = "RETURN_VALUE"
 	BREAK_VALUE     ValueType = "BREAK_VALUE"
 	CONTINUE_VALUE  ValueType = "CONTINUE_VALUE"
@@ -486,4 +488,27 @@ var (
 // NewException creates a new exception for error propagation
 func NewException(error Value) *Exception {
 	return &Exception{Error: error}
+}
+
+// CompiledFunction represents a compiled function
+type CompiledFunction struct {
+	Instructions  []byte // Bytecode instructions
+	NumLocals     int
+	NumParameters int
+}
+
+func (cf *CompiledFunction) Type() ValueType { return COMPILED_FUNCTION_VALUE }
+func (cf *CompiledFunction) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", cf)
+}
+
+// Closure represents a closure (function with captured variables)
+type Closure struct {
+	Fn   *CompiledFunction
+	Free []Value
+}
+
+func (c *Closure) Type() ValueType { return CLOSURE_VALUE }
+func (c *Closure) Inspect() string {
+	return fmt.Sprintf("Closure[%p]", c)
 }
