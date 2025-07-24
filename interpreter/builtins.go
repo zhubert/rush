@@ -15,6 +15,21 @@ var builtins = map[string]*BuiltinFunction{
 			return &JSONNamespace{}
 		},
 	},
+	"Time": {
+		Fn: func(args ...Value) Value {
+			return &TimeNamespace{}
+		},
+	},
+	"Duration": {
+		Fn: func(args ...Value) Value {
+			return &DurationNamespace{}
+		},
+	},
+	"TimeZone": {
+		Fn: func(args ...Value) Value {
+			return &TimeZoneNamespace{}
+		},
+	},
 	"len": {
 		Fn: func(args ...Value) Value {
 			if len(args) != 1 {
