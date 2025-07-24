@@ -11,15 +11,15 @@ number_guessing_game = fn() {
   attempts = 0
   
   print("  I'm thinking of a number between 1 and 100...")
-  print("  Secret number: " + type(secret))
+  print("  Secret number: " + secret)
   
   for (i = 0; i < len(guesses); i = i + 1) {
     guess = guesses[i]
     attempts = attempts + 1
-    print("  Attempt " + type(attempts) + ": Guess " + type(guess))
+    print("  Attempt " + attempts + ": Guess " + guess)
     
     if (guess == secret) {
-      print("  🎉 Correct! You found it in " + type(attempts) + " attempts!")
+      print("  🎉 Correct! You found it in " + attempts + " attempts!")
       return attempts
     } else {
       if (guess < secret) {
@@ -30,7 +30,7 @@ number_guessing_game = fn() {
     }
   }
   
-  print("  Game over! The number was " + type(secret))
+  print("  Game over! The number was " + secret)
   return -1
 }
 
@@ -88,9 +88,9 @@ for (i = 0; i < len(tournament_matches); i = i + 1) {
 }
 
 print("  Tournament Results:")
-print("    Player 1: " + type(player1_wins) + " wins")
-print("    Player 2: " + type(player2_wins) + " wins")
-print("    Ties: " + type(ties))
+print("    Player 1: " + player1_wins + " wins")
+print("    Player 2: " + player2_wins + " wins")
+print("    Ties: " + ties)
 
 # 3. TIC-TAC-TOE GAME SIMULATION
 print("\n3. Tic-Tac-Toe Game:")
@@ -110,7 +110,7 @@ print_board = fn(board) {
 check_winner = fn(board) {
   # Check rows, columns, and diagonals
   winning_combinations = [
-    [0, 1, 2], [3, 4, 5], [7, 8, 9],  # Rows
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],  # Rows
     [0, 3, 6], [1, 4, 7], [2, 5, 8],  # Columns
     [0, 4, 8], [2, 4, 6]              # Diagonals
   ]
@@ -147,7 +147,7 @@ for (i = 0; i < len(moves); i = i + 1) {
   player_symbol = if (current_player == 1) { "X" } else { "O" }
   
   if (make_move(board, position, current_player)) {
-    print("  Player " + player_symbol + " moves to position " + type(position))
+    print("  Player " + player_symbol + " moves to position " + position)
     print_board(board)
     
     winner = check_winner(board)
@@ -180,12 +180,12 @@ simulate_dice_rolls = fn(num_rolls) {
 
 num_rolls = 100
 dice_results = simulate_dice_rolls(num_rolls)
-print("  Rolling dice " + type(num_rolls) + " times:")
+print("  Rolling dice " + num_rolls + " times:")
 for (i = 0; i < len(dice_results); i = i + 1) {
   face = i + 1
   count = dice_results[i]
   percentage = (count * 100) / num_rolls
-  print("    Face " + type(face) + ": " + type(count) + " times (" + type(percentage) + "%)")
+  print("    Face " + face + ": " + count + " times (" + percentage + "%)")
 }
 
 # 5. SIMPLE CARD GAME (War)
@@ -251,17 +251,17 @@ play_war_round = fn(hands) {
 deck = create_deck()
 hands = deal_cards(deck, 2)
 print("  Dealing cards to 2 players...")
-print("  Player 1 hand size: " + type(len(hands[0])))
-print("  Player 2 hand size: " + type(len(hands[1])))
+print("  Player 1 hand size: " + len(hands[0]))
+print("  Player 2 hand size: " + len(hands[1]))
 
 print("  Playing 5 rounds:")
 for (round = 1; round <= 5; round = round + 1) {
   result = play_war_round(hands)
   winner = result[0]
   cards = result[1]
-  print("    Round " + type(round) + ": P1 plays " + type(cards[0]) + ", P2 plays " + type(cards[1]))
+  print("    Round " + round + ": P1 plays " + cards[0] + ", P2 plays " + cards[1])
   if (winner >= 0) {
-    print("      Player " + type(winner + 1) + " wins the round!")
+    print("      Player " + (winner + 1) + " wins the round!")
   } else {
     print("      It's a tie!")
   }
@@ -360,7 +360,7 @@ print_maze(maze, width, empty_path)
 path = find_path(maze, width, start_pos, end_pos)
 print("  Path found (* = path):")
 print_maze(maze, width, path)
-print("  Path length: " + type(len(path)) + " steps")
+print("  Path length: " + len(path) + " steps")
 
 print("\n=== Games Demo Complete! ===")
 print("Demonstrated games and simulations:")
