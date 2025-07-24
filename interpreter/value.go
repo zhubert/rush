@@ -207,6 +207,7 @@ type Class struct {
   Name       string
   SuperClass *Class
   Methods    map[string]*Function
+  CompiledMethods map[string]*CompiledFunction // For bytecode compilation
   Env        *Environment
 }
 

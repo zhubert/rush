@@ -20,6 +20,7 @@ type Frame struct {
 	cl          *interpreter.Closure // Closure being executed
 	ip          int                  // Instruction pointer
 	basePointer int                  // Base pointer for local variables
+	self        *interpreter.Object  // Current object context for instance variables
 }
 
 // NewFrame creates a new call frame
@@ -28,6 +29,17 @@ func NewFrame(cl *interpreter.Closure, basePointer int) *Frame {
 		cl:          cl,
 		ip:          -1,
 		basePointer: basePointer,
+		self:        nil, // No object context by default
+	}
+}
+
+// NewFrameWithSelf creates a new call frame with object context
+func NewFrameWithSelf(cl *interpreter.Closure, basePointer int, self *interpreter.Object) *Frame {
+	return &Frame{
+		cl:          cl,
+		ip:          -1,
+		basePointer: basePointer,
+		self:        self,
 	}
 }
 
@@ -393,6 +405,149 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case bytecode.OpClass:
+			nameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			methodCount := int(ins[ip+3])
+			vm.currentFrame().ip += 3
+			
+			className := vm.constants[nameIndex].(*interpreter.String).Value
+			
+			// Create new class
+			class := &interpreter.Class{
+				Name:            className,
+				Methods:         make(map[string]*interpreter.Function), // For interpreter compatibility
+				CompiledMethods: make(map[string]*interpreter.CompiledFunction),
+				SuperClass:      nil,
+			}
+			
+			err := vm.push(class)
+			if err != nil {
+				return err
+			}
+			
+			// The methodCount parameter is for future use
+			_ = methodCount
+
+		case bytecode.OpInherit:
+			// Pop superclass and current class
+			superClass := vm.pop()
+			currentClass := vm.pop()
+			
+			// Set inheritance
+			if class, ok := currentClass.(*interpreter.Class); ok {
+				if super, ok := superClass.(*interpreter.Class); ok {
+					class.SuperClass = super
+				} else {
+					return fmt.Errorf("superclass must be a class, got %T", superClass)
+				}
+			} else {
+				return fmt.Errorf("inheritance target must be a class, got %T", currentClass)
+			}
+			
+			// Push class back on stack
+			err := vm.push(currentClass)
+			if err != nil {
+				return err
+			}
+
+		case bytecode.OpMethod:
+			methodNameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			
+			methodName := vm.constants[methodNameIndex].(*interpreter.String).Value
+			
+			// Get closure and class from stack
+			closure := vm.pop()
+			currentClass := vm.pop()
+			
+			if class, ok := currentClass.(*interpreter.Class); ok {
+				if closureObj, ok := closure.(*interpreter.Closure); ok {
+					// Store compiled method in class
+					class.CompiledMethods[methodName] = closureObj.Fn
+				} else {
+					return fmt.Errorf("method must be a closure, got %T", closure)
+				}
+			} else {
+				return fmt.Errorf("method definition target must be a class, got %T", currentClass)
+			}
+			
+			// Push class back on stack
+			err := vm.push(currentClass)
+			if err != nil {
+				return err
+			}
+
+		case bytecode.OpInvoke:
+			methodNameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			numArgs := int(ins[ip+3])
+			vm.currentFrame().ip += 3
+			
+			methodName := vm.constants[methodNameIndex].(*interpreter.String).Value
+			
+			// Get object and arguments from stack
+			args := make([]interpreter.Value, numArgs)
+			for i := numArgs - 1; i >= 0; i-- {
+				args[i] = vm.pop()
+			}
+			object := vm.pop()
+			
+			err := vm.executeMethodCall(object, methodName, args)
+			if err != nil {
+				return err
+			}
+
+		case bytecode.OpGetInstance:
+			varNameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			
+			varName := vm.constants[varNameIndex].(*interpreter.String).Value
+			
+			// Get current object context from frame
+			currentFrame := vm.currentFrame()
+			if currentFrame.self == nil {
+				return fmt.Errorf("instance variable @%s used outside of object context", varName)
+			}
+			
+			// Get instance variable from the object
+			if value, exists := currentFrame.self.InstanceVars[varName]; exists {
+				err := vm.push(value)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Instance variable not set yet, return NULL
+				err := vm.push(interpreter.NULL)
+				if err != nil {
+					return err
+				}
+			}
+
+		case bytecode.OpSetInstance:
+			varNameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			
+			varName := vm.constants[varNameIndex].(*interpreter.String).Value
+			value := vm.pop()
+			
+			// Get current object context from frame
+			currentFrame := vm.currentFrame()
+			if currentFrame.self == nil {
+				return fmt.Errorf("instance variable @%s assigned outside of object context", varName)
+			}
+			
+			// Set instance variable on the object
+			currentFrame.self.InstanceVars[varName] = value
+
+		case bytecode.OpGetSuper:
+			methodNameIndex := int(bytecode.ReadUint16(ins[ip+1:]))
+			vm.currentFrame().ip += 2
+			
+			methodName := vm.constants[methodNameIndex].(*interpreter.String).Value
+			
+			// Get super method - needs proper class context tracking
+			_ = methodName
+			return fmt.Errorf("super method access requires class context")
+
 		default:
 			return fmt.Errorf("unknown opcode: %d", op)
 		}
@@ -404,6 +559,9 @@ func (vm *VM) Run() error {
 // Helper methods
 
 func (vm *VM) push(o interpreter.Value) error {
+	if vm.sp < 0 {
+		panic(fmt.Sprintf("stack pointer negative before push: sp=%d", vm.sp))
+	}
 	if vm.sp >= StackSize {
 		return fmt.Errorf("stack overflow")
 	}
@@ -415,6 +573,9 @@ func (vm *VM) push(o interpreter.Value) error {
 }
 
 func (vm *VM) pop() interpreter.Value {
+	if vm.sp <= 0 {
+		panic(fmt.Sprintf("stack underflow: sp=%d", vm.sp))
+	}
 	o := vm.stack[vm.sp-1]
 	vm.sp--
 	return o
@@ -743,6 +904,8 @@ func (vm *VM) executePropertyAccess(object interpreter.Value, propertyName strin
 		return vm.executeNumberProperty(obj, propertyName)
 	case *interpreter.Float:
 		return vm.executeNumberProperty(obj, propertyName)
+	case *interpreter.Object:
+		return vm.executeObjectProperty(obj, propertyName)
 	default:
 		return fmt.Errorf("property access not supported for type: %T", object)
 	}
@@ -854,6 +1017,47 @@ func (vm *VM) executeNumberProperty(num interpreter.Value, propertyName string) 
 	}
 }
 
+func (vm *VM) executeObjectProperty(obj *interpreter.Object, propertyName string) error {
+	// Check if the method exists in the class
+	class := obj.Class
+	if method, ok := class.CompiledMethods[propertyName]; ok {
+		// Create a bound method-like structure for the object
+		// For now, we'll push a closure that calls the method with the object context
+		closure := &interpreter.Closure{Fn: method}
+		
+		// We need to create a bound method that carries the object context
+		// For bytecode execution, we'll use a custom bound method type
+		boundMethod := &ObjectBoundMethod{
+			Object: obj,
+			Method: closure,
+		}
+		return vm.push(boundMethod)
+	}
+	
+	// Try superclass methods
+	if class.SuperClass != nil {
+		if method, ok := class.SuperClass.CompiledMethods[propertyName]; ok {
+			closure := &interpreter.Closure{Fn: method}
+			boundMethod := &ObjectBoundMethod{
+				Object: obj,
+				Method: closure,
+			}
+			return vm.push(boundMethod)
+		}
+	}
+	
+	return fmt.Errorf("undefined method '%s' for class %s", propertyName, class.Name)
+}
+
+// ObjectBoundMethod represents a method bound to an object for bytecode execution
+type ObjectBoundMethod struct {
+	Object *interpreter.Object
+	Method *interpreter.Closure
+}
+
+func (obm *ObjectBoundMethod) Type() interpreter.ValueType { return "OBJECT_BOUND_METHOD" }
+func (obm *ObjectBoundMethod) Inspect() string { return "bound method" }
+
 func (vm *VM) executeCall(numArgs int) error {
 	callee := vm.stack[vm.sp-1-numArgs]
 
@@ -870,6 +1074,10 @@ func (vm *VM) executeCall(numArgs int) error {
 		return vm.callHashMethod(callee, numArgs)
 	case *interpreter.NumberMethod:
 		return vm.callNumberMethod(callee, numArgs)
+	case *interpreter.Class:
+		return vm.callClassConstructor(callee, numArgs)
+	case *ObjectBoundMethod:
+		return vm.callObjectBoundMethod(callee, numArgs)
 	default:
 		return fmt.Errorf("calling non-function and non-builtin: %T", callee)
 	}
@@ -882,6 +1090,20 @@ func (vm *VM) callClosure(cl *interpreter.Closure, numArgs int) error {
 	}
 
 	frame := NewFrame(cl, vm.sp-numArgs)
+	vm.pushFrame(frame)
+
+	vm.sp = frame.basePointer + cl.Fn.NumLocals
+
+	return nil
+}
+
+func (vm *VM) callClosureWithSelf(cl *interpreter.Closure, numArgs int, self *interpreter.Object) error {
+	if numArgs != cl.Fn.NumParameters {
+		return fmt.Errorf("wrong number of parameters: want=%d, got=%d",
+			cl.Fn.NumParameters, numArgs)
+	}
+
+	frame := NewFrameWithSelf(cl, vm.sp-numArgs, self)
 	vm.pushFrame(frame)
 
 	vm.sp = frame.basePointer + cl.Fn.NumLocals
@@ -1071,6 +1293,69 @@ func (vm *VM) callNumberMethod(method *interpreter.NumberMethod, numArgs int) er
 	return vm.push(result)
 }
 
+func (vm *VM) callClassConstructor(class *interpreter.Class, numArgs int) error {
+	// Create new instance
+	instance := &interpreter.Object{
+		Class:        class,
+		InstanceVars: make(map[string]interpreter.Value),
+	}
+	
+	// Pop arguments from stack
+	args := make([]interpreter.Value, numArgs)
+	for i := numArgs - 1; i >= 0; i-- {
+		args[i] = vm.pop()
+	}
+	
+	// Pop class from stack
+	vm.pop()
+	
+	// Call initialize method if it exists
+	if initMethod, ok := class.CompiledMethods["initialize"]; ok {
+		// Push arguments back on stack
+		for _, arg := range args {
+			err := vm.push(arg)
+			if err != nil {
+				return err
+			}
+		}
+		
+		// Create closure and call initialize method with instance context
+		closure := &interpreter.Closure{Fn: initMethod}
+		err := vm.callClosureWithSelf(closure, numArgs, instance)
+		if err != nil {
+			return err
+		}
+		
+		// Pop the return value from initialize method
+		vm.pop()
+	}
+	
+	// Push new instance on stack
+	return vm.push(instance)
+}
+
+func (vm *VM) callObjectBoundMethod(boundMethod *ObjectBoundMethod, numArgs int) error {
+	// Pop arguments from stack
+	args := make([]interpreter.Value, numArgs)
+	for i := numArgs - 1; i >= 0; i-- {
+		args[i] = vm.pop()
+	}
+	
+	// Pop the bound method from stack
+	vm.pop()
+	
+	// Push arguments back on stack
+	for _, arg := range args {
+		err := vm.push(arg)
+		if err != nil {
+			return err
+		}
+	}
+	
+	// Call the method with the object context
+	return vm.callClosureWithSelf(boundMethod.Method, numArgs, boundMethod.Object)
+}
+
 func nativeBoolToPushBool(input bool) interpreter.Value {
 	if input {
 		return interpreter.TRUE
@@ -1078,7 +1363,102 @@ func nativeBoolToPushBool(input bool) interpreter.Value {
 	return interpreter.FALSE
 }
 
+// Helper function for debugging
+func getMethodNames(methods map[string]*interpreter.CompiledFunction) []string {
+	names := make([]string, 0, len(methods))
+	for name := range methods {
+		names = append(names, name)
+	}
+	return names
+}
+
 // LastPoppedStackElem returns the last popped element (for testing)
 func (vm *VM) LastPoppedStackElem() interpreter.Value {
 	return vm.stack[vm.sp]
+}
+
+// executeMethodCall handles method invocation on objects
+func (vm *VM) executeMethodCall(object interpreter.Value, methodName string, args []interpreter.Value) error {
+	switch obj := object.(type) {
+	case *interpreter.Object:
+		// Instance method call
+		class := obj.Class
+		method, ok := class.CompiledMethods[methodName]
+		if !ok {
+			// Try superclass
+			if class.SuperClass != nil {
+				method, ok = class.SuperClass.CompiledMethods[methodName]
+			}
+			if !ok {
+				return fmt.Errorf("undefined method '%s' for class %s", methodName, class.Name)
+			}
+		}
+		
+		// Create closure and call it
+		closure := &interpreter.Closure{Fn: method}
+		
+		// Push arguments back on stack in reverse order
+		for i := len(args) - 1; i >= 0; i-- {
+			err := vm.push(args[i])
+			if err != nil {
+				return err
+			}
+		}
+		
+		// Push closure on stack
+		err := vm.push(closure)
+		if err != nil {
+			return err
+		}
+		
+		// Call the method with object context
+		return vm.callClosureWithSelf(closure, len(args), obj)
+		
+	case *interpreter.Class:
+		// Class method call (constructor)
+		if methodName == "new" {
+			// Create new instance
+			instance := &interpreter.Object{
+				Class:        obj,
+				InstanceVars: make(map[string]interpreter.Value),
+			}
+			
+			// Call initialize method if it exists
+			if initMethod, ok := obj.CompiledMethods["initialize"]; ok {
+				// Set up method call context with instance as 'self'
+				closure := &interpreter.Closure{Fn: initMethod}
+				
+				// Push arguments
+				for i := len(args) - 1; i >= 0; i-- {
+					err := vm.push(args[i])
+					if err != nil {
+						return err
+					}
+				}
+				
+				// Push closure
+				err := vm.push(closure)
+				if err != nil {
+					return err
+				}
+				
+				// Call initialize method with instance context
+				err = vm.callClosureWithSelf(closure, len(args), instance)
+				if err != nil {
+					return err
+				}
+				
+				// Pop the return value and replace with instance
+				vm.pop() // Remove return value
+			}
+			
+			// Push new instance
+			return vm.push(instance)
+		}
+		
+		return fmt.Errorf("undefined class method '%s' for class %s", methodName, obj.Name)
+		
+	default:
+		return fmt.Errorf("cannot call method on %T", object)
+	}
 }

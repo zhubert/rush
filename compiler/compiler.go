@@ -277,8 +277,18 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
-		symbol := c.symbolTable.Define(node.Name.Value)
-		c.storeSymbol(symbol)
+		// Check if this is an instance variable assignment
+		if len(node.Name.Value) > 0 && node.Name.Value[0] == '@' {
+			// Instance variable assignment: @name = value
+			varName := node.Name.Value[1:] // Remove @ prefix
+			varNameStr := &interpreter.String{Value: varName}
+			varNameIndex := c.addConstant(varNameStr)
+			c.emit(bytecode.OpSetInstance, varNameIndex)
+		} else {
+			// Regular variable assignment
+			symbol := c.symbolTable.Define(node.Name.Value)
+			c.storeSymbol(symbol)
+		}
 
 	case *ast.IndexExpression:
 		err := c.Compile(node.Left)
@@ -651,6 +661,137 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// Then access the member
 		memberName := &interpreter.String{Value: node.Member.Value}
 		c.emit(bytecode.OpGetProperty, c.addConstant(memberName))
+
+	case *ast.ClassDeclaration:
+		// Create class name constant
+		className := &interpreter.String{Value: node.Name.Value}
+		classNameIndex := c.addConstant(className)
+		
+		// Get methods from the class body
+		var methods []*ast.MethodDeclaration
+		if node.Body != nil {
+			for _, stmt := range node.Body.Statements {
+				if method, ok := stmt.(*ast.MethodDeclaration); ok {
+					methods = append(methods, method)
+				}
+			}
+		}
+		
+		// Handle superclass if present
+		if node.SuperClass != nil {
+			// Load superclass
+			superSymbol, ok := c.symbolTable.Resolve(node.SuperClass.Value)
+			if !ok {
+				return fmt.Errorf("undefined superclass %s", node.SuperClass.Value)
+			}
+			c.loadSymbol(superSymbol)
+			
+			// Create class with inheritance
+			c.emit(bytecode.OpClass, classNameIndex, len(methods))
+			c.emit(bytecode.OpInherit)
+		} else {
+			// Create class without inheritance
+			c.emit(bytecode.OpClass, classNameIndex, len(methods))
+		}
+		
+		// Compile methods
+		for _, method := range methods {
+			// Enter new scope for method compilation
+			c.enterScope()
+			
+			// Define parameters as local variables
+			for _, p := range method.Parameters {
+				c.symbolTable.Define(p.Value)
+			}
+			
+			// Compile method body
+			err := c.Compile(method.Body)
+			if err != nil {
+				return err
+			}
+			
+			// Handle method return
+			if c.lastInstructionIs(bytecode.OpPop) {
+				c.replaceLastPopWithReturn()
+			}
+			if !c.lastInstructionIs(bytecode.OpReturn) {
+				c.emit(bytecode.OpReturnVoid)
+			}
+			
+			// Get method instructions and leave scope
+			freeSymbols := c.symbolTable.FreeSymbols
+			numLocals := c.symbolTable.numDefinitions
+			instructions := c.leaveScope()
+			
+			// Load free variables
+			for _, s := range freeSymbols {
+				c.loadSymbol(s)
+			}
+			
+			// Create compiled method and push to constants
+			compiledMethod := &interpreter.CompiledFunction{
+				Instructions:  []byte(instructions),
+				NumLocals:     numLocals,
+				NumParameters: len(method.Parameters),
+			}
+			
+			// Push compiled method as closure
+			methodIndex := c.addConstant(compiledMethod)
+			c.emit(bytecode.OpClosure, methodIndex, len(freeSymbols))
+			
+			// Create method name constant and emit OpMethod
+			methodName := &interpreter.String{Value: method.Name.Value}
+			methodNameIndex := c.addConstant(methodName)
+			c.emit(bytecode.OpMethod, methodNameIndex)
+		}
+		
+		// Define class in symbol table
+		symbol := c.symbolTable.Define(node.Name.Value)
+		c.storeSymbol(symbol)
+
+	case *ast.NewExpression:
+		// Load class constructor
+		classSymbol, ok := c.symbolTable.Resolve(node.ClassName.Value)
+		if !ok {
+			return fmt.Errorf("undefined class %s", node.ClassName.Value)
+		}
+		c.loadSymbol(classSymbol)
+		
+		// Compile constructor arguments
+		for _, arg := range node.Arguments {
+			err := c.Compile(arg)
+			if err != nil {
+				return err
+			}
+		}
+		
+		// Call constructor (similar to function call but for class instantiation)
+		c.emit(bytecode.OpCall, len(node.Arguments))
+
+	case *ast.InstanceVariable:
+		// Instance variable access using @ syntax
+		varName := &interpreter.String{Value: node.Name.Value}
+		varNameIndex := c.addConstant(varName)
+		c.emit(bytecode.OpGetInstance, varNameIndex)
+
+	case *ast.SuperExpression:
+		// Super method call: super(args...)
+		// The method name should be available from the context (current method being compiled)
+		// For now, we'll use a placeholder - this might need to be enhanced with context tracking
+		methodName := &interpreter.String{Value: "initialize"} // Default to constructor
+		methodNameIndex := c.addConstant(methodName)
+		
+		// Compile arguments
+		for _, arg := range node.Arguments {
+			err := c.Compile(arg)
+			if err != nil {
+				return err
+			}
+		}
+		
+		// Emit super call
+		c.emit(bytecode.OpGetSuper, methodNameIndex)
+		c.emit(bytecode.OpCall, len(node.Arguments))
 
 	default:
 		return fmt.Errorf("compilation not implemented for %T", node)
