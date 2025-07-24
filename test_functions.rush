@@ -1,0 +1,13 @@
+add = fn(a, b) {
+    a + b
+}
+
+result = add(10, 20)
+print("Add result:", result)
+
+multiply = fn(x, y) {
+    x * y
+}
+
+product = multiply(6, 7)
+print("Product:", product)

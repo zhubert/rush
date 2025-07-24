@@ -1,0 +1,16 @@
+person = {"name": "Alice", "age": 30}
+print("Person:", person)
+print("Keys:", person.keys)
+print("Values:", person.values)
+print("Size:", person.length)
+print("Has name:", person.has_key("name"))
+print("Has city:", person.has_key("city"))
+
+numbers = [1, -5, 3, -2]
+print("Numbers:", numbers)
+print("First number:", numbers.first)
+print("Last number:", numbers.last)
+
+num = -42
+print("Number:", num)
+print("Absolute value:", num.abs())
