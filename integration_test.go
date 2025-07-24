@@ -219,6 +219,7 @@ print(result)
         line = strings.TrimSpace(line)
         if line != "" && 
            !strings.HasPrefix(line, "Rush interpreter") && 
+           !strings.HasPrefix(line, "Rush tree-walking interpreter") && 
            line != "Result: null" && 
            !strings.HasPrefix(line, "Execution complete!") {
           printedLines = append(printedLines, line)
@@ -1362,6 +1363,7 @@ print("Formatted:", formatted)`,
         line = strings.TrimSpace(line)
         if line != "" && 
            !strings.HasPrefix(line, "Rush interpreter") && 
+           !strings.HasPrefix(line, "Rush tree-walking interpreter") && 
            line != "Result: null" && 
            !strings.HasPrefix(line, "Execution complete!") {
           printedLines = append(printedLines, line)

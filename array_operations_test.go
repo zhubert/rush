@@ -159,7 +159,7 @@ print(reversed)
 			lines := strings.Split(strings.TrimSpace(output.String()), "\n")
 			var actual string
 			for _, line := range lines {
-				if !strings.Contains(line, "Rush interpreter") && !strings.Contains(line, "Execution complete") && !strings.Contains(line, "Result:") {
+				if !strings.Contains(line, "Rush interpreter") && !strings.Contains(line, "Rush tree-walking interpreter") && !strings.Contains(line, "Execution complete") && !strings.Contains(line, "Result:") {
 					if strings.TrimSpace(line) != "" {
 						actual = strings.TrimSpace(line)
 						break
