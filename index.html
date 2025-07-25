@@ -285,7 +285,7 @@
                     Rush is a modern, dynamically-typed programming language built with Go and 
                     <strong>written entirely by Agentic AI</strong>. It combines clean, readable syntax 
                     with powerful features like first-class functions, object-oriented programming, 
-                    regular expressions, and a comprehensive standard library. 
+                    regular expressions, and dot notation methods with method chaining support. 
                 </p>
                 <p>
                     Featuring a <strong>dual-execution architecture</strong> with both interpreter and 
@@ -340,8 +340,8 @@ for (i = 0; i < len(languages); i = i + 1) {
                         <p>Variables can hold any type of value, making development fast and flexible.</p>
                     </div>
                     <div class="feature">
-                        <h3>🧰 Rich Standard Library</h3>
-                        <p>Comprehensive modules for math, string manipulation, arrays, and collections out of the box.</p>
+                        <h3>🧰 Dot Notation Methods</h3>
+                        <p>Built-in methods on all core types with method chaining support for strings, arrays, numbers, and collections.</p>
                     </div>
                     <div class="feature">
                         <h3>🏗️ Object-Oriented</h3>
@@ -413,21 +413,29 @@ print(buddy.speak())  # "Buddy barks!"</code></pre>
                 </div>
 
                 <div class="code-example">
-                    <div class="code-header">Standard Library Power</div>
+                    <div class="code-header">Dot Notation Methods</div>
                     <div class="code-content">
-                        <pre><code class="language-javascript"># Rich standard library modules
-import { map, filter, reduce } from "std/array"
-import { trim, upper, contains? } from "std/string"
-import { sqrt, PI, max } from "std/math"
+                        <pre><code class="language-javascript"># Rich dot notation methods built into core types
+import { PI, max } from "std/math"  # Constants and multi-value operations
 
 numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+text = "  Hello, Rush!  "
 
-# Functional programming with arrays
-evens = filter(numbers, fn(x) { x % 2 == 0 })
-doubled = map(evens, fn(x) { x * 2 })
-sum = reduce(doubled, fn(acc, x) { acc + x }, 0)
+# Method chaining with arrays
+result = numbers.filter(fn(x) { x % 2 == 0 })
+               .map(fn(x) { x * 2 })
+               .reduce(fn(acc, x) { acc + x }, 0)
 
-print("Sum of doubled evens:", sum)  # 60</code></pre>
+# String methods with dot notation
+clean_text = text.trim().upper()
+contains_rush = text.contains?("Rush")
+
+# Number methods with dot notation  
+pi_sqrt = PI.sqrt()
+absolute_value = (-42).abs()
+
+print("Sum of doubled evens:", result)  # 60
+print("Clean text:", clean_text)  # "HELLO, RUSH!"</code></pre>
                     </div>
                 </div>
 
