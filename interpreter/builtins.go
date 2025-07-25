@@ -17,6 +17,7 @@ var Builtins = []string{
 	"TimeZone",
 	"len",
 	"print",
+	"puts",
 	"type",
 	"ord",
 	"chr", 
@@ -103,6 +104,22 @@ var builtins = map[string]*BuiltinFunction{
 		},
 	},
 	"print": {
+		Fn: func(args ...Value) Value {
+			for i, arg := range args {
+				if i > 0 {
+					fmt.Print(" ")
+				}
+				if arg.Type() == STRING_VALUE {
+					fmt.Print(arg.(*String).Value)
+				} else {
+					fmt.Print(arg.Inspect())
+				}
+			}
+			fmt.Println()
+			return NULL
+		},
+	},
+	"puts": {
 		Fn: func(args ...Value) Value {
 			for i, arg := range args {
 				if i > 0 {
@@ -231,7 +248,7 @@ var builtins = map[string]*BuiltinFunction{
 
 			arr, ok := args[0].(*Array)
 			if !ok {
-				return newError("first argument to `push` must be ARRAY, got %s", args[0].Type())
+				return newError("argument to `push` must be ARRAY, got %s", args[0].Type())
 			}
 
 			newElements := make([]Value, len(arr.Elements)+1)

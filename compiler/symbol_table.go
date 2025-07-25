@@ -81,8 +81,12 @@ func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 			return obj, ok
 		}
 
-		// Convert to free variable if it's not a builtin
-		if obj.Scope == GlobalScope || obj.Scope == LocalScope {
+		// Convert to free variable only if it's a local variable (not global, builtin, or already free)
+		if obj.Scope == LocalScope {
+			return s.DefineFree(obj), true
+		}
+		// If it's already a free variable, pass it through directly
+		if obj.Scope == FreeScope {
 			return s.DefineFree(obj), true
 		}
 	}

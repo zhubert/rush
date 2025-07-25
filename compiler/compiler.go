@@ -24,10 +24,11 @@ type CompilationScope struct {
 
 // Compiler transforms AST nodes into bytecode instructions
 type Compiler struct {
-	constants   []interpreter.Value // Constant pool
-	symbolTable *SymbolTable        // Symbol table for variables
-	scopes      []CompilationScope  // Compilation scopes stack
-	scopeIndex  int                 // Current scope index
+	constants         []interpreter.Value // Constant pool
+	symbolTable       *SymbolTable        // Symbol table for variables
+	scopes            []CompilationScope  // Compilation scopes stack
+	scopeIndex        int                 // Current scope index
+	currentFunctions  []string            // Stack of current function names for recursion detection
 }
 
 // Bytecode represents the compilation result
@@ -52,10 +53,11 @@ func New() *Compiler {
 	}
 
 	return &Compiler{
-		constants:   []interpreter.Value{},
-		symbolTable: symbolTable,
-		scopes:      []CompilationScope{mainScope},
-		scopeIndex:  0,
+		constants:        []interpreter.Value{},
+		symbolTable:      symbolTable,
+		scopes:           []CompilationScope{mainScope},
+		scopeIndex:       0,
+		currentFunctions: []string{},
 	}
 }
 
@@ -274,17 +276,32 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 	case *ast.Identifier:
-		symbol, ok := c.symbolTable.Resolve(node.Value)
-		if !ok {
-			return fmt.Errorf("undefined variable %s", node.Value)
+		// Check if this is a recursive function call
+		if c.isCurrentFunction(node.Value) {
+			c.emit(bytecode.OpCurrentClosure)
+		} else {
+			symbol, ok := c.symbolTable.Resolve(node.Value)
+			if !ok {
+				return fmt.Errorf("undefined variable %s", node.Value)
+			}
+			c.loadSymbol(symbol)
 		}
 
-		c.loadSymbol(symbol)
-
 	case *ast.AssignmentStatement:
-		err := c.Compile(node.Value)
-		if err != nil {
-			return err
+		// Check if this is a function assignment for recursion detection
+		if fnLit, ok := node.Value.(*ast.FunctionLiteral); ok {
+			// Enter function name before compiling the function
+			c.enterFunction(node.Name.Value)
+			err := c.Compile(fnLit)
+			c.leaveFunction()
+			if err != nil {
+				return err
+			}
+		} else {
+			err := c.Compile(node.Value)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Check if this is an instance variable assignment
@@ -1077,4 +1094,24 @@ func (c *Compiler) collectSymbolsFromExpression(expr ast.Expression) error {
 		// For literals and identifiers, no symbols to collect
 		return nil
 	}
+}
+
+// Helper methods for function stack management (recursion detection)
+func (c *Compiler) enterFunction(name string) {
+	c.currentFunctions = append(c.currentFunctions, name)
+}
+
+func (c *Compiler) leaveFunction() {
+	if len(c.currentFunctions) > 0 {
+		c.currentFunctions = c.currentFunctions[:len(c.currentFunctions)-1]
+	}
+}
+
+func (c *Compiler) isCurrentFunction(name string) bool {
+	for _, fn := range c.currentFunctions {
+		if fn == name {
+			return true
+		}
+	}
+	return false
 }

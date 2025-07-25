@@ -233,9 +233,10 @@ func (vm *VM) Run() error {
 			}
 
 		case bytecode.OpHash:
-			numElements := int(bytecode.ReadUint16(ins[ip+1:]))
+			numPairs := int(bytecode.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
 
+			numElements := numPairs * 2
 			hash, err := vm.buildHash(vm.sp-numElements, vm.sp)
 			if err != nil {
 				return err
@@ -617,7 +618,10 @@ func (vm *VM) executeBinaryOperation(op bytecode.Opcode) error {
 	case leftType == interpreter.STRING_VALUE || rightType == interpreter.STRING_VALUE:
 		return vm.executeBinaryStringCoercionOperation(op, left, right)
 	default:
-		return fmt.Errorf("unsupported types for binary operation: %T %T", left, right)
+		leftTypeName := vm.getTypeName(leftType)
+		rightTypeName := vm.getTypeName(rightType) 
+		opName := vm.getOperatorName(op)
+		return fmt.Errorf("unknown operator: %s %s %s", leftTypeName, opName, rightTypeName)
 	}
 }
 
@@ -683,7 +687,8 @@ func (vm *VM) executeBinaryStringOperation(op bytecode.Opcode, left, right inter
 	case bytecode.OpAdd:
 		result = leftVal + rightVal
 	default:
-		return fmt.Errorf("unknown string operator: %d", op)
+		opName := vm.getOperatorName(op)
+		return fmt.Errorf("unknown operator: STRING %s STRING", opName)
 	}
 
 	return vm.push(&interpreter.String{Value: result})
@@ -769,7 +774,8 @@ func (vm *VM) executeMinusOperation() error {
 	case *interpreter.Float:
 		return vm.push(&interpreter.Float{Value: -operand.Value})
 	default:
-		return fmt.Errorf("unsupported type for negation: %T", operand)
+		typeName := vm.getTypeName(operand.Type())
+		return fmt.Errorf("unknown operator: -%s", typeName)
 	}
 }
 
@@ -796,7 +802,8 @@ func (vm *VM) buildHash(startIndex, endIndex int) (interpreter.Value, error) {
 		case *interpreter.Integer, *interpreter.String, *interpreter.Boolean, *interpreter.Float:
 			// Valid hash key
 		default:
-			return nil, fmt.Errorf("unusable as hash key: %T", key)
+			typeName := vm.getTypeName(key.Type())
+		return nil, fmt.Errorf("unusable as hash key: %s", typeName)
 		}
 
 		hashed := interpreter.CreateHashKey(key)
@@ -840,7 +847,8 @@ func (vm *VM) executeHashIndex(hash, index interpreter.Value) error {
 	case *interpreter.Integer, *interpreter.String, *interpreter.Boolean, *interpreter.Float:
 		// Valid hash key
 	default:
-		return fmt.Errorf("unusable as hash key: %T", index)
+		typeName := vm.getTypeName(index.Type())
+		return fmt.Errorf("unusable as hash key: %s", typeName)
 	}
 
 	hashKey := interpreter.CreateHashKey(index)
@@ -884,7 +892,8 @@ func (vm *VM) executeHashSetIndex(hash, index, value interpreter.Value) error {
 	case *interpreter.Integer, *interpreter.String, *interpreter.Boolean, *interpreter.Float:
 		// Valid hash key
 	default:
-		return fmt.Errorf("unusable as hash key: %T", index)
+		typeName := vm.getTypeName(index.Type())
+		return fmt.Errorf("unusable as hash key: %s", typeName)
 	}
 
 	hashKey := interpreter.CreateHashKey(index)
@@ -1163,7 +1172,7 @@ func (vm *VM) executeCall(numArgs int) error {
 
 func (vm *VM) callClosure(cl *interpreter.Closure, numArgs int) error {
 	if numArgs != cl.Fn.NumParameters {
-		return fmt.Errorf("wrong number of parameters: want=%d, got=%d",
+		return fmt.Errorf("wrong number of arguments: want=%d, got=%d",
 			cl.Fn.NumParameters, numArgs)
 	}
 
@@ -1177,7 +1186,7 @@ func (vm *VM) callClosure(cl *interpreter.Closure, numArgs int) error {
 
 func (vm *VM) callClosureWithSelf(cl *interpreter.Closure, numArgs int, self *interpreter.Object) error {
 	if numArgs != cl.Fn.NumParameters {
-		return fmt.Errorf("wrong number of parameters: want=%d, got=%d",
+		return fmt.Errorf("wrong number of arguments: want=%d, got=%d",
 			cl.Fn.NumParameters, numArgs)
 	}
 
@@ -1627,5 +1636,55 @@ func (vm *VM) executeBinaryStringCoercionOperation(op bytecode.Opcode, left, rig
 		return vm.push(&interpreter.String{Value: leftStr + rightStr})
 	default:
 		return fmt.Errorf("unsupported operator for string coercion: %d", op)
+	}
+}
+
+// Helper function to convert ValueType to test-expected type name
+func (vm *VM) getTypeName(valueType interpreter.ValueType) string {
+	switch valueType {
+	case interpreter.INTEGER_VALUE:
+		return "INTEGER"
+	case interpreter.BOOLEAN_VALUE:
+		return "BOOLEAN"
+	case interpreter.STRING_VALUE:
+		return "STRING"
+	case interpreter.FLOAT_VALUE:
+		return "FLOAT"
+	case interpreter.ARRAY_VALUE:
+		return "ARRAY"
+	case interpreter.HASH_VALUE:
+		return "HASH"
+	case interpreter.FUNCTION_VALUE:
+		return "FUNCTION"
+	case interpreter.CLOSURE_VALUE:
+		return "FUNCTION"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// Helper function to convert bytecode opcode to operator symbol
+func (vm *VM) getOperatorName(op bytecode.Opcode) string {
+	switch op {
+	case bytecode.OpAdd:
+		return "+"
+	case bytecode.OpSub:
+		return "-"
+	case bytecode.OpMul:
+		return "*"
+	case bytecode.OpDiv:
+		return "/"
+	case bytecode.OpMod:
+		return "%"
+	case bytecode.OpEqual:
+		return "=="
+	case bytecode.OpNotEqual:
+		return "!="
+	case bytecode.OpGreaterThan:
+		return ">"
+	case bytecode.OpLessThan:
+		return "<"
+	default:
+		return "UNKNOWN"
 	}
 }

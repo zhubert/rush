@@ -671,11 +671,11 @@ func TestBuiltins(t *testing.T) {
 			`,
 			expectedConstants: []interface{}{1},
 			expectedInstructions: []bytecode.Instructions{
-				bytecode.Make(bytecode.OpGetBuiltin, 0),
+				bytecode.Make(bytecode.OpGetBuiltin, 4),
 				bytecode.Make(bytecode.OpArray, 0),
 				bytecode.Make(bytecode.OpCall, 1),
 				bytecode.Make(bytecode.OpPop),
-				bytecode.Make(bytecode.OpGetBuiltin, 5),
+				bytecode.Make(bytecode.OpGetBuiltin, 12),
 				bytecode.Make(bytecode.OpArray, 0),
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpCall, 2),
@@ -686,7 +686,7 @@ func TestBuiltins(t *testing.T) {
 			input: `fn() { len([]) }`,
 			expectedConstants: []interface{}{
 				[]bytecode.Instructions{
-					bytecode.Make(bytecode.OpGetBuiltin, 0),
+					bytecode.Make(bytecode.OpGetBuiltin, 4),
 					bytecode.Make(bytecode.OpArray, 0),
 					bytecode.Make(bytecode.OpCall, 1),
 					bytecode.Make(bytecode.OpReturn),
@@ -913,10 +913,10 @@ func TestWhileLoops(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				// loop start: while (i < 3)
-				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
+				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpGreaterThan),
-				bytecode.Make(bytecode.OpJumpNotTruthy, 22),
+				bytecode.Make(bytecode.OpJumpNotTruthy, 29),
 				// loop body: i = i + 1
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpConstant, 2),
@@ -945,10 +945,10 @@ func TestForLoops(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				// condition: i < 3
-				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
+				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpGreaterThan),
-				bytecode.Make(bytecode.OpJumpNotTruthy, 25),
+				bytecode.Make(bytecode.OpJumpNotTruthy, 33),
 				// body: i;
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpPop),

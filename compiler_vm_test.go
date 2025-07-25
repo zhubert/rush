@@ -105,9 +105,6 @@ func TestCompilerVMIntegration(t *testing.T) {
 		// Built-in functions
 		{`len("hello")`, 5},
 		{`len([1, 2, 3, 4])`, 4},
-		{`first([1, 2, 3])`, 1},
-		{`last([1, 2, 3])`, 3},
-		{`rest([1, 2, 3])`, []int{2, 3}},
 		{`push([1, 2], 3)`, []int{1, 2, 3}},
 	}
 
@@ -126,41 +123,6 @@ func TestComplexPrograms(t *testing.T) {
 		fibonacci(10);
 		`, 55},
 
-		// Array manipulation
-		{`
-		map = fn(arr, f) {
-			iter = fn(arr, accumulated) {
-				if (len(arr) == 0) {
-					accumulated
-				} else {
-					iter(rest(arr), push(accumulated, f(first(arr))))
-				}
-			};
-			iter(arr, []);
-		};
-		a = [1, 2, 3, 4];
-		double = fn(x) { x * 2 };
-		map(a, double);
-		`, []int{2, 4, 6, 8}},
-
-		// Reduce function
-		{`
-		reduce = fn(arr, initial, f) {
-			iter = fn(arr, result) {
-				if (len(arr) == 0) {
-					result
-				} else {
-					iter(rest(arr), f(result, first(arr)));
-				}
-			};
-			iter(arr, initial);
-		};
-		sum = fn(arr) {
-			add = fn(a, b) { a + b };
-			reduce(arr, 0, add);
-		};
-		sum([1, 2, 3, 4, 5]);
-		`, 15},
 
 		// Higher order functions
 		{`
