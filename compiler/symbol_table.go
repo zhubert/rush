@@ -23,6 +23,7 @@ type SymbolTable struct {
 	store          map[string]Symbol
 	numDefinitions int             // Number of definitions in current scope
 	FreeSymbols    []Symbol        // Free variables (closures)
+	isFunction     bool            // True if this is a function scope (not a block scope)
 }
 
 // NewSymbolTable creates a new symbol table
@@ -36,6 +37,15 @@ func NewSymbolTable() *SymbolTable {
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
 	s := NewSymbolTable()
 	s.Outer = outer
+	s.isFunction = true  // Mark as function scope
+	return s
+}
+
+// NewEnclosedBlockTable creates a new enclosed symbol table (for block scopes like loops)
+func NewEnclosedBlockTable(outer *SymbolTable) *SymbolTable {
+	s := NewSymbolTable()
+	s.Outer = outer
+	s.isFunction = false  // Mark as block scope
 	return s
 }
 

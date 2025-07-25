@@ -984,16 +984,13 @@ func (c *Compiler) collectSymbolsFromStatement(stmt ast.Statement) error {
 		return c.collectSymbolsFromExpression(node.Expression)
 		
 	case *ast.BlockStatement:
-		// Enter new scope for blocks
-		c.enterScope()
+		// Don't create new scopes for blocks - reuse function scope
 		for _, s := range node.Statements {
 			err := c.collectSymbolsFromStatement(s)
 			if err != nil {
-				c.leaveScope() // Clean up scope on error
 				return err
 			}
 		}
-		c.leaveScope()
 		return nil
 		
 	default:

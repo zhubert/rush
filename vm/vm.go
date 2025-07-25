@@ -208,14 +208,16 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 1
 
 			frame := vm.currentFrame()
-			vm.stack[frame.basePointer+localIndex] = vm.pop()
+			value := vm.pop()
+			vm.stack[frame.basePointer+localIndex] = value
 
 		case bytecode.OpGetLocal:
 			localIndex := int(ins[ip+1])
 			vm.currentFrame().ip += 1
 
 			frame := vm.currentFrame()
-			err := vm.push(vm.stack[frame.basePointer+localIndex])
+			value := vm.stack[frame.basePointer+localIndex]
+			err := vm.push(value)
 			if err != nil {
 				return err
 			}
@@ -225,7 +227,7 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 2
 
 			array := vm.buildArray(vm.sp-numElements, vm.sp)
-			vm.sp = vm.sp - numElements
+			vm.safeSetSP(vm.sp - numElements)
 
 			err := vm.push(array)
 			if err != nil {
@@ -241,7 +243,7 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-			vm.sp = vm.sp - numElements
+			vm.safeSetSP(vm.sp - numElements)
 
 			err = vm.push(hash)
 			if err != nil {
@@ -251,7 +253,6 @@ func (vm *VM) Run() error {
 		case bytecode.OpIndex:
 			index := vm.pop()
 			left := vm.pop()
-
 			err := vm.executeIndexExpression(left, index)
 			if err != nil {
 				return err
@@ -592,6 +593,21 @@ func (vm *VM) pop() interpreter.Value {
 
 func (vm *VM) currentFrame() *Frame {
 	return vm.frames[vm.framesIndex-1]
+}
+
+// safeSetSP sets the stack pointer, ensuring it doesn't go below local variable space
+func (vm *VM) safeSetSP(newSP int) {
+	frame := vm.currentFrame()
+	minSP := frame.basePointer
+	if frame.cl != nil {
+		minSP += frame.cl.Fn.NumLocals
+	}
+	
+	if newSP < minSP {
+		newSP = minSP
+	}
+	
+	vm.sp = newSP
 }
 
 func (vm *VM) pushFrame(f *Frame) {
@@ -1187,6 +1203,12 @@ func (vm *VM) callClosure(cl *interpreter.Closure, numArgs int) error {
 	frame := NewFrame(cl, vm.sp-numArgs)
 	vm.pushFrame(frame)
 
+
+	// Initialize all local variable slots to NULL
+	for i := vm.sp; i < frame.basePointer + cl.Fn.NumLocals; i++ {
+		vm.stack[i] = interpreter.NULL
+	}
+
 	vm.sp = frame.basePointer + cl.Fn.NumLocals
 
 	return nil
@@ -1210,7 +1232,7 @@ func (vm *VM) callBuiltin(builtin *interpreter.BuiltinFunction, numArgs int) err
 	args := vm.stack[vm.sp-numArgs : vm.sp]
 
 	result := builtin.Fn(args...)
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 
 	if result != nil {
 		vm.push(result)
@@ -1232,7 +1254,7 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 	for i := 0; i < numFree; i++ {
 		free[i] = vm.stack[vm.sp-numFree+i]
 	}
-	vm.sp = vm.sp - numFree
+	vm.safeSetSP(vm.sp - numFree)
 
 	closure := &interpreter.Closure{Fn: function, Free: free}
 	return vm.push(closure)
@@ -1240,7 +1262,7 @@ func (vm *VM) pushClosure(constIndex, numFree int) error {
 
 func (vm *VM) callStringMethod(method *interpreter.StringMethod, numArgs int) error {
 	args := vm.stack[vm.sp-numArgs : vm.sp]
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 
 	var result interpreter.Value
 	switch method.Method {
@@ -1277,7 +1299,7 @@ func (vm *VM) callStringMethod(method *interpreter.StringMethod, numArgs int) er
 
 func (vm *VM) callArrayMethod(method *interpreter.ArrayMethod, numArgs int) error {
 	args := vm.stack[vm.sp-numArgs : vm.sp]
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 
 	var result interpreter.Value
 	switch method.Method {
@@ -1289,7 +1311,7 @@ func (vm *VM) callArrayMethod(method *interpreter.ArrayMethod, numArgs int) erro
 		for _, arg := range args {
 			method.Array.Elements = append(method.Array.Elements, arg)
 		}
-		result = &interpreter.Integer{Value: int64(len(method.Array.Elements))}
+		result = method.Array  // Return the modified array, not the length
 	case "pop":
 		if numArgs != 0 {
 			return fmt.Errorf("pop() takes no arguments, got %d", numArgs)
@@ -1327,7 +1349,7 @@ func (vm *VM) callArrayMethod(method *interpreter.ArrayMethod, numArgs int) erro
 
 func (vm *VM) callHashMethod(method *interpreter.HashMethod, numArgs int) error {
 	args := vm.stack[vm.sp-numArgs : vm.sp]
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 
 	var result interpreter.Value
 	switch method.Method {
@@ -1354,7 +1376,7 @@ func (vm *VM) callHashMethod(method *interpreter.HashMethod, numArgs int) error 
 }
 
 func (vm *VM) callNumberMethod(method *interpreter.NumberMethod, numArgs int) error {
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 
 	var result interpreter.Value
 	var numValue float64
@@ -1390,7 +1412,7 @@ func (vm *VM) callNumberMethod(method *interpreter.NumberMethod, numArgs int) er
 
 func (vm *VM) callJSONMethod(method *interpreter.JSONMethod, numArgs int) error {
 	args := vm.stack[vm.sp-numArgs : vm.sp]
-	vm.sp = vm.sp - numArgs - 1
+	vm.safeSetSP(vm.sp - numArgs - 1)
 	
 	// Convert args to slice of interpreter.Value
 	argValues := make([]interpreter.Value, numArgs)
@@ -1643,7 +1665,12 @@ func (vm *VM) executeBinaryStringCoercionOperation(op bytecode.Opcode, left, rig
 	case bytecode.OpAdd:
 		return vm.push(&interpreter.String{Value: leftStr + rightStr})
 	default:
-		return fmt.Errorf("unsupported operator for string coercion: %d", op)
+		// String coercion should only be used for addition/concatenation
+		// If we get here, there's likely a parsing issue causing incorrect operator application
+		leftTypeName := vm.getTypeName(left.Type())
+		rightTypeName := vm.getTypeName(right.Type())
+		opName := vm.getOperatorName(op)
+		return fmt.Errorf("invalid string coercion: %s %s %s (opcode %d)", leftTypeName, opName, rightTypeName, op)
 	}
 }
 
