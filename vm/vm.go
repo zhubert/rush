@@ -814,8 +814,15 @@ func (vm *VM) executeBinaryOperation(op bytecode.Opcode) error {
 		return vm.executeBinaryMixedNumberOperation(op, left, right)
 	case leftType == interpreter.STRING_VALUE && rightType == interpreter.STRING_VALUE:
 		return vm.executeBinaryStringOperation(op, left, right)
-	case leftType == interpreter.STRING_VALUE || rightType == interpreter.STRING_VALUE:
-		return vm.executeBinaryStringCoercionOperation(op, left, right)
+	case leftType == interpreter.STRING_VALUE || rightType == interpreter.STRING_VALUE || leftType == interpreter.BUILTIN_VALUE || rightType == interpreter.BUILTIN_VALUE:
+		if op == bytecode.OpAdd {
+			return vm.executeBinaryStringCoercionOperation(op, left, right)
+		}
+		// For non-addition operations with builtin, fall through to error
+		leftTypeName := vm.getTypeName(leftType)
+		rightTypeName := vm.getTypeName(rightType) 
+		opName := vm.getOperatorName(op)
+		return fmt.Errorf("unknown operator: %s %s %s", leftTypeName, opName, rightTypeName)
 	default:
 		leftTypeName := vm.getTypeName(leftType)
 		rightTypeName := vm.getTypeName(rightType) 
@@ -1034,7 +1041,7 @@ func (vm *VM) executeArrayIndex(array, index interpreter.Value) error {
 	max := int64(len(arrayObject.Elements) - 1)
 
 	if i < 0 || i > max {
-		return fmt.Errorf("IndexError: array index %d out of range [0:%d]", i, max+1)
+		return vm.push(interpreter.NULL)
 	}
 
 	return vm.push(arrayObject.Elements[i])
@@ -1429,7 +1436,7 @@ func (vm *VM) callBuiltin(builtin *interpreter.BuiltinFunction, numArgs int) err
 	// Ensure we don't go below the current frame's minimum SP
 	frame := vm.currentFrame()
 	minSP := frame.basePointer
-	if frame.cl != nil && frame.cl.Fn.NumLocals > 0 {
+	if frame.cl != nil {
 		minSP += frame.cl.Fn.NumLocals
 	}
 	
