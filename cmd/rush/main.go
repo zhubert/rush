@@ -23,6 +23,7 @@ func main() {
 	useCache := flag.Bool("cache", false, "Enable bytecode caching")
 	clearCache := flag.Bool("clear-cache", false, "Clear bytecode cache and exit")
 	cacheStats := flag.Bool("cache-stats", false, "Show cache statistics and exit")
+	logLevel := flag.String("log-level", "none", "VM logging level: none, error, warn, info, debug, trace")
 	flag.Parse()
 
 	// Handle cache management commands
@@ -65,10 +66,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Parse log level
+	vmLogLevel, err := parseLogLevel(*logLevel)
+	if err != nil {
+		fmt.Printf("Invalid log level: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Execute the file using the selected mode
 	if *bytecodeMode {
 		fmt.Printf("Rush bytecode compiler - executing file: %s\n", filename)
-		err := executeFileBytecode(filename, string(input), *useCache)
+		err := executeFileBytecode(filename, string(input), *useCache, vmLogLevel)
 		if err != nil {
 			fmt.Printf("Execution error: %v\n", err)
 			os.Exit(1)
@@ -183,7 +191,7 @@ func executeFileTreeWalking(filename, source string) error {
 }
 
 // executeFileBytecode executes a file using bytecode compilation and VM
-func executeFileBytecode(filename, source string, useCache bool) error {
+func executeFileBytecode(filename, source string, useCache bool, logLevel vm.LogLevel) error {
 	sourceHash := bytecode.HashSource(source)
 	
 	// Try to load from cache first
@@ -237,10 +245,10 @@ func executeFileBytecode(filename, source string, useCache bool) error {
 	}
 	
 	// Execute with VM
-	machine := vm.New(&compiler.Bytecode{
+	machine := vm.NewWithLogger(&compiler.Bytecode{
 		Instructions: instructions,
 		Constants:    constants,
-	})
+	}, logLevel)
 	
 	err = machine.Run()
 	if err != nil {
@@ -354,4 +362,24 @@ func evaluateInputBytecode(input string, globals []interpreter.Value) []interpre
 	}
 	
 	return globals
+}
+
+// parseLogLevel converts a string log level to vm.LogLevel
+func parseLogLevel(level string) (vm.LogLevel, error) {
+	switch strings.ToLower(level) {
+	case "none":
+		return vm.LogNone, nil
+	case "error":
+		return vm.LogError, nil
+	case "warn":
+		return vm.LogWarn, nil
+	case "info":
+		return vm.LogInfo, nil
+	case "debug":
+		return vm.LogDebug, nil
+	case "trace":
+		return vm.LogTrace, nil
+	default:
+		return vm.LogNone, fmt.Errorf("invalid log level: %s (valid levels: none, error, warn, info, debug, trace)", level)
+	}
 }

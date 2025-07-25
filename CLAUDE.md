@@ -36,11 +36,12 @@ rush/
 
 ### Navigation Shortcuts
 
-- **New operators**: Add to `lexer/lexer.go` → `parser/parser.go` → `interpreter/interpreter.go`
+- **New operators**: Add to `lexer/lexer.go` → `parser/parser.go` → `interpreter/interpreter.go` + `vm/vm.go`
 - **Built-in functions**: Add to `interpreter/builtins.go`
 - **Standard library**: Add modules to `std/` directory
 - **Language constructs**: Define AST nodes in `ast/ast.go`
 - **Error types**: Define in `interpreter/errors.go`
+- **VM operations**: Implement in `vm/vm.go` with corresponding bytecode in `bytecode/instruction.go`
 
 ## Development Workflow
 
@@ -58,7 +59,13 @@ make repl          # Start REPL from source
 go test ./lexer      # Test tokenization
 go test ./parser     # Test AST generation
 go test ./interpreter # Test runtime evaluation
+go test ./vm         # Test bytecode VM
 go test .           # Integration tests
+
+# VM Execution with Logging (Bytecode Mode)
+rush -bytecode -log-level=info program.rush     # Basic execution info
+rush -bytecode -log-level=debug program.rush    # Detailed debugging
+rush -bytecode -log-level=trace program.rush    # Full instruction tracing
 ```
 
 ### Running Examples
@@ -160,6 +167,51 @@ if len(args) != 1 {
 - **Module resolution**: Still happens in `interpreter/module.go`
 - **Hash literals**: Use `{key: value}` syntax with support for string, integer, boolean, and float keys
 
+## VM Debugging and Logging
+
+The Rush VM includes comprehensive logging for debugging and performance analysis.
+
+### VM Log Levels
+
+- **none**: No logging (default for production)
+- **error**: Only errors and critical issues
+- **warn**: Warnings and errors
+- **info**: Initialization, execution stats, performance metrics
+- **debug**: Detailed execution flow, operations, stack state
+- **trace**: Extremely verbose instruction-by-instruction execution
+
+### When to Use Each Log Level
+
+```bash
+# Debug VM issues or understand execution flow
+rush -bytecode -log-level=debug problematic_program.rush
+
+# Performance analysis and optimization
+rush -bytecode -log-level=info large_program.rush
+
+# Deep debugging of instruction execution
+rush -bytecode -log-level=trace simple_program.rush
+
+# Production error tracking
+rush -bytecode -log-level=error production_program.rush
+```
+
+### VM Debugging Workflow
+
+1. **Start with info level** to see execution stats and identify performance issues
+2. **Use debug level** to understand operation flow and identify logical errors
+3. **Use trace level** for instruction-by-instruction debugging (very verbose)
+4. **Check error level** for production deployments to catch critical issues
+
+### Performance Metrics Available
+
+- Execution time
+- Instructions executed per second
+- Stack operations count
+- Function calls count
+- Memory allocations
+- Error count
+
 ## AI Assistant Guidelines
 
 ### Common Pitfalls
@@ -168,6 +220,8 @@ if len(args) != 1 {
 - Always test across lexer → parser → interpreter pipeline
 - Remember to update precedence tables for new operators
 - Standard library changes require testing both module loading and function execution
+- VM operations need both interpreter and bytecode implementations
+- Use VM logging to debug bytecode execution issues
 
 ### Quick Navigation
 
@@ -181,6 +235,8 @@ if len(args) != 1 {
 - Find AST nodes: `rg "type.*struct" ast/ast.go`
 - Find token types: `rg "= Token" token/token.go`
 - Find test patterns: Look at existing `*_test.go` files in each directory
+- Find VM operations: `rg "case bytecode\." vm/vm.go`
+- Find bytecode definitions: `rg "Op.*=" bytecode/instruction.go`
 
 ### Dependencies
 

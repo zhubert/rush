@@ -2,7 +2,10 @@ package vm
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
+	"time"
 
 	"rush/bytecode"
 	"rush/compiler"
@@ -14,6 +17,63 @@ const (
 	GlobalsSize = 65536 // Size of global variables storage
 	MaxFrames   = 1024 // Maximum call frames
 )
+
+// LogLevel defines the verbosity of VM logging
+type LogLevel int
+
+const (
+	LogNone LogLevel = iota  // No logging
+	LogError                 // Only errors
+	LogWarn                  // Warnings and errors
+	LogInfo                  // General information
+	LogDebug                 // Detailed debugging info
+	LogTrace                 // Extremely verbose execution tracing
+)
+
+// VMLogger handles VM logging with configurable levels
+type VMLogger struct {
+	level  LogLevel
+	logger *log.Logger
+}
+
+// NewVMLogger creates a new VM logger
+func NewVMLogger(level LogLevel) *VMLogger {
+	return &VMLogger{
+		level:  level,
+		logger: log.New(os.Stderr, "[VM] ", log.LstdFlags|log.Lmicroseconds),
+	}
+}
+
+// Log methods for different levels
+func (l *VMLogger) Error(format string, args ...interface{}) {
+	if l.level >= LogError {
+		l.logger.Printf("ERROR: "+format, args...)
+	}
+}
+
+func (l *VMLogger) Warn(format string, args ...interface{}) {
+	if l.level >= LogWarn {
+		l.logger.Printf("WARN: "+format, args...)
+	}
+}
+
+func (l *VMLogger) Info(format string, args ...interface{}) {
+	if l.level >= LogInfo {
+		l.logger.Printf("INFO: "+format, args...)
+	}
+}
+
+func (l *VMLogger) Debug(format string, args ...interface{}) {
+	if l.level >= LogDebug {
+		l.logger.Printf("DEBUG: "+format, args...)
+	}
+}
+
+func (l *VMLogger) Trace(format string, args ...interface{}) {
+	if l.level >= LogTrace {
+		l.logger.Printf("TRACE: "+format, args...)
+	}
+}
 
 // Frame represents a call frame for function execution
 type Frame struct {
@@ -56,10 +116,27 @@ type VM struct {
 	globals      []interpreter.Value // Global variables
 	frames       []*Frame            // Call frames stack
 	framesIndex  int                 // Current frame index
+	logger       *VMLogger           // Logger for debugging and monitoring
+	stats        *VMStats            // Execution statistics
+}
+
+// VMStats tracks execution statistics
+type VMStats struct {
+	StartTime         time.Time
+	InstructionCount  int64
+	StackOperations   int64
+	FunctionCalls     int64
+	MemoryAllocations int64
+	Errors            int64
 }
 
 // New creates a new virtual machine
 func New(bytecode *compiler.Bytecode) *VM {
+	return NewWithLogger(bytecode, LogNone)
+}
+
+// NewWithLogger creates a new virtual machine with specified log level
+func NewWithLogger(bytecode *compiler.Bytecode, logLevel LogLevel) *VM {
 	mainFn := &interpreter.CompiledFunction{Instructions: []byte(bytecode.Instructions)}
 	mainClosure := &interpreter.Closure{Fn: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
@@ -67,21 +144,70 @@ func New(bytecode *compiler.Bytecode) *VM {
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
 
-	return &VM{
+	logger := NewVMLogger(logLevel)
+	stats := &VMStats{StartTime: time.Now()}
+
+	vm := &VM{
 		constants:   bytecode.Constants,
 		stack:       make([]interpreter.Value, StackSize),
 		sp:          0,
 		globals:     make([]interpreter.Value, GlobalsSize),
 		frames:      frames,
 		framesIndex: 1,
+		logger:      logger,
+		stats:       stats,
 	}
+
+	logger.Info("VM initialized with %d constants, %d stack size, %d globals size", 
+		len(bytecode.Constants), StackSize, GlobalsSize)
+	logger.Debug("Main function has %d instructions", len(mainFn.Instructions))
+
+	return vm
 }
 
 // NewWithGlobalsStore creates a VM with existing global state
 func NewWithGlobalsStore(bytecode *compiler.Bytecode, s []interpreter.Value) *VM {
 	vm := New(bytecode)
 	vm.globals = s
+	vm.logger.Debug("VM initialized with %d existing global variables", len(s))
 	return vm
+}
+
+// NewWithGlobalsStoreAndLogger creates a VM with existing global state and logger
+func NewWithGlobalsStoreAndLogger(bytecode *compiler.Bytecode, s []interpreter.Value, logLevel LogLevel) *VM {
+	vm := NewWithLogger(bytecode, logLevel)
+	vm.globals = s
+	vm.logger.Debug("VM initialized with %d existing global variables", len(s))
+	return vm
+}
+
+// SetLogLevel changes the logging level of the VM
+func (vm *VM) SetLogLevel(level LogLevel) {
+	vm.logger.level = level
+	vm.logger.Info("Log level changed to %v", level)
+}
+
+// GetStats returns a copy of the current execution statistics
+func (vm *VM) GetStats() VMStats {
+	stats := *vm.stats
+	stats.InstructionCount = vm.stats.InstructionCount
+	return stats
+}
+
+// PrintStats logs current execution statistics
+func (vm *VM) PrintStats() {
+	elapsed := time.Since(vm.stats.StartTime)
+	vm.logger.Info("=== VM EXECUTION STATS ===")
+	vm.logger.Info("Execution time: %v", elapsed)
+	vm.logger.Info("Instructions executed: %d", vm.stats.InstructionCount)
+	vm.logger.Info("Stack operations: %d", vm.stats.StackOperations)
+	vm.logger.Info("Function calls: %d", vm.stats.FunctionCalls)
+	vm.logger.Info("Memory allocations: %d", vm.stats.MemoryAllocations)
+	vm.logger.Info("Errors encountered: %d", vm.stats.Errors)
+	if elapsed.Nanoseconds() > 0 {
+		ips := float64(vm.stats.InstructionCount) / elapsed.Seconds()
+		vm.logger.Info("Instructions per second: %.2f", ips)
+	}
 }
 
 // StackTop returns the top element of the stack
@@ -94,33 +220,51 @@ func (vm *VM) StackTop() interpreter.Value {
 
 // Run executes the bytecode instructions
 func (vm *VM) Run() error {
+	vm.logger.Info("Starting VM execution")
+	defer func() {
+		vm.logger.Info("VM execution completed")
+		if vm.logger.level >= LogInfo {
+			vm.PrintStats()
+		}
+	}()
+
 	var ip int
 	var ins bytecode.Instructions
 	var op bytecode.Opcode
 
 	for vm.currentFrame().ip < len(vm.currentFrame().Instructions())-1 {
 		vm.currentFrame().ip++
+		vm.stats.InstructionCount++
 
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
 		op = bytecode.Opcode(ins[ip])
+
+		vm.logger.Trace("IP:%d OP:%s SP:%d Frame:%d", ip, vm.getOpcodeName(op), vm.sp, vm.framesIndex-1)
 
 		switch op {
 		case bytecode.OpConstant:
 			constIndex := int(bytecode.ReadUint16(ins[ip+1:]))
 			vm.currentFrame().ip += 2
 
+			vm.logger.Debug("Loading constant[%d]: %s", constIndex, vm.constants[constIndex].Inspect())
 			err := vm.push(vm.constants[constIndex])
 			if err != nil {
+				vm.logger.Error("Failed to push constant: %v", err)
+				vm.stats.Errors++
 				return err
 			}
 
 		case bytecode.OpPop:
-			vm.pop()
+			popped := vm.pop()
+			vm.logger.Debug("Popped: %s", popped.Inspect())
 
 		case bytecode.OpAdd, bytecode.OpSub, bytecode.OpMul, bytecode.OpDiv, bytecode.OpMod:
+			vm.logger.Debug("Executing binary operation: %s", vm.getOpcodeName(op))
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
+				vm.logger.Error("Binary operation failed: %v", err)
+				vm.stats.Errors++
 				return err
 			}
 
@@ -168,6 +312,7 @@ func (vm *VM) Run() error {
 
 		case bytecode.OpJump:
 			pos := int(bytecode.ReadUint16(ins[ip+1:]))
+			vm.logger.Debug("Jumping to position %d", pos)
 			vm.currentFrame().ip = pos - 1
 
 		case bytecode.OpJumpNotTruthy:
@@ -272,19 +417,27 @@ func (vm *VM) Run() error {
 			numArgs := int(ins[ip+1])
 			vm.currentFrame().ip += 1
 
+			vm.logger.Debug("Calling function with %d arguments", numArgs)
+			vm.stats.FunctionCalls++
 			err := vm.executeCall(numArgs)
 			if err != nil {
+				vm.logger.Error("Function call failed: %v", err)
+				vm.stats.Errors++
 				return err
 			}
 
 		case bytecode.OpReturn:
 			returnValue := vm.pop()
+			vm.logger.Debug("Returning value: %s", returnValue.Inspect())
 
 			frame := vm.popFrame()
+			vm.logger.Debug("Popped frame, returning to frame %d", vm.framesIndex-1)
 			vm.sp = frame.basePointer - 1
 
 			err := vm.push(returnValue)
 			if err != nil {
+				vm.logger.Error("Failed to push return value: %v", err)
+				vm.stats.Errors++
 				return err
 			}
 
@@ -570,24 +723,32 @@ func (vm *VM) Run() error {
 
 func (vm *VM) push(o interpreter.Value) error {
 	if vm.sp < 0 {
+		vm.logger.Error("Stack pointer negative before push: sp=%d", vm.sp)
 		panic(fmt.Sprintf("stack pointer negative before push: sp=%d", vm.sp))
 	}
 	if vm.sp >= StackSize {
+		vm.logger.Error("Stack overflow: sp=%d, max=%d", vm.sp, StackSize)
 		return fmt.Errorf("stack overflow")
 	}
 
 	vm.stack[vm.sp] = o
 	vm.sp++
+	vm.stats.StackOperations++
 
+	vm.logger.Trace("Pushed: %s (SP now %d)", o.Inspect(), vm.sp)
 	return nil
 }
 
 func (vm *VM) pop() interpreter.Value {
 	if vm.sp <= 0 {
+		vm.logger.Error("Stack underflow: sp=%d", vm.sp)
 		panic(fmt.Sprintf("stack underflow: sp=%d", vm.sp))
 	}
 	o := vm.stack[vm.sp-1]
 	vm.sp--
+	vm.stats.StackOperations++
+
+	vm.logger.Trace("Popped: %s (SP now %d)", o.Inspect(), vm.sp)
 	return o
 }
 
@@ -613,11 +774,14 @@ func (vm *VM) safeSetSP(newSP int) {
 func (vm *VM) pushFrame(f *Frame) {
 	vm.frames[vm.framesIndex] = f
 	vm.framesIndex++
+	vm.stats.MemoryAllocations++
+	vm.logger.Debug("Pushed frame %d", vm.framesIndex-1)
 }
 
 func (vm *VM) popFrame() *Frame {
 	frame := vm.frames[vm.framesIndex-1]
 	vm.framesIndex--
+	vm.logger.Debug("Popped frame, now at frame %d", vm.framesIndex-1)
 	return frame
 }
 
@@ -1735,5 +1899,117 @@ func (vm *VM) getOperatorName(op bytecode.Opcode) string {
 		return "<"
 	default:
 		return "UNKNOWN"
+	}
+}
+
+// Helper function to convert bytecode opcode to instruction name for logging
+func (vm *VM) getOpcodeName(op bytecode.Opcode) string {
+	switch op {
+	case bytecode.OpConstant:
+		return "OpConstant"
+	case bytecode.OpPop:
+		return "OpPop"
+	case bytecode.OpAdd:
+		return "OpAdd"
+	case bytecode.OpSub:
+		return "OpSub"
+	case bytecode.OpMul:
+		return "OpMul"
+	case bytecode.OpDiv:
+		return "OpDiv"
+	case bytecode.OpMod:
+		return "OpMod"
+	case bytecode.OpTrue:
+		return "OpTrue"
+	case bytecode.OpFalse:
+		return "OpFalse"
+	case bytecode.OpNull:
+		return "OpNull"
+	case bytecode.OpEqual:
+		return "OpEqual"
+	case bytecode.OpNotEqual:
+		return "OpNotEqual"
+	case bytecode.OpGreaterThan:
+		return "OpGreaterThan"
+	case bytecode.OpGreaterEqual:
+		return "OpGreaterEqual"
+	case bytecode.OpAnd:
+		return "OpAnd"
+	case bytecode.OpOr:
+		return "OpOr"
+	case bytecode.OpNot:
+		return "OpNot"
+	case bytecode.OpMinus:
+		return "OpMinus"
+	case bytecode.OpJump:
+		return "OpJump"
+	case bytecode.OpJumpNotTruthy:
+		return "OpJumpNotTruthy"
+	case bytecode.OpJumpTruthy:
+		return "OpJumpTruthy"
+	case bytecode.OpSetGlobal:
+		return "OpSetGlobal"
+	case bytecode.OpGetGlobal:
+		return "OpGetGlobal"
+	case bytecode.OpSetLocal:
+		return "OpSetLocal"
+	case bytecode.OpGetLocal:
+		return "OpGetLocal"
+	case bytecode.OpArray:
+		return "OpArray"
+	case bytecode.OpHash:
+		return "OpHash"
+	case bytecode.OpIndex:
+		return "OpIndex"
+	case bytecode.OpSetIndex:
+		return "OpSetIndex"
+	case bytecode.OpCall:
+		return "OpCall"
+	case bytecode.OpReturn:
+		return "OpReturn"
+	case bytecode.OpReturnVoid:
+		return "OpReturnVoid"
+	case bytecode.OpGetBuiltin:
+		return "OpGetBuiltin"
+	case bytecode.OpClosure:
+		return "OpClosure"
+	case bytecode.OpGetFree:
+		return "OpGetFree"
+	case bytecode.OpSetFree:
+		return "OpSetFree"
+	case bytecode.OpCurrentClosure:
+		return "OpCurrentClosure"
+	case bytecode.OpThrow:
+		return "OpThrow"
+	case bytecode.OpTryBegin:
+		return "OpTryBegin"
+	case bytecode.OpTryEnd:
+		return "OpTryEnd"
+	case bytecode.OpCatch:
+		return "OpCatch"
+	case bytecode.OpFinally:
+		return "OpFinally"
+	case bytecode.OpImport:
+		return "OpImport"
+	case bytecode.OpExport:
+		return "OpExport"
+	case bytecode.OpGetProperty:
+		return "OpGetProperty"
+	case bytecode.OpClass:
+		return "OpClass"
+	case bytecode.OpInherit:
+		return "OpInherit"
+	case bytecode.OpMethod:
+		return "OpMethod"
+	case bytecode.OpInvoke:
+		return "OpInvoke"
+	case bytecode.OpGetInstance:
+		return "OpGetInstance"
+	case bytecode.OpSetInstance:
+		return "OpSetInstance"
+	case bytecode.OpGetSuper:
+		return "OpGetSuper"
+	default:
+		return fmt.Sprintf("UNKNOWN(%d)", op)
 	}
 }
