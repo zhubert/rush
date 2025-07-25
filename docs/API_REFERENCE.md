@@ -10,9 +10,10 @@ This document provides comprehensive documentation for all built-in functions av
 4. [Hash Built-in Functions](#hash-built-in-functions)
 5. [Math Built-in Functions](#math-built-in-functions)
 6. [JSON Built-in Functions](#json-built-in-functions)
-7. [File System Built-in Functions](#file-system-built-in-functions)
-8. [Standard Library Modules](#standard-library-modules)
-9. [Error Types](#error-types)
+7. [Regular Expression Built-in Functions](#regular-expression-built-in-functions)
+8. [File System Built-in Functions](#file-system-built-in-functions)
+9. [Standard Library Modules](#standard-library-modules)
+10. [Error Types](#error-types)
 
 ## Core Built-in Functions
 
@@ -1487,6 +1488,236 @@ transformed = source.set("processed_at", current_time())
                    .merge(metadata)
 
 output = transformed.pretty()
+```
+
+## Regular Expression Built-in Functions
+
+Rush provides comprehensive regular expression support with pattern matching, text processing, and string manipulation capabilities.
+
+### Regular Expression Constructor
+
+#### `Regexp(pattern)`
+
+Creates a regular expression object from a pattern string.
+
+**Syntax:**
+```rush
+Regexp(pattern)
+```
+
+**Parameters:**
+- `pattern` (string): The regular expression pattern
+
+**Returns:**
+- `Regexp`: A regular expression object
+
+**Description:**
+Creates a compiled regular expression object that can be used for pattern matching, finding, and replacing text. The pattern follows Go's regular expression syntax.
+
+**Examples:**
+```rush
+# Create basic patterns
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+number_pattern = Regexp("\\d+")
+word_pattern = Regexp("\\b\\w+\\b")
+
+# Use case-insensitive flag
+hello_pattern = Regexp("(?i)hello")
+```
+
+### Regular Expression Object Properties
+
+#### `regexp.pattern`
+
+Gets the original pattern string used to create the regular expression.
+
+**Type:** `string` (read-only property)
+
+**Examples:**
+```rush
+pattern = Regexp("\\d+")
+print(pattern.pattern)  # Output: \d+
+```
+
+### Regular Expression Object Methods
+
+#### `regexp.matches?(text)`
+
+Tests whether the regular expression matches any part of the input text.
+
+**Syntax:**
+```rush
+regexp.matches?(text)
+```
+
+**Parameters:**
+- `text` (string): The text to test against the pattern
+
+**Returns:**
+- `boolean`: `true` if the pattern matches, `false` otherwise
+
+**Examples:**
+```rush
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+print(email_pattern.matches?("Contact john@example.com"))  # true
+print(email_pattern.matches?("No email here"))            # false
+```
+
+#### `regexp.find_first(text)`
+
+Finds the first match of the regular expression in the text.
+
+**Syntax:**
+```rush
+regexp.find_first(text)
+```
+
+**Parameters:**
+- `text` (string): The text to search
+
+**Returns:**
+- `string`: The first match, or `null` if no match found
+
+**Examples:**
+```rush
+number_pattern = Regexp("\\d+")
+result = number_pattern.find_first("The answer is 42 and 24")
+print(result)  # Output: 42
+```
+
+#### `regexp.find_all(text)`
+
+Finds all matches of the regular expression in the text.
+
+**Syntax:**
+```rush
+regexp.find_all(text)
+```
+
+**Parameters:**
+- `text` (string): The text to search
+
+**Returns:**
+- `array`: Array of all matches, or empty array if no matches found
+
+**Examples:**
+```rush
+number_pattern = Regexp("\\d+")
+results = number_pattern.find_all("The answer is 42 and 24")
+print(results)  # Output: ["42", "24"]
+
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+emails = email_pattern.find_all("Contact john@example.com or support@rush-lang.org")
+print(emails)  # Output: ["john@example.com", "support@rush-lang.org"]
+```
+
+#### `regexp.replace(text, replacement)`
+
+Replaces all matches of the regular expression with the replacement string.
+
+**Syntax:**
+```rush
+regexp.replace(text, replacement)
+```
+
+**Parameters:**
+- `text` (string): The text to perform replacements on
+- `replacement` (string): The replacement string
+
+**Returns:**
+- `string`: New string with all matches replaced
+
+**Examples:**
+```rush
+number_pattern = Regexp("\\d+")
+result = number_pattern.replace("I have 5 apples and 3 oranges", "X")
+print(result)  # Output: I have X apples and X oranges
+
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+safe_text = email_pattern.replace("Contact john@example.com for help", "[EMAIL]")
+print(safe_text)  # Output: Contact [EMAIL] for help
+```
+
+### String Methods with Regular Expression Support
+
+Several string methods support regular expression objects as arguments:
+
+#### `string.match(regexp)`
+
+Finds all matches of the regular expression in the string.
+
+**Examples:**
+```rush
+text = "The price is $123.45 and tax is $12.34"
+price_pattern = Regexp("\\$\\d+\\.\\d+")
+prices = text.match(price_pattern)
+print(prices)  # Output: ["$123.45", "$12.34"]
+```
+
+#### `string.matches?(regexp)`
+
+Tests if the string matches the regular expression pattern.
+
+**Examples:**
+```rush
+email = "user@example.com"
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+is_valid = email.matches?(email_pattern)
+print(is_valid)  # Output: true
+```
+
+#### `string.replace(regexp, replacement)`
+
+Replaces all matches of the regular expression with the replacement string.
+
+**Examples:**
+```rush
+text = "Phone: 123-456-7890 or 987-654-3210"
+phone_pattern = Regexp("\\d{3}-\\d{3}-\\d{4}")
+private_text = text.replace(phone_pattern, "[PHONE]")
+print(private_text)  # Output: Phone: [PHONE] or [PHONE]
+```
+
+#### `string.split(regexp)`
+
+Splits the string using the regular expression as a delimiter.
+
+**Examples:**
+```rush
+text = "apple,banana;cherry|date"
+delimiter_pattern = Regexp("[,;|]")
+fruits = text.split(delimiter_pattern)
+print(fruits)  # Output: ["apple", "banana", "cherry", "date"]
+```
+
+### Common Regular Expression Patterns
+
+Here are some useful patterns for common use cases:
+
+```rush
+# Email validation
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+
+# Phone numbers (US format)
+phone_pattern = Regexp("\\(?\\d{3}\\)?[-\\s]?\\d{3}[-\\s]?\\d{4}")
+
+# URLs
+url_pattern = Regexp("https?://[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(?:/\\S*)?")
+
+# IP addresses
+ip_pattern = Regexp("\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b")
+
+# Numbers (integers and floats)
+number_pattern = Regexp("-?\\d+(?:\\.\\d+)?")
+
+# Words only (alphabetic characters)
+word_pattern = Regexp("\\b[a-zA-Z]+\\b")
+
+# Whitespace
+whitespace_pattern = Regexp("\\s+")
+
+# Case-insensitive matching
+case_insensitive = Regexp("(?i)pattern")
 ```
 
 ## File System Built-in Functions

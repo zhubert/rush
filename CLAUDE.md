@@ -15,7 +15,8 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 12 - Enhanced Standard Library & Networking (HTTP client, regular expressions, testing framework) - **REGEXP COMPLETE**
+**Current Phase**: Phase 12 - Enhanced Standard Library & Regular Expressions - **COMPLETE**
+**Next Phase**: Phase 13 - Performance & Compilation (Bytecode optimization, JIT compilation)
 
 ## Codebase Architecture
 
@@ -140,7 +141,7 @@ if len(args) != 1 {
 }
 ```
 
-## Current Development Context (Phase 11)
+## Current Development Context (Phase 12 Complete)
 
 ### Dot Notation Implementation
 
@@ -150,18 +151,22 @@ if len(args) != 1 {
 - **Hash methods**: Built-in hash/dictionary operations with dot notation
 - **JSON methods**: Comprehensive JSON processing with dot notation (parse, stringify, get, set, path, merge, format)
 - **File system methods**: File, Directory, and Path objects with dot notation operations
+- **Regular expressions**: Comprehensive Regexp type with dot notation methods and string integration
 - **Method chaining**: All dot notation methods support seamless chaining
 - **Standard library**: Now focuses on constants (PI, E) and multi-value operations
 
 ### Implementation Notes
 
 - **Dot notation methods**: Implemented as Go built-ins in `interpreter/interpreter.go`
-- **Method types**: StringMethod, ArrayMethod, NumberMethod, HashMethod, JSONMethod, FileMethod, DirectoryMethod, PathMethod value types in `interpreter/value.go`
+- **Method types**: StringMethod, ArrayMethod, NumberMethod, HashMethod, JSONMethod, FileMethod, DirectoryMethod, PathMethod, RegexpMethod value types in `interpreter/value.go`
 - **Property access**: Extended `evalPropertyAccess` function handles all dot notation
-- **Method application**: Separate apply functions (applyStringMethod, applyArrayMethod, applyJSONMethod, etc.)
+- **Method application**: Separate apply functions (applyStringMethod, applyArrayMethod, applyJSONMethod, applyRegexpMethod, etc.)
 - **JSON processing**: Core functions `json_parse()` and `json_stringify()` in `interpreter/builtins.go`
 - **JSON object**: New JSON value type with comprehensive dot notation methods (get, set, has, keys, values, length, pretty, compact, validate, merge, path)
 - **JSON features**: Full JSON standard compliance, method chaining, path navigation, immutable operations, rich formatting
+- **Regexp processing**: `Regexp()` constructor function in `interpreter/builtins.go` creates regexp objects
+- **Regexp object**: New Regexp value type with comprehensive dot notation methods (matches?, find_first, find_all, replace) and pattern property
+- **String regexp integration**: String methods (match, replace, split, matches?) support both string and regexp arguments
 - **Standard library**: Reduced to constants and multi-value operations in `std/` directory
 - **Collections/hash operations**: Go built-ins with `builtin_hash_` prefix (legacy)
 - **Module resolution**: Still happens in `interpreter/module.go`
@@ -232,6 +237,8 @@ rush -bytecode -log-level=error production_program.rush
 - Find JSON functions: `rg "json_parse\|json_stringify" interpreter/builtins.go`
 - Find JSON methods: `rg "applyJSONMethod" interpreter/interpreter.go`
 - Find JSON helpers: `rg "getJSONValue\|setJSONValue\|parseJSON" interpreter/interpreter.go`
+- Find Regexp functions: `rg "Regexp" interpreter/builtins.go`
+- Find Regexp methods: `rg "applyRegexpMethod" interpreter/interpreter.go`
 - Find AST nodes: `rg "type.*struct" ast/ast.go`
 - Find token types: `rg "= Token" token/token.go`
 - Find test patterns: Look at existing `*_test.go` files in each directory

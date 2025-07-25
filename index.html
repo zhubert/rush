@@ -285,8 +285,13 @@
                     Rush is a modern, dynamically-typed programming language built with Go and 
                     <strong>written entirely by Agentic AI</strong>. It combines clean, readable syntax 
                     with powerful features like first-class functions, object-oriented programming, 
-                    and a comprehensive standard library. Perfect for both beginners learning programming 
-                    concepts and experienced developers who want a simple yet expressive language.
+                    regular expressions, and a comprehensive standard library. 
+                </p>
+                <p>
+                    Featuring a <strong>dual-execution architecture</strong> with both interpreter and 
+                    <strong>high-performance bytecode VM</strong>, Rush offers advanced debugging capabilities, 
+                    comprehensive logging, and performance metrics. Perfect for both beginners learning programming 
+                    concepts and experienced developers who want a simple yet expressive language for experimentation and learning.
                 </p>
                 
                 <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%); padding: 30px; border-radius: 12px; margin: 40px 0; text-align: center; border-left: 4px solid var(--primary-color);">
@@ -345,6 +350,18 @@ for (i = 0; i < len(languages); i = i + 1) {
                     <div class="feature">
                         <h3>📦 Module System</h3>
                         <p>Import and export functionality with aliasing for clean, organized code.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🔍 Regular Expressions</h3>
+                        <p>Built-in regexp support with pattern matching, text processing, and string manipulation.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚡ Bytecode VM</h3>
+                        <p>High-performance bytecode virtual machine with advanced debugging and logging capabilities.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🛠️ Developer Tools</h3>
+                        <p>Comprehensive VM logging, performance metrics, and debugging tools for optimization.</p>
                     </div>
                 </div>
             </section>
@@ -413,6 +430,51 @@ sum = reduce(doubled, fn(acc, x) { acc + x }, 0)
 print("Sum of doubled evens:", sum)  # 60</code></pre>
                     </div>
                 </div>
+
+                <div class="code-example">
+                    <div class="code-header">Regular Expressions</div>
+                    <div class="code-content">
+                        <pre><code class="language-javascript"># Powerful pattern matching with regexp objects
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+text = "Contact john@example.com or support@rush-lang.org for help"
+
+# Find all email addresses
+emails = email_pattern.find_all(text)
+print("Found emails:", emails)
+
+# Replace emails with placeholder
+safe_text = email_pattern.replace(text, "[EMAIL]")
+print("Safe text:", safe_text)
+
+# String methods also support regexp
+phone_text = "Call 123-456-7890 or 987-654-3210"
+phone_pattern = Regexp("\\d{3}-\\d{3}-\\d{4}")
+phones = phone_text.match(phone_pattern)
+print("Phone numbers:", phones)</code></pre>
+                    </div>
+                </div>
+
+                <div class="code-example">
+                    <div class="code-header">Bytecode VM & Performance</div>
+                    <div class="code-content">
+                        <pre><code class="language-bash"># Run with high-performance bytecode VM
+rush -bytecode program.rush
+
+# Advanced debugging with comprehensive logging
+rush -bytecode -log-level=debug program.rush
+rush -bytecode -log-level=trace program.rush
+
+# Performance analysis and metrics
+rush -bytecode -log-level=info large_program.rush
+
+# Available log levels for debugging:
+# - error: Critical issues only
+# - warn: Warnings and errors  
+# - info: Execution stats and performance metrics
+# - debug: Detailed execution flow and operations
+# - trace: Instruction-by-instruction execution</code></pre>
+                    </div>
+                </div>
             </section>
 
             <section id="quick-start" class="quick-start">
@@ -449,9 +511,64 @@ make install
 # Start the interactive REPL
 rush
 
-# Or run a Rush program
-rush examples/comprehensive_demo.rush</code></pre>
+# Run a Rush program (interpreter mode)
+rush examples/comprehensive_demo.rush
+
+# Run with high-performance bytecode VM
+rush -bytecode examples/comprehensive_demo.rush
+
+# Debug with comprehensive logging
+rush -bytecode -log-level=debug examples/comprehensive_demo.rush</code></pre>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>Advanced Architecture</h2>
+                <p>Rush features a sophisticated dual-execution architecture designed for development flexibility and performance optimization.</p>
+                
+                <div class="features">
+                    <div class="feature">
+                        <h3>🔄 Dual Execution Modes</h3>
+                        <p>Choose between interpreter mode for development and bytecode VM for optimized performance.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📊 Performance Metrics</h3>
+                        <p>Built-in execution statistics including instructions per second, memory usage, and call counts.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🔍 Advanced Debugging</h3>
+                        <p>Comprehensive logging system with trace-level instruction debugging and stack inspection.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚙️ VM Optimization</h3>
+                        <p>Bytecode virtual machine with stack management, local variable optimization, and function call efficiency.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎯 Development Tools</h3>
+                        <p>Configurable log levels, performance profiling, and execution flow analysis for optimization.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🚀 Robust Implementation</h3>
+                        <p>Comprehensive error handling, memory management, and performance monitoring for experimental and educational use.</p>
+                    </div>
+                </div>
+
+                <div class="code-example">
+                    <div class="code-header">VM Performance Analysis</div>
+                    <div class="code-content">
+                        <pre><code class="language-bash"># Performance comparison between modes
+time rush program.rush                    # Interpreter mode
+time rush -bytecode program.rush         # Bytecode VM mode
+
+# Detailed performance metrics
+rush -bytecode -log-level=info program.rush
+# Output includes:
+# - Execution time and instructions/second
+# - Stack operations and function calls  
+# - Memory allocations and error counts
+# - VM initialization and cleanup stats</code></pre>
                     </div>
                 </div>
             </section>

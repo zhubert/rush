@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-11%20complete-green)](#phases)
+[![Phase](https://img.shields.io/badge/phase-12%20complete-green)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -69,6 +69,7 @@ make dev FILE=hello.rush
 - **Module System**: Import/export with aliasing for code organization
 - **Error Handling**: Try/catch/finally/throw with typed error catching
 - **Control Flow**: If/else, while, for loops, switch/case, break/continue
+- **Regular Expressions**: Built-in regexp support with `Regexp()` constructor
 - **Interactive REPL**: Explore Rush interactively
 
 ### Data Types & Operations
@@ -264,6 +265,25 @@ print("Sum:", sum(numbers))         # 15.0
 print("Max:", max(numbers))         # 5
 ```
 
+### Regular Expressions
+```rush
+# Create regexp objects
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+number_pattern = Regexp("\\d+")
+
+# String methods with regexp support
+text = "Contact john@example.com for info"
+emails = text.match(email_pattern)        # Find matches
+clean_text = text.replace(email_pattern, "[EMAIL]")  # Replace with string
+parts = text.split(number_pattern)        # Split by pattern
+
+# Regexp object methods
+has_email = email_pattern.matches?(text)  # Boolean test
+first_email = email_pattern.find_first(text)  # First match
+all_emails = email_pattern.find_all(text)     # All matches
+no_emails = email_pattern.replace(text, "[HIDDEN]")  # Replace all
+```
+
 ### Object-Oriented Programming
 ```rush
 # Define a class
@@ -325,6 +345,9 @@ throw RuntimeError("Something went wrong")
 - `ord(char)` - Get ASCII code of character
 - `chr(code)` - Get character from ASCII code
 
+### Regular Expression Functions
+- `Regexp(pattern)` - Create a regular expression object from pattern string
+
 ### String Methods (Dot Notation)
 No imports needed - all methods are built into string objects!
 
@@ -341,10 +364,12 @@ No imports needed - all methods are built into string objects!
 - `string.contains?(substring)` - Check if string contains substring
 - `string.starts_with?(prefix)` - Check if string starts with prefix
 - `string.ends_with?(suffix)` - Check if string ends with suffix
-- `string.replace(old, new)` - Replace all occurrences
+- `string.replace(old, new)` - Replace all occurrences (supports regexp objects)
 - `string.substr(start, length)` - Extract substring
-- `string.split(separator)` - Split into array
+- `string.split(separator)` - Split into array (supports regexp objects)
 - `string.join(array)` - Join array elements with string as separator
+- `string.match(regexp)` - Find all matches of regexp pattern
+- `string.matches?(regexp)` - Test if string matches regexp pattern
 
 ### Array Methods (Dot Notation)
 No imports needed - all methods are built into array objects!
@@ -403,6 +428,18 @@ No imports needed - all methods are built into hash objects!
 
 **Standalone Function:**
 - `array_to_hash(pairs)` - Convert array of `[key, value]` pairs to hash
+
+### Regular Expression Methods (Dot Notation)
+No imports needed - all methods are built into regexp objects!
+
+**Properties:**
+- `regexp.pattern` - Get the original pattern string
+
+**Methods:**
+- `regexp.matches?(text)` - Test if text matches the pattern
+- `regexp.find_first(text)` - Find first match in text
+- `regexp.find_all(text)` - Find all matches in text
+- `regexp.replace(text, replacement)` - Replace all matches with replacement string
 
 ## 📖 Documentation
 
@@ -491,6 +528,7 @@ print("Bob is admin:", check_admin("bob"))      # false
 
 ### More Examples
 - **[Comprehensive Demo](examples/comprehensive_demo.rush)** - All language features
+- **[Regular Expression Demo](examples/regexp_demo.rush)** - Regular expression patterns and methods
 - **[Algorithms Demo](examples/algorithms_demo.rush)** - Sorting, searching, and algorithms
 - **[Games Demo](examples/game_demo.rush)** - Interactive games and simulations
 
@@ -569,9 +607,10 @@ Rush was developed through a systematic phased approach:
 - **✅ Phase 8**: Module System - Import/export functionality
 - **✅ Phase 9**: Error Handling - Try/catch/finally/throw mechanisms
 - **✅ Phase 10**: Object System - Classes, inheritance, and method enhancements
-- **🔄 Phase 11**: Enhanced Standard Library - String/array/math/collections modules, JSON, file I/O
-- **🔄 Phase 12**: Performance & Compilation - Bytecode optimization, JIT compilation
-- **🔄 Phase 13**: Developer Tooling - Language server, debugger, IDE integration
+- **✅ Phase 11**: Enhanced Standard Library - String/array/math/collections modules, JSON, file I/O
+- **✅ Phase 12**: Enhanced Standard Library & Regular Expressions - Comprehensive regexp support
+- **🔄 Phase 13**: Performance & Compilation - Bytecode optimization, JIT compilation
+- **🔄 Phase 14**: Developer Tooling - Language server, debugger, IDE integration
 
 **📋 Development Tracking**: Phases under development are tracked in the [Initial Development GitHub Project](https://github.com/users/zhubert/projects/1).
 
