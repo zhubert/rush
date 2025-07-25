@@ -844,6 +844,8 @@ func (vm *VM) executeIndexExpression(left, index interpreter.Value) error {
 	switch {
 	case left.Type() == interpreter.ARRAY_VALUE && index.Type() == interpreter.INTEGER_VALUE:
 		return vm.executeArrayIndex(left, index)
+	case left.Type() == interpreter.STRING_VALUE && index.Type() == interpreter.INTEGER_VALUE:
+		return vm.executeStringIndex(left, index)
 	case left.Type() == interpreter.HASH_VALUE:
 		return vm.executeHashIndex(left, index)
 	default:
@@ -861,6 +863,18 @@ func (vm *VM) executeArrayIndex(array, index interpreter.Value) error {
 	}
 
 	return vm.push(arrayObject.Elements[i])
+}
+
+func (vm *VM) executeStringIndex(str, index interpreter.Value) error {
+	stringObject := str.(*interpreter.String)
+	i := index.(*interpreter.Integer).Value
+	max := int64(len(stringObject.Value) - 1)
+
+	if i < 0 || i > max {
+		return vm.push(interpreter.NULL)
+	}
+
+	return vm.push(&interpreter.String{Value: string(stringObject.Value[i])})
 }
 
 func (vm *VM) executeHashIndex(hash, index interpreter.Value) error {

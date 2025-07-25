@@ -20,7 +20,7 @@ import (
 func main() {
 	// Define command line flags
 	bytecodeMode := flag.Bool("bytecode", false, "Use bytecode compilation and VM execution")
-	useCache := flag.Bool("cache", true, "Enable bytecode caching")
+	useCache := flag.Bool("cache", false, "Enable bytecode caching")
 	clearCache := flag.Bool("clear-cache", false, "Clear bytecode cache and exit")
 	cacheStats := flag.Bool("cache-stats", false, "Show cache statistics and exit")
 	flag.Parse()
