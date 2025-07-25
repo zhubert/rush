@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -195,7 +196,7 @@ func Eval(node ast.Node, env *Environment) Value {
 		
 		// Check if it's a string method call
 		if stringMethod, ok := function.(*StringMethod); ok {
-			return applyStringMethod(stringMethod, args, env)
+			return ApplyStringMethod(stringMethod, args, env)
 		}
 		
 		// Check if it's an array method call
@@ -236,6 +237,11 @@ func Eval(node ast.Node, env *Environment) Value {
 		// Check if it's a Duration method call
 		if durationMethod, ok := function.(*DurationMethod); ok {
 			return applyDurationMethod(durationMethod, args, env)
+		}
+		
+		// Check if it's a Regexp method call
+		if regexpMethod, ok := function.(*RegexpMethod); ok {
+			return ApplyRegexpMethod(regexpMethod, args, env)
 		}
 		
 		// Check if it's a TimeZone method call
@@ -955,7 +961,7 @@ func applyHashMethod(hashMethod *HashMethod, args []Value, env *Environment) Val
 	}
 }
 
-func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environment) Value {
+func ApplyStringMethod(stringMethod *StringMethod, args []Value, env *Environment) Value {
 	str := stringMethod.String.Value
 	
 	switch stringMethod.Method {
@@ -1007,12 +1013,21 @@ func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environmen
 		if len(args) != 2 {
 			return newError("wrong number of arguments for replace: want=2, got=%d", len(args))
 		}
-		old, ok1 := args[0].(*String)
-		new, ok2 := args[1].(*String)
-		if !ok1 || !ok2 {
-			return newError("arguments to replace must be STRING, got %s, %s", args[0].Type(), args[1].Type())
+		
+		replacement, ok := args[1].(*String)
+		if !ok {
+			return newError("second argument to replace must be STRING, got %s", args[1].Type())
 		}
-		return &String{Value: strings.ReplaceAll(str, old.Value, new.Value)}
+		
+		// Support both string and regexp patterns
+		switch pattern := args[0].(type) {
+		case *String:
+			return &String{Value: strings.ReplaceAll(str, pattern.Value, replacement.Value)}
+		case *Regexp:
+			return &String{Value: pattern.Regex.ReplaceAllString(str, replacement.Value)}
+		default:
+			return newError("first argument to replace must be STRING or REGEXP, got %s", args[0].Type())
+		}
 		
 	case "starts_with?":
 		if len(args) != 1 {
@@ -1066,12 +1081,17 @@ func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environmen
 		if len(args) != 1 {
 			return newError("wrong number of arguments for split: want=1, got=%d", len(args))
 		}
-		delimiter, ok := args[0].(*String)
-		if !ok {
-			return newError("argument to split must be STRING, got %s", args[0].Type())
+		
+		var parts []string
+		switch delimiter := args[0].(type) {
+		case *String:
+			parts = strings.Split(str, delimiter.Value)
+		case *Regexp:
+			parts = delimiter.Regex.Split(str, -1)
+		default:
+			return newError("argument to split must be STRING or REGEXP, got %s", args[0].Type())
 		}
 		
-		parts := strings.Split(str, delimiter.Value)
 		elements := make([]Value, len(parts))
 		for i, part := range parts {
 			elements[i] = &String{Value: part}
@@ -1092,6 +1112,54 @@ func applyStringMethod(stringMethod *StringMethod, args []Value, env *Environmen
 			strs[i] = valueToString(elem)
 		}
 		return &String{Value: strings.Join(strs, str)}
+		
+	case "match":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for match: want=1, got=%d", len(args))
+		}
+		
+		switch pattern := args[0].(type) {
+		case *String:
+			// Convert string to regexp for matching
+			regex, err := regexp.Compile(pattern.Value)
+			if err != nil {
+				return newError("invalid regular expression: %s", err.Error())
+			}
+			matches := regex.FindAllString(str, -1)
+			elements := make([]Value, len(matches))
+			for i, match := range matches {
+				elements[i] = &String{Value: match}
+			}
+			return &Array{Elements: elements}
+		case *Regexp:
+			matches := pattern.Regex.FindAllString(str, -1)
+			elements := make([]Value, len(matches))
+			for i, match := range matches {
+				elements[i] = &String{Value: match}
+			}
+			return &Array{Elements: elements}
+		default:
+			return newError("argument to match must be STRING or REGEXP, got %s", args[0].Type())
+		}
+		
+	case "matches?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for matches?: want=1, got=%d", len(args))
+		}
+		
+		switch pattern := args[0].(type) {
+		case *String:
+			// Convert string to regexp for testing
+			regex, err := regexp.Compile(pattern.Value)
+			if err != nil {
+				return newError("invalid regular expression: %s", err.Error())
+			}
+			return &Boolean{Value: regex.MatchString(str)}
+		case *Regexp:
+			return &Boolean{Value: pattern.Regex.MatchString(str)}
+		default:
+			return newError("argument to matches? must be STRING or REGEXP, got %s", args[0].Type())
+		}
 		
 	default:
 		return newError("unknown string method: %s", stringMethod.Method)
@@ -1979,7 +2047,7 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		
 		// Methods (with parameters) - return bound methods
 		case "trim", "ltrim", "rtrim", "upper", "lower", "contains?", "replace",
-		     "starts_with?", "ends_with?", "substr", "split", "join":
+		     "starts_with?", "ends_with?", "substr", "split", "join", "match", "matches?":
 			return &StringMethod{String: str, Method: node.Property.Value}
 		
 		default:
@@ -2129,6 +2197,22 @@ func evalPropertyAccess(node *ast.PropertyAccess, env *Environment) Value {
 		
 		default:
 			return newError("unknown property %s for TimeZone", node.Property.Value)
+		}
+	}
+	
+	// Check if it's a regexp and handle method access
+	if regexp, ok := object.(*Regexp); ok {
+		switch node.Property.Value {
+		// Simple properties (no parameters)
+		case "pattern":
+			return &String{Value: regexp.Pattern}
+		
+		// Methods (with parameters) - return bound methods
+		case "matches?", "find_all", "find_first", "replace":
+			return &RegexpMethod{Regexp: regexp, Method: node.Property.Value}
+		
+		default:
+			return newError("unknown property %s for Regexp", node.Property.Value)
 		}
 	}
 	
@@ -4143,6 +4227,74 @@ func applyDurationMethod(durationMethod *DurationMethod, args []Value, env *Envi
 	
 	default:
 		return newError("undefined method %s for Duration", durationMethod.Method)
+	}
+}
+
+// ApplyRegexpMethod handles Regexp instance method calls
+func ApplyRegexpMethod(regexpMethod *RegexpMethod, args []Value, env *Environment) Value {
+	regexpObj := regexpMethod.Regexp
+	
+	switch regexpMethod.Method {
+	case "matches?":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for matches?: want=1, got=%d", len(args))
+		}
+		
+		str, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to matches? must be STRING, got %s", args[0].Type())
+		}
+		
+		return &Boolean{Value: regexpObj.Regex.MatchString(str.Value)}
+		
+	case "find_all":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for find_all: want=1, got=%d", len(args))
+		}
+		
+		str, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to find_all must be STRING, got %s", args[0].Type())
+		}
+		
+		matches := regexpObj.Regex.FindAllString(str.Value, -1)
+		elements := make([]Value, len(matches))
+		for i, match := range matches {
+			elements[i] = &String{Value: match}
+		}
+		return &Array{Elements: elements}
+		
+	case "find_first":
+		if len(args) != 1 {
+			return newError("wrong number of arguments for find_first: want=1, got=%d", len(args))
+		}
+		
+		str, ok := args[0].(*String)
+		if !ok {
+			return newError("argument to find_first must be STRING, got %s", args[0].Type())
+		}
+		
+		match := regexpObj.Regex.FindString(str.Value)
+		if match == "" {
+			return &Null{}
+		}
+		return &String{Value: match}
+		
+	case "replace":
+		if len(args) != 2 {
+			return newError("wrong number of arguments for replace: want=2, got=%d", len(args))
+		}
+		
+		str, ok1 := args[0].(*String)
+		replacement, ok2 := args[1].(*String)
+		if !ok1 || !ok2 {
+			return newError("arguments to replace must be STRING, got %s, %s", args[0].Type(), args[1].Type())
+		}
+		
+		return &String{Value: regexpObj.Regex.ReplaceAllString(str.Value, replacement.Value)}
+		
+	default:
+		return newError("unknown regexp method: %s", regexpMethod.Method)
 	}
 }
 

@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"rush/ast"
@@ -51,6 +52,8 @@ const (
 	TIMEZONE_VALUE      ValueType = "TIMEZONE"
 	TIMEZONE_METHOD_VALUE ValueType = "TIMEZONE_METHOD" 
 	TIMEZONE_NAMESPACE_VALUE ValueType = "TIMEZONE_NAMESPACE"
+	REGEXP_VALUE        ValueType = "REGEXP"
+	REGEXP_METHOD_VALUE ValueType = "REGEXP_METHOD"
 )
 
 // Value represents a value in the Rush language
@@ -512,4 +515,24 @@ type Closure struct {
 func (c *Closure) Type() ValueType { return CLOSURE_VALUE }
 func (c *Closure) Inspect() string {
 	return fmt.Sprintf("Closure[%p]", c)
+}
+
+// Regexp represents a compiled regular expression
+type Regexp struct {
+	Pattern string
+	Regex   *regexp.Regexp
+}
+
+func (r *Regexp) Type() ValueType { return REGEXP_VALUE }
+func (r *Regexp) Inspect() string { return fmt.Sprintf("/%s/", r.Pattern) }
+
+// RegexpMethod represents a method on a regexp object
+type RegexpMethod struct {
+	Regexp *Regexp
+	Method string
+}
+
+func (rm *RegexpMethod) Type() ValueType { return REGEXP_METHOD_VALUE }
+func (rm *RegexpMethod) Inspect() string {
+	return fmt.Sprintf("<%s method on %s>", rm.Method, rm.Regexp.Inspect())
 }

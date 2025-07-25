@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -15,6 +16,7 @@ var Builtins = []string{
 	"Time", 
 	"Duration",
 	"TimeZone",
+	"Regexp",
 	"len",
 	"print",
 	"puts",
@@ -83,6 +85,28 @@ var builtins = map[string]*BuiltinFunction{
 	"TimeZone": {
 		Fn: func(args ...Value) Value {
 			return &TimeZoneNamespace{}
+		},
+	},
+	"Regexp": {
+		Fn: func(args ...Value) Value {
+			if len(args) != 1 {
+				return newError("wrong number of arguments. got=%d, want=1", len(args))
+			}
+
+			pattern, ok := args[0].(*String)
+			if !ok {
+				return newError("argument to `Regexp` must be STRING, got %s", args[0].Type())
+			}
+
+			regex, err := regexp.Compile(pattern.Value)
+			if err != nil {
+				return newError("invalid regular expression: %s", err.Error())
+			}
+
+			return &Regexp{
+				Pattern: pattern.Value,
+				Regex:   regex,
+			}
 		},
 	},
 	"len": {
