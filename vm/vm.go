@@ -334,6 +334,14 @@ func (vm *VM) Run() error {
 				return err
 			}
 
+		case bytecode.OpSetFree:
+			freeIndex := int(ins[ip+1])
+			vm.currentFrame().ip += 1
+
+			currentClosure := vm.currentFrame().cl
+			value := vm.pop()
+			currentClosure.Free[freeIndex] = value
+
 		case bytecode.OpCurrentClosure:
 			currentClosure := vm.currentFrame().cl
 			err := vm.push(currentClosure)

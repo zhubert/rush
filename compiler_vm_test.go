@@ -116,9 +116,15 @@ func TestComplexPrograms(t *testing.T) {
 		// Fibonacci with memoization
 		{`
 		fibonacci = fn(n) {
-			if (n == 0) { 0 }
-			else if (n == 1) { 1 }
-			else { fibonacci(n-1) + fibonacci(n-2) }
+			if (n == 0) { 
+				0 
+			} else { 
+				if (n == 1) { 
+					1 
+				} else { 
+					fibonacci(n-1) + fibonacci(n-2) 
+				} 
+			}
 		};
 		fibonacci(10);
 		`, 55},

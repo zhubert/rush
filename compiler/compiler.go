@@ -71,6 +71,10 @@ func NewWithState(s *SymbolTable, constants []interpreter.Value) *Compiler {
 
 // Compile transforms an AST node into bytecode
 func (c *Compiler) Compile(node ast.Node) error {
+	if node == nil {
+		return nil
+	}
+	
 	switch node := node.(type) {
 	case *ast.Program:
 		// Pass 1: Symbol Discovery
@@ -943,6 +947,8 @@ func (c *Compiler) storeSymbol(s Symbol) {
 		c.emit(bytecode.OpSetGlobal, s.Index)
 	case LocalScope:
 		c.emit(bytecode.OpSetLocal, s.Index)
+	case FreeScope:
+		c.emit(bytecode.OpSetFree, s.Index)
 	}
 }
 
@@ -998,6 +1004,10 @@ func (c *Compiler) collectSymbolsFromStatement(stmt ast.Statement) error {
 
 // collectSymbolsFromExpression recursively collects symbols from expressions
 func (c *Compiler) collectSymbolsFromExpression(expr ast.Expression) error {
+	if expr == nil {
+		return nil
+	}
+	
 	switch node := expr.(type) {
 	case *ast.FunctionLiteral:
 		// Enter new scope for function parameters and body
