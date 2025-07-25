@@ -1023,7 +1023,7 @@ func (vm *VM) executeArrayIndex(array, index interpreter.Value) error {
 	max := int64(len(arrayObject.Elements) - 1)
 
 	if i < 0 || i > max {
-		return vm.push(interpreter.NULL)
+		return fmt.Errorf("IndexError: array index %d out of range [0:%d]", i, max+1)
 	}
 
 	return vm.push(arrayObject.Elements[i])
@@ -1035,7 +1035,7 @@ func (vm *VM) executeStringIndex(str, index interpreter.Value) error {
 	max := int64(len(stringObject.Value) - 1)
 
 	if i < 0 || i > max {
-		return vm.push(interpreter.NULL)
+		return fmt.Errorf("IndexError: string index %d out of range [0:%d]", i, max+1)
 	}
 
 	return vm.push(&interpreter.String{Value: string(stringObject.Value[i])})
@@ -1871,6 +1871,70 @@ func (vm *VM) getTypeName(valueType interpreter.ValueType) string {
 		return "FUNCTION"
 	case interpreter.CLOSURE_VALUE:
 		return "FUNCTION"
+	case interpreter.NULL_VALUE:
+		return "NULL"
+	case interpreter.BUILTIN_VALUE:
+		return "BUILTIN"
+	case interpreter.COMPILED_FUNCTION_VALUE:
+		return "COMPILED_FUNCTION"
+	case interpreter.RETURN_VALUE:
+		return "RETURN_VALUE"
+	case interpreter.BREAK_VALUE:
+		return "BREAK_VALUE"
+	case interpreter.CONTINUE_VALUE:
+		return "CONTINUE_VALUE"
+	case interpreter.EXCEPTION_VALUE:
+		return "EXCEPTION"
+	case interpreter.CLASS_VALUE:
+		return "CLASS"
+	case interpreter.INSTANCE_VALUE:
+		return "INSTANCE"
+	case interpreter.BOUND_METHOD_VALUE:
+		return "BOUND_METHOD"
+	case interpreter.HASH_METHOD_VALUE:
+		return "HASH_METHOD"
+	case interpreter.STRING_METHOD_VALUE:
+		return "STRING_METHOD"
+	case interpreter.ARRAY_METHOD_VALUE:
+		return "ARRAY_METHOD"
+	case interpreter.NUMBER_METHOD_VALUE:
+		return "NUMBER_METHOD"
+	case interpreter.FILE_VALUE:
+		return "FILE"
+	case interpreter.DIRECTORY_VALUE:
+		return "DIRECTORY"
+	case interpreter.PATH_VALUE:
+		return "PATH"
+	case interpreter.FILE_METHOD_VALUE:
+		return "FILE_METHOD"
+	case interpreter.DIRECTORY_METHOD_VALUE:
+		return "DIRECTORY_METHOD"
+	case interpreter.PATH_METHOD_VALUE:
+		return "PATH_METHOD"
+	case interpreter.JSON_VALUE:
+		return "JSON"
+	case interpreter.JSON_METHOD_VALUE:
+		return "JSON_METHOD"
+	case interpreter.JSON_NAMESPACE_VALUE:
+		return "JSON_NAMESPACE"
+	case interpreter.TIME_VALUE:
+		return "TIME"
+	case interpreter.TIME_METHOD_VALUE:
+		return "TIME_METHOD"
+	case interpreter.TIME_NAMESPACE_VALUE:
+		return "TIME_NAMESPACE"
+	case interpreter.DURATION_VALUE:
+		return "DURATION"
+	case interpreter.DURATION_METHOD_VALUE:
+		return "DURATION_METHOD"
+	case interpreter.DURATION_NAMESPACE_VALUE:
+		return "DURATION_NAMESPACE"
+	case interpreter.TIMEZONE_VALUE:
+		return "TIMEZONE"
+	case interpreter.TIMEZONE_METHOD_VALUE:
+		return "TIMEZONE_METHOD"
+	case interpreter.TIMEZONE_NAMESPACE_VALUE:
+		return "TIMEZONE_NAMESPACE"
 	default:
 		return "UNKNOWN"
 	}
