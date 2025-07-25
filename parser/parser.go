@@ -124,7 +124,13 @@ func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 	
-	// Skip comments
+	// Skip comments in current token
+	for p.curToken.Type == lexer.COMMENT {
+		p.curToken = p.peekToken
+		p.peekToken = p.l.NextToken()
+	}
+	
+	// Skip comments in peek token
 	for p.peekToken.Type == lexer.COMMENT {
 		p.peekToken = p.l.NextToken()
 	}

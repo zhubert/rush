@@ -121,7 +121,7 @@ func (l *Lexer) readString(quote byte) string {
 	return string(result)
 }
 
-// readComment reads a comment starting with #
+// readComment reads a comment starting with # or //
 func (l *Lexer) readComment() string {
 	position := l.position
 	for l.ch != '\n' && l.ch != 0 {
@@ -156,7 +156,16 @@ func (l *Lexer) NextToken() Token {
 	case '*':
 		tok = newToken(MULT, l.ch, line, column)
 	case '/':
-		tok = newToken(DIV, l.ch, line, column)
+		if l.peekChar() == '/' {
+			// Handle // comment
+			tok.Type = COMMENT
+			tok.Literal = l.readComment()
+			tok.Line = line
+			tok.Column = column
+			return tok // Don't advance past newline
+		} else {
+			tok = newToken(DIV, l.ch, line, column)
+		}
 	case '%':
 		tok = newToken(MOD, l.ch, line, column)
 	case '!':

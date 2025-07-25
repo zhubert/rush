@@ -880,3 +880,113 @@ func TestNegativeNumbers(t *testing.T) {
     }
   }
 }
+
+func TestDoubleSlashComments(t *testing.T) {
+  input := `// This is a comment
+x = 5`
+
+  tests := []struct {
+    expectedType    TokenType
+    expectedLiteral string
+  }{
+    {COMMENT, "// This is a comment"},
+    {SEMICOLON, "\n"},
+    {IDENT, "x"},
+    {ASSIGN, "="},
+    {INT, "5"},
+    {EOF, ""},
+  }
+
+  l := New(input)
+
+  for i, tt := range tests {
+    tok := l.NextToken()
+
+    if tok.Type != tt.expectedType {
+      t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
+        i, tt.expectedType, tok.Type)
+    }
+
+    if tok.Literal != tt.expectedLiteral {
+      t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+        i, tt.expectedLiteral, tok.Literal)
+    }
+  }
+}
+
+func TestMixedCommentTypes(t *testing.T) {
+  input := `# Hash comment
+x = 5 // End of line comment
+// Another slash comment`
+
+  tests := []struct {
+    expectedType    TokenType
+    expectedLiteral string
+  }{
+    {COMMENT, "# Hash comment"},
+    {SEMICOLON, "\n"},
+    {IDENT, "x"},
+    {ASSIGN, "="},
+    {INT, "5"},
+    {COMMENT, "// End of line comment"},
+    {SEMICOLON, "\n"},
+    {COMMENT, "// Another slash comment"},
+    {EOF, ""},
+  }
+
+  l := New(input)
+
+  for i, tt := range tests {
+    tok := l.NextToken()
+
+    if tok.Type != tt.expectedType {
+      t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
+        i, tt.expectedType, tok.Type)
+    }
+
+    if tok.Literal != tt.expectedLiteral {
+      t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+        i, tt.expectedLiteral, tok.Literal)
+    }
+  }
+}
+
+func TestDivisionVsComment(t *testing.T) {
+  input := `x / y
+x // comment
+x/y // comment`
+
+  tests := []struct {
+    expectedType    TokenType
+    expectedLiteral string
+  }{
+    {IDENT, "x"},
+    {DIV, "/"},
+    {IDENT, "y"},
+    {SEMICOLON, "\n"},
+    {IDENT, "x"},
+    {COMMENT, "// comment"},
+    {SEMICOLON, "\n"},
+    {IDENT, "x"},
+    {DIV, "/"},
+    {IDENT, "y"},
+    {COMMENT, "// comment"},
+    {EOF, ""},
+  }
+
+  l := New(input)
+
+  for i, tt := range tests {
+    tok := l.NextToken()
+
+    if tok.Type != tt.expectedType {
+      t.Fatalf("tests[%d] - tokentype wrong. expected=%q, got=%q",
+        i, tt.expectedType, tok.Type)
+    }
+
+    if tok.Literal != tt.expectedLiteral {
+      t.Fatalf("tests[%d] - literal wrong. expected=%q, got=%q",
+        i, tt.expectedLiteral, tok.Literal)
+    }
+  }
+}
