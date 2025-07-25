@@ -137,7 +137,11 @@ func New(bytecode *compiler.Bytecode) *VM {
 
 // NewWithLogger creates a new virtual machine with specified log level
 func NewWithLogger(bytecode *compiler.Bytecode, logLevel LogLevel) *VM {
-	mainFn := &interpreter.CompiledFunction{Instructions: []byte(bytecode.Instructions)}
+	mainFn := &interpreter.CompiledFunction{
+		Instructions:  []byte(bytecode.Instructions),
+		NumLocals:     0, // Main execution has no local variables
+		NumParameters: 0, // Main execution has no parameters
+	}
 	mainClosure := &interpreter.Closure{Fn: mainFn}
 	mainFrame := NewFrame(mainClosure, 0)
 
@@ -760,12 +764,19 @@ func (vm *VM) currentFrame() *Frame {
 func (vm *VM) safeSetSP(newSP int) {
 	frame := vm.currentFrame()
 	minSP := frame.basePointer
+	
+	// Only apply local variable constraints if we're in a closure (function frame)
+	// For the main execution frame (cl == nil), we can set SP more freely
 	if frame.cl != nil {
 		minSP += frame.cl.Fn.NumLocals
-	}
-	
-	if newSP < minSP {
-		newSP = minSP
+		if newSP < minSP {
+			newSP = minSP
+		}
+	} else {
+		// In main execution frame, just ensure we don't go below base pointer
+		if newSP < minSP {
+			newSP = minSP
+		}
 	}
 	
 	vm.sp = newSP
@@ -1410,7 +1421,26 @@ func (vm *VM) callBuiltin(builtin *interpreter.BuiltinFunction, numArgs int) err
 	args := vm.stack[vm.sp-numArgs : vm.sp]
 
 	result := builtin.Fn(args...)
-	vm.safeSetSP(vm.sp - numArgs - 1)
+	
+	// For builtin calls, we need to remove the function and all arguments from the stack
+	// Calculate the target SP after removing function + numArgs arguments
+	targetSP := vm.sp - numArgs - 1
+	
+	// Ensure we don't go below the current frame's minimum SP
+	frame := vm.currentFrame()
+	minSP := frame.basePointer
+	if frame.cl != nil && frame.cl.Fn.NumLocals > 0 {
+		minSP += frame.cl.Fn.NumLocals
+	}
+	
+	// If the target would go below minimum, something is wrong with the stack state
+	// This should not happen with proper bytecode, but let's handle it gracefully
+	if targetSP < minSP {
+		vm.logger.Debug("Builtin call would underflow stack (target=%d, min=%d), using minimum", targetSP, minSP)
+		targetSP = minSP
+	}
+	
+	vm.sp = targetSP
 
 	if result != nil {
 		vm.push(result)
