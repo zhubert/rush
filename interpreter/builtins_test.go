@@ -183,7 +183,7 @@ func TestPushFunction(t *testing.T) {
     {"push([1, 2, 3], 4)", []int{1, 2, 3, 4}},
     {"push([], 1)", []int{1}},
     {"push([\"a\", \"b\"], \"c\")", []string{"a", "b", "c"}},
-    {"push(42, 1)", "first argument to `push` must be ARRAY, got INTEGER"},
+    {"push(42, 1)", "argument to `push` must be ARRAY, got INTEGER"},
     {"push([1, 2, 3])", "wrong number of arguments. got=1, want=2"},
     {"push([1, 2, 3], 4, 5)", "wrong number of arguments. got=3, want=2"},
   }
