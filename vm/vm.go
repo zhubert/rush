@@ -1145,6 +1145,8 @@ func (vm *VM) executePropertyAccess(object interpreter.Value, propertyName strin
 		return vm.executeBuiltinFunctionProperty(obj, propertyName)
 	case *interpreter.JSON:
 		return vm.executeJSONProperty(obj, propertyName)
+	case *interpreter.Regexp:
+		return vm.executeRegexpProperty(obj, propertyName)
 	case *interpreter.Error:
 		// Errors don't have properties, just return the error itself
 		return fmt.Errorf("cannot access property on error: %s", obj.Message)
@@ -1174,6 +1176,12 @@ func (vm *VM) executeStringProperty(str *interpreter.String, propertyName string
 		return vm.push(&interpreter.StringMethod{String: str, Method: "starts_with"})
 	case "ends_with":
 		return vm.push(&interpreter.StringMethod{String: str, Method: "ends_with"})
+	case "match":
+		return vm.push(&interpreter.StringMethod{String: str, Method: "match"})
+	case "matches?":
+		return vm.push(&interpreter.StringMethod{String: str, Method: "matches?"})
+	case "replace":
+		return vm.push(&interpreter.StringMethod{String: str, Method: "replace"})
 	default:
 		return fmt.Errorf("unknown property '%s' for string", propertyName)
 	}
@@ -1354,6 +1362,21 @@ func (vm *VM) executeJSONProperty(jsonObj *interpreter.JSON, propertyName string
 	}
 }
 
+func (vm *VM) executeRegexpProperty(regexpObj *interpreter.Regexp, propertyName string) error {
+	switch propertyName {
+	// Simple properties (no parameters)
+	case "pattern":
+		return vm.push(&interpreter.String{Value: regexpObj.Pattern})
+	
+	// Methods (with parameters) - return bound methods
+	case "matches?", "find_all", "find_first", "replace":
+		return vm.push(&interpreter.RegexpMethod{Regexp: regexpObj, Method: propertyName})
+	
+	default:
+		return fmt.Errorf("unknown property %s for Regexp", propertyName)
+	}
+}
+
 // ObjectBoundMethod represents a method bound to an object for bytecode execution
 type ObjectBoundMethod struct {
 	Object *interpreter.Object
@@ -1381,6 +1404,8 @@ func (vm *VM) executeCall(numArgs int) error {
 		return vm.callNumberMethod(callee, numArgs)
 	case *interpreter.JSONMethod:
 		return vm.callJSONMethod(callee, numArgs)
+	case *interpreter.RegexpMethod:
+		return vm.callRegexpMethod(callee, numArgs)
 	case *interpreter.Class:
 		return vm.callClassConstructor(callee, numArgs)
 	case *ObjectBoundMethod:
@@ -1505,6 +1530,13 @@ func (vm *VM) callStringMethod(method *interpreter.StringMethod, numArgs int) er
 			return fmt.Errorf("contains() argument must be string")
 		}
 		result = &interpreter.Boolean{Value: strings.Contains(method.String.Value, searchStr.Value)}
+	case "match", "matches?", "replace", "split":
+		// Delegate complex methods to interpreter
+		argValues := make([]interpreter.Value, numArgs)
+		for i := 0; i < numArgs; i++ {
+			argValues[i] = args[i]
+		}
+		result = interpreter.ApplyStringMethod(method, argValues, nil)
 	default:
 		return fmt.Errorf("unknown string method: %s", method.Method)
 	}
@@ -1637,6 +1669,22 @@ func (vm *VM) callJSONMethod(method *interpreter.JSONMethod, numArgs int) error 
 	
 	// Use the existing applyJSONMethod function from interpreter
 	result := interpreter.ApplyJSONMethod(method, argValues, nil)
+	
+	return vm.push(result)
+}
+
+func (vm *VM) callRegexpMethod(method *interpreter.RegexpMethod, numArgs int) error {
+	args := vm.stack[vm.sp-numArgs : vm.sp]
+	vm.safeSetSP(vm.sp - numArgs - 1)
+	
+	// Convert args to slice of interpreter.Value
+	argValues := make([]interpreter.Value, numArgs)
+	for i := 0; i < numArgs; i++ {
+		argValues[i] = args[i]
+	}
+	
+	// Use the existing ApplyRegexpMethod function from interpreter
+	result := interpreter.ApplyRegexpMethod(method, argValues, nil)
 	
 	return vm.push(result)
 }

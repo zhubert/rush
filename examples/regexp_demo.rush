@@ -1,0 +1,68 @@
+# Rush Language - Regular Expression Demo
+# This program demonstrates the new regexp functionality
+
+print("=== Rush Regexp Demo ===")
+
+# Create a regexp object
+print("\n1. Creating Regexp Objects:")
+pattern = Regexp("\\d+")
+print("Pattern:", pattern.pattern)
+print("Regexp object:", pattern)
+
+# Test string methods with regexp support
+print("\n2. String Methods with Regexp:")
+text = "Hello 123 World 456 Rush 789"
+print("Text:", text)
+
+# Test matching
+matches = text.match(pattern)
+print("Matches:", matches)
+
+# Test replacing
+replaced = text.replace(pattern, "X")
+print("Replaced:", replaced)
+
+# Test splitting
+parts = text.split(pattern)
+print("Split parts:", parts)
+
+# Test boolean matching
+has_numbers = text.matches?(pattern)
+print("Has numbers:", has_numbers)
+
+# Regexp object methods
+print("\n3. Regexp Object Methods:")
+email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
+email_text = "Contact us at john@example.com or support@rush-lang.org for help"
+print("Email text:", email_text)
+
+# Test regexp methods
+is_match = email_pattern.matches?(email_text)
+print("Contains email:", is_match)
+
+first_email = email_pattern.find_first(email_text)
+print("First email:", first_email)
+
+all_emails = email_pattern.find_all(email_text)
+print("All emails:", all_emails)
+
+# Replace emails
+no_emails = email_pattern.replace(email_text, "[EMAIL]")
+print("With emails hidden:", no_emails)
+
+# More complex patterns
+print("\n4. Complex Patterns:")
+word_pattern = Regexp("\\b\\w+\\b")
+sentence = "Rush is a great programming language!"
+print("Sentence:", sentence)
+
+words = word_pattern.find_all(sentence)
+print("Words:", words)
+
+# Case insensitive matching (using pattern flags)
+mixed_case = "HELLO hello HeLLo"
+hello_pattern = Regexp("(?i)hello")
+hello_matches = hello_pattern.find_all(mixed_case)
+print("Case insensitive 'hello' matches:", hello_matches)
+
+print("\n=== Regexp Demo Complete ===")

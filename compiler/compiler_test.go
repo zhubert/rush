@@ -671,11 +671,11 @@ func TestBuiltins(t *testing.T) {
 			`,
 			expectedConstants: []interface{}{1},
 			expectedInstructions: []bytecode.Instructions{
-				bytecode.Make(bytecode.OpGetBuiltin, 4),
+				bytecode.Make(bytecode.OpGetBuiltin, 5),
 				bytecode.Make(bytecode.OpArray, 0),
 				bytecode.Make(bytecode.OpCall, 1),
 				bytecode.Make(bytecode.OpPop),
-				bytecode.Make(bytecode.OpGetBuiltin, 12),
+				bytecode.Make(bytecode.OpGetBuiltin, 13),
 				bytecode.Make(bytecode.OpArray, 0),
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpCall, 2),
@@ -686,7 +686,7 @@ func TestBuiltins(t *testing.T) {
 			input: `fn() { len([]) }`,
 			expectedConstants: []interface{}{
 				[]bytecode.Instructions{
-					bytecode.Make(bytecode.OpGetBuiltin, 4),
+					bytecode.Make(bytecode.OpGetBuiltin, 5),
 					bytecode.Make(bytecode.OpArray, 0),
 					bytecode.Make(bytecode.OpCall, 1),
 					bytecode.Make(bytecode.OpReturn),
