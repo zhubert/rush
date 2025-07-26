@@ -3,32 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rush Programming Language - Experimental</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <title>Rush Programming Language - Clean & Refined</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=SF+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Clean & Refined Color Palette - Apple-inspired */
-            --primary-color: #0066cc;
-            --primary-light: #3385d6;
-            --primary-dark: #004499;
-            --secondary-color: #5856d6;
-            --accent-color: #007aff;
-            --text-color: #1d1d1f;
-            --text-secondary: #424245;
-            --text-tertiary: #6e6e73;
-            --text-light: #86868b;
-            --bg-color: #ffffff;
-            --bg-elevated: #f5f5f7;
-            --bg-secondary: #fafafa;
-            --bg-tertiary: #f2f2f7;
-            --border-color: #d2d2d7;
-            --border-light: #e5e5ea;
-            --code-bg: #1e1e1e;
-            --shadow-light: rgba(0, 0, 0, 0.04);
-            --shadow-medium: rgba(0, 0, 0, 0.08);
-            --shadow-strong: rgba(0, 0, 0, 0.12);
+            --primary: #007AFF;
+            --secondary: #5856D6;
+            --accent: #32D74B;
+            --warning: #FF9500;
+            --red: #FF3B30;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --text-tertiary: #B0B0B5;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F5F5F7;
+            --bg-tertiary: #FAFAFA;
+            --border: #E5E5E7;
+            --border-light: #F2F2F7;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
         }
 
         * {
@@ -38,828 +37,991 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
             line-height: 1.6;
-            color: var(--text-color);
-            background: var(--bg-color);
-            font-weight: 400;
+            color: var(--text-primary);
+            background: var(--bg-primary);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            letter-spacing: -0.01em;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1120px;
             margin: 0 auto;
-            padding: 0 32px;
+            padding: 0 24px;
         }
 
-        header {
-            background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-elevated) 40%, var(--bg-secondary) 100%);
-            color: var(--text-color);
-            padding: 120px 0 100px;
-            text-align: center;
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             position: relative;
             overflow: hidden;
         }
 
-        header::before {
+        .hero::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 0;
             right: 0;
-            bottom: 0;
-            background: radial-gradient(ellipse at center top, rgba(0, 102, 204, 0.05) 0%, transparent 70%);
-            pointer-events: none;
+            width: 60%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="%23E5E5E7" stroke-width="1" opacity="0.3"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.6;
         }
 
-        .hero {
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
             position: relative;
             z-index: 1;
         }
 
-        .hero h1 {
-            font-size: 4.5rem;
-            font-weight: 700;
-            margin-bottom: 32px;
-            color: var(--text-color);
-            letter-spacing: -0.04em;
-            line-height: 1.1;
+        .hero-text {
+            max-width: 540px;
         }
 
-        .hero .subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 16px;
-            color: var(--text-secondary);
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            border: 1px solid var(--border-light);
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 5vw, 5.5rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
             letter-spacing: -0.02em;
         }
 
-        .hero .description {
-            font-size: 1.125rem;
-            margin-bottom: 48px;
-            color: var(--text-tertiary);
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
+        .hero .tagline {
+            font-size: 24px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
             font-weight: 400;
-            line-height: 1.5;
         }
 
-        .cta-buttons {
+        .hero-actions {
             display: flex;
-            gap: 24px;
-            justify-content: center;
+            gap: 16px;
+            align-items: center;
             flex-wrap: wrap;
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
-            padding: 16px 36px;
-            border-radius: 12px;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
             text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s ease;
             border: none;
             cursor: pointer;
-            font-size: 1.0625rem;
-            letter-spacing: -0.01em;
-            position: relative;
-            overflow: hidden;
+            white-space: nowrap;
         }
 
         .btn-primary {
-            background: var(--primary-color);
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 14px var(--shadow-medium);
-        }
-
-        .btn-secondary {
-            background: var(--bg-color);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 2px 8px var(--shadow-light);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-primary:hover {
-            background: var(--primary-light);
-            box-shadow: 0 8px 28px rgba(0, 102, 204, 0.25);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-elevated);
-            border-color: var(--primary-color);
-            box-shadow: 0 4px 16px var(--shadow-medium);
-        }
-
-        main {
-            padding: 100px 0;
-        }
-
-        .section {
-            margin-bottom: 120px;
-        }
-
-        .section h2 {
-            font-size: 3rem;
-            font-weight: 600;
-            margin-bottom: 32px;
-            text-align: center;
-            color: var(--text-color);
-            letter-spacing: -0.03em;
-            line-height: 1.2;
-        }
-
-        .section > p {
-            font-size: 1.1875rem;
-            color: var(--text-tertiary);
-            text-align: center;
-            max-width: 760px;
-            margin: 0 auto 64px;
-            line-height: 1.6;
-            font-weight: 400;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 32px;
-            margin-top: 80px;
-        }
-
-        .feature {
-            background: var(--bg-elevated);
-            padding: 40px 32px;
-            border-radius: 20px;
-            border: 1px solid var(--border-light);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(0, 102, 204, 0.02) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .feature:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px var(--shadow-medium);
-            border-color: rgba(0, 102, 204, 0.15);
-        }
-
-        .feature:hover::before {
-            opacity: 1;
-        }
-
-        .feature h3 {
-            font-size: 1.3125rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: var(--text-color);
-            letter-spacing: -0.01em;
-            position: relative;
-            z-index: 1;
-        }
-
-        .feature p {
-            color: var(--text-tertiary);
-            text-align: left;
-            margin: 0;
-            line-height: 1.6;
-            font-size: 1rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .code-example {
-            background: var(--code-bg);
-            border-radius: 20px;
-            overflow: hidden;
-            margin: 64px 0;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .code-example:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
-        }
-
-        .code-header {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 20px 28px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9375rem;
-            font-weight: 500;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, monospace;
-            letter-spacing: -0.01em;
-        }
-
-        .code-content {
-            padding: 0;
-        }
-
-        .code-content pre {
-            padding: 28px;
-            margin: 0;
-            overflow-x: auto;
-            background: transparent;
-        }
-
-        .code-content code {
-            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Cascadia Code', monospace;
-            font-size: 0.9375rem;
-            line-height: 1.6;
-            font-weight: 400;
-        }
-
-        .quick-start {
-            background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-tertiary) 100%);
-            padding: 80px 0;
-            border-radius: 32px;
-            margin: 80px 0;
-            border: 1px solid var(--border-light);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .quick-start::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(ellipse at center, rgba(0, 102, 204, 0.03) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .quick-start .container {
-            position: relative;
-            z-index: 1;
-        }
-
-        .installation-steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 40px;
-            margin-top: 60px;
-        }
-
-        .step {
-            text-align: center;
-            padding: 32px 24px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            transition: all 0.3s ease;
-        }
-
-        .step:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px var(--shadow-light);
-        }
-
-        .step-number {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 48px;
-            height: 48px;
-            background: var(--primary-color);
-            color: white;
-            border-radius: 50%;
-            font-weight: 600;
-            margin-bottom: 20px;
-            font-size: 1.125rem;
-            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
-        }
-
-        .step h4 {
-            margin-bottom: 12px;
-            color: var(--text-color);
-            font-weight: 600;
-            font-size: 1.125rem;
-            letter-spacing: -0.01em;
-        }
-
-        .step p {
-            color: var(--text-tertiary);
-            font-size: 0.9375rem;
-            line-height: 1.5;
-            margin: 0;
-        }
-
-        footer {
-            background: linear-gradient(135deg, var(--text-color) 0%, #0f0f0f 100%);
-            color: white;
-            padding: 64px 0 40px;
-            text-align: center;
-            margin-top: 120px;
-        }
-
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
-
-        .footer-links a {
-            color: rgba(255, 255, 255, 0.6);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            font-size: 0.9375rem;
-            letter-spacing: -0.01em;
-        }
-
-        .footer-links a:hover {
-            color: white;
+            background: #0056b3;
+            box-shadow: var(--shadow-md);
             transform: translateY(-1px);
         }
 
-        footer p {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.875rem;
-            margin: 0;
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
 
-        /* Tabbed Content Styling - Proposal B feature */
-        .tab-container {
-            margin: 80px 0;
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-tertiary);
         }
 
-        .tab-nav {
+        .hero-visual {
+            position: relative;
             display: flex;
             justify-content: center;
-            margin-bottom: 40px;
-            border-bottom: 1px solid var(--border-light);
+            align-items: center;
         }
 
-        .tab-button {
-            padding: 16px 32px;
-            background: none;
-            border: none;
-            color: var(--text-tertiary);
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 1rem;
+        .code-window {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .window-chrome {
+            background: var(--bg-secondary);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: var(--red); }
+        .dot-yellow { background: var(--warning); }
+        .dot-green { background: var(--accent); }
+
+        .window-title {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: 'SF Mono', monospace;
+        }
+
+        .code-content {
+            padding: 24px;
+            font-family: 'SF Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 120px 0;
+            background: var(--bg-primary);
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 80px;
+        }
+
+        .section-title {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .section-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            padding: 32px;
             transition: all 0.3s ease;
-            border-bottom: 2px solid transparent;
-            font-family: inherit;
+            position: relative;
+            overflow: hidden;
         }
 
-        .tab-button.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Tabbed Content Section */
+        .showcase {
+            padding: 120px 0;
+            background: var(--bg-secondary);
+        }
+
+        .tab-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 60px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
         }
 
         .tab-content {
             display: none;
+            animation: fadeIn 0.3s ease;
         }
 
         .tab-content.active {
             display: block;
         }
 
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 3rem;
-            }
-            
-            .hero .subtitle {
-                font-size: 1.25rem;
-            }
-            
-            .hero .description {
-                font-size: 1rem;
-            }
-            
-            .cta-buttons {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .btn {
-                width: 100%;
-                max-width: 280px;
-            }
-            
-            .features {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .demo-content h3 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            line-height: 1.3;
+        }
+
+        .demo-content p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            color: var(--text-secondary);
+        }
+
+        .feature-list .checkmark {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Quick Start Section */
+        .quick-start {
+            padding: 120px 0;
+            background: var(--bg-primary);
+        }
+
+        .quick-start-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-top: 60px;
+        }
+
+        .step-card {
+            text-align: center;
+            padding: 32px 24px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            position: relative;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin: 0 auto 20px;
+        }
+
+        .step-card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .step-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text-primary);
+            color: white;
+            padding: 80px 0 40px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        .footer-brand h3 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .footer-brand p {
+            color: #86868B;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .footer-section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: #86868B;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            padding-top: 40px;
+            border-top: 1px solid #2C2C2E;
+            text-align: center;
+            color: #86868B;
+            font-size: 14px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .hero-content {
                 grid-template-columns: 1fr;
+                gap: 60px;
+                text-align: center;
             }
             
-            .installation-steps {
+            .demo-grid {
                 grid-template-columns: 1fr;
-            }
-            
-            .section h2 {
-                font-size: 2.25rem;
-            }
-            
-            .footer-links {
-                gap: 24px;
-            }
-            
-            .tab-nav {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-            
-            .tab-button {
-                padding: 12px 20px;
-                font-size: 0.9375rem;
+                gap: 40px;
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .container {
                 padding: 0 20px;
             }
             
-            .hero h1 {
-                font-size: 2.5rem;
+            .features-grid {
+                grid-template-columns: 1fr;
             }
             
-            .section h2 {
-                font-size: 2rem;
+            .tab-navigation {
+                flex-wrap: wrap;
+                width: 100%;
             }
+            
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Smooth Scroll Animation */
+        .animate-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-in.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
 <body>
-    <header>
+    <section class="hero">
         <div class="container">
-            <div class="hero">
-                <h1>Rush</h1>
-                <p class="subtitle">An experimental programming language</p>
-                <p class="description">A week-old learning project exploring language design through AI collaboration. Built for experimentation, not production.</p>
-                <div class="cta-buttons">
-                    <a href="#quick-start" class="btn btn-primary">Try Rush</a>
-                    <a href="https://github.com/zhubert/rush" class="btn btn-secondary">View on GitHub</a>
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <span>🤖</span>
+                        Built entirely by AI
+                    </div>
+                    <h1>Rush</h1>
+                    <p class="tagline">A programming language exploring simplicity, expressiveness, and performance.</p>
+                    <div class="hero-actions">
+                        <a href="#features" class="btn btn-primary">
+                            Discover Features
+                            <span>→</span>
+                        </a>
+                        <a href="https://github.com/zhubert/rush" class="btn btn-secondary">
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="hero-visual">
+                    <div class="code-window">
+                        <div class="window-chrome">
+                            <div class="window-dot dot-red"></div>
+                            <div class="window-dot dot-yellow"></div>
+                            <div class="window-dot dot-green"></div>
+                            <div class="window-title">hello.rush</div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code class="language-javascript"># Welcome to Rush
+greet = fn(name) {
+    "Hello, " + name + "! 👋"
+}
+
+# Method chaining with arrays
+people = ["World", "Rush", "Developers"]
+people
+    .map(greet)
+    .each(print)
+
+# Object-oriented programming  
+class Calculator {
+    fn add(a, b) { a + b }
+    fn multiply(a, b) { a * b }
+}
+
+calc = Calculator.new()
+result = calc.add(10, 5)
+print("Result:", result)</code></pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </header>
+    </section>
 
-    <main>
+    <section id="features" class="features">
         <div class="container">
-            <section class="section">
-                <h2>What is Rush?</h2>
-                <p>
-                    Rush is a simple experimental programming language created as a learning project. 
-                    Built in Go through AI collaboration, it explores basic language concepts like 
-                    functions, objects, and pattern matching in an approachable way.
-                </p>
-                <p>
-                    This is a <strong>week-old experiment</strong> that shouldn't be used for anything important. 
-                    It includes basic interpreter and bytecode execution modes for educational comparison, 
-                    simple debugging features, and is designed purely for learning and experimentation.
-                </p>
-                
-                <div style="background: linear-gradient(135deg, rgba(0, 102, 204, 0.05) 0%, rgba(88, 86, 214, 0.05) 100%); padding: 40px; border-radius: 20px; margin: 60px 0; text-align: center; border: 1px solid var(--border-light);">
-                    <h3 style="color: var(--primary-color); margin-bottom: 20px; font-size: 1.375rem; font-weight: 600;">🧪 Learning Experiment</h3>
-                    <p style="margin: 0; font-size: 1.0625rem; color: var(--text-secondary); line-height: 1.6;">
-                        Rush is a week-old programming language experiment exploring what happens when humans and AI collaborate on language design. 
-                        It's a educational project for understanding how programming languages work, not a production tool.
-                    </p>
+            <div class="section-header animate-in">
+                <h2 class="section-title">Designed with developers in mind</h2>
+                <p class="section-subtitle">Rush brings together functional and object-oriented programming with language features aimed at making coding more enjoyable and productive.</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Intuitive Syntax</h3>
+                    <p>Clean, readable code that aims to feel natural. Designed to balance simplicity with expressiveness.</p>
                 </div>
 
-                <div class="code-example">
-                    <div class="code-header">hello.rush</div>
-                    <div class="code-content">
-                        <pre><code class="language-javascript"># Your first Rush program
-print("Hello, Rush!")
-
-# Variables and functions
-greet = fn(name) {
-    return "Welcome to Rush, " + name + "!"
-}
-
-# Arrays and control flow
-languages = ["Go", "Python", "JavaScript", "Rush"]
-for (i = 0; i < len(languages); i = i + 1) {
-    print(greet(languages[i]))
-}</code></pre>
-                    </div>
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">⚡</div>
+                    <h3>High Performance</h3>
+                    <p>Dual execution modes with bytecode VM work toward optimized performance while maintaining development flexibility.</p>
                 </div>
-            </section>
 
-            <section class="section">
-                <h2>What Can You Experiment With?</h2>
-                <p>Rush includes basic implementations of common language features. Perfect for learning how these concepts work, but don't expect production-level polish.</p>
-                <div class="features">
-                    <div class="feature">
-                        <h3>🧪 Simple Syntax</h3>
-                        <p>Basic, approachable syntax designed for learning rather than complexity. Easy to read and experiment with.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>⚡ Basic REPL</h3>
-                        <p>Simple interactive environment for trying out language features. Good for quick experimentation.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🎯 Dynamic Typing</h3>
-                        <p>Variables can hold different types. Makes the language flexible for learning, though not optimized for performance.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🧰 Dot Notation</h3>
-                        <p>Basic method chaining on built-in types. Experimental implementation that's fun to play with.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🏗️ Simple Objects</h3>
-                        <p>Basic class system with inheritance. Good for understanding OOP concepts, though quite minimal.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>📦 Basic Modules</h3>
-                        <p>Simple import system for organizing code. Nothing fancy, just the basics for learning.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🔍 Regexp Support</h3>
-                        <p>Basic regular expression functionality. Useful for learning pattern matching concepts.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>⚙️ Two Execution Modes</h3>
-                        <p>Compare interpreter vs bytecode VM execution. Educational rather than performance-focused.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🛠️ Debug Logging</h3>
-                        <p>Basic logging to see what's happening internally. Helpful for understanding language implementation.</p>
-                    </div>
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🧩</div>
+                    <h3>Method Chaining</h3>
+                    <p>Dot notation methods on all core types support readable code with method chaining capabilities.</p>
                 </div>
-            </section>
 
-            <section class="section">
-                <h2>Language Features</h2>
-                
-                <div class="code-example">
-                    <div class="code-header">Functions and Closures</div>
-                    <div class="code-content">
-                        <pre><code class="language-javascript"># First-class functions with closures
-counter = fn(start) {
-    count = start
-    return fn() {
-        count = count + 1
-        return count
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🏗️</div>
+                    <h3>Object-Oriented</h3>
+                    <p>OOP support with classes, inheritance, and polymorphism for structured, maintainable applications.</p>
+                </div>
+
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">📦</div>
+                    <h3>Rich Standard Library</h3>
+                    <p>JSON processing, regular expressions, file operations, and mathematical functions included.</p>
+                </div>
+
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Advanced Debugging</h3>
+                    <p>Logging, performance metrics, and debugging tools to help with optimization and troubleshooting.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="showcase">
+        <div class="container">
+            <div class="section-header animate-in">
+                <h2 class="section-title">See Rush in action</h2>
+                <p class="section-subtitle">Explore some language features that we hope make Rush useful and enjoyable.</p>
+            </div>
+
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="functional">Functional Programming</button>
+                <button class="tab-btn" data-tab="oop">Object-Oriented</button>
+                <button class="tab-btn" data-tab="builtin">Built-in Methods</button>
+                <button class="tab-btn" data-tab="regex">Regular Expressions</button>
+            </div>
+
+            <div id="functional" class="tab-content active">
+                <div class="demo-grid">
+                    <div class="demo-content">
+                        <h3>Functional Programming Support</h3>
+                        <p>First-class functions, closures, and method chaining aim to make functional programming natural in Rush.</p>
+                        <ul class="feature-list">
+                            <li><span class="checkmark">✓</span> Higher-order functions</li>
+                            <li><span class="checkmark">✓</span> Closures and lexical scoping</li>
+                            <li><span class="checkmark">✓</span> Method chaining on collections</li>
+                            <li><span class="checkmark">✓</span> Immutable data patterns</li>
+                        </ul>
+                        <a href="https://github.com/zhubert/rush/tree/main/examples" class="btn btn-secondary">View Examples</a>
+                    </div>
+                    <div class="code-window">
+                        <div class="window-chrome">
+                            <div class="window-dot dot-red"></div>
+                            <div class="window-dot dot-yellow"></div>
+                            <div class="window-dot dot-green"></div>
+                            <div class="window-title">functional.rush</div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code class="language-javascript"># Higher-order functions and closures
+createMultiplier = fn(factor) {
+    return fn(number) {
+        return number * factor
     }
 }
 
-myCounter = counter(10)
-print(myCounter())  # 11
-print(myCounter())  # 12</code></pre>
+double = createMultiplier(2)
+triple = createMultiplier(3)
+
+# Method chaining with collections
+numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+result = numbers
+    .filter(fn(x) { x % 2 == 0 })
+    .map(double)
+    .reduce(fn(acc, x) { acc + x }, 0)
+
+print("Sum of doubled evens:", result)  # 60</code></pre>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="code-example">
-                    <div class="code-header">Object-Oriented Programming</div>
-                    <div class="code-content">
-                        <pre><code class="language-javascript"># Classes and inheritance
-class Animal {
+            <div id="oop" class="tab-content">
+                <div class="demo-grid">
+                    <div class="demo-content">
+                        <h3>Object-Oriented Programming</h3>
+                        <p>OOP features with classes, inheritance, and method calls for structured, maintainable code.</p>
+                        <ul class="feature-list">
+                            <li><span class="checkmark">✓</span> Class definitions and instantiation</li>
+                            <li><span class="checkmark">✓</span> Single inheritance with super calls</li>
+                            <li><span class="checkmark">✓</span> Instance variables and methods</li>
+                            <li><span class="checkmark">✓</span> Polymorphism and method overriding</li>
+                        </ul>
+                        <a href="https://github.com/zhubert/rush/blob/main/docs/USER_GUIDE.md" class="btn btn-secondary">Learn More</a>
+                    </div>
+                    <div class="code-window">
+                        <div class="window-chrome">
+                            <div class="window-dot dot-red"></div>
+                            <div class="window-dot dot-yellow"></div>
+                            <div class="window-dot dot-green"></div>
+                            <div class="window-title">shapes.rush</div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code class="language-javascript"># Base class with common functionality
+class Shape {
     fn initialize(name) {
         @name = name
     }
     
-    fn speak() {
-        return @name + " makes a sound"
+    fn area() {
+        return 0  # Override in subclasses
+    }
+    
+    fn description() {
+        return @name + " with area " + @area()
     }
 }
 
-class Dog < Animal {
-    fn speak() {
-        return @name + " barks!"
+# Inheritance and method overriding
+class Rectangle < Shape {
+    fn initialize(width, height) {
+        super("Rectangle")
+        @width = width
+        @height = height
+    }
+    
+    fn area() {
+        return @width * @height
     }
 }
 
-buddy = Dog.new("Buddy")
-print(buddy.speak())  # "Buddy barks!"</code></pre>
+rect = Rectangle.new(10, 5)
+print(rect.description())  # "Rectangle with area 50"</code></pre>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="code-example">
-                    <div class="code-header">Dot Notation Methods</div>
-                    <div class="code-content">
-                        <pre><code class="language-javascript"># Rich dot notation methods built into core types
-import { PI, max } from "std/math"  # Constants and multi-value operations
+            <div id="builtin" class="tab-content">
+                <div class="demo-grid">
+                    <div class="demo-content">
+                        <h3>Built-in Methods</h3>
+                        <p>Dot notation methods on core types with string, array, number, and JSON operations.</p>
+                        <ul class="feature-list">
+                            <li><span class="checkmark">✓</span> String manipulation and processing</li>
+                            <li><span class="checkmark">✓</span> Array operations and transformations</li>
+                            <li><span class="checkmark">✓</span> Number mathematical methods</li>
+                            <li><span class="checkmark">✓</span> JSON parsing and manipulation</li>
+                        </ul>
+                        <a href="https://github.com/zhubert/rush/blob/main/docs/API_REFERENCE.md" class="btn btn-secondary">API Reference</a>
+                    </div>
+                    <div class="code-window">
+                        <div class="window-chrome">
+                            <div class="window-dot dot-red"></div>
+                            <div class="window-dot dot-yellow"></div>
+                            <div class="window-dot dot-green"></div>
+                            <div class="window-title">methods.rush</div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code class="language-javascript"># String methods with chaining
+text = "  Hello, Rush Programming!  "
+clean = text.trim().lower().replace(" ", "_")
+print(clean)  # "hello,_rush_programming!"
 
-numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-text = "  Hello, Rush!  "
+# Array transformations
+numbers = [1, 2, 3, 4, 5]
+doubled = numbers.map(fn(x) { x * 2 })
+evens = doubled.filter(fn(x) { x % 4 == 0 })
+print("Even doubles:", evens)  # [4, 8]
 
-# Method chaining with arrays
-result = numbers.filter(fn(x) { x % 2 == 0 })
-               .map(fn(x) { x * 2 })
-               .reduce(fn(acc, x) { acc + x }, 0)
+# Number methods
+pi = 3.14159
+rounded = pi.round(2)  # 3.14
+sqrt_val = (16).sqrt()  # 4
 
-# String methods with dot notation
-clean_text = text.trim().upper()
-contains_rush = text.contains?("Rush")
-
-# Number methods with dot notation  
-pi_sqrt = PI.sqrt()
-absolute_value = (-42).abs()
-
-print("Sum of doubled evens:", result)  # 60
-print("Clean text:", clean_text)  # "HELLO, RUSH!"</code></pre>
+# JSON processing
+data = json_parse('{"name": "Rush", "version": 1.0}')
+name = data.get("name")
+print("Language:", name)  # "Rush"</code></pre>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="code-example">
-                    <div class="code-header">Regular Expressions</div>
-                    <div class="code-content">
-                        <pre><code class="language-javascript"># Powerful pattern matching with regexp objects
+            <div id="regex" class="tab-content">
+                <div class="demo-grid">
+                    <div class="demo-content">
+                        <h3>Regular Expression Support</h3>
+                        <p>Built-in regex support with pattern matching, text processing, and string integration.</p>
+                        <ul class="feature-list">
+                            <li><span class="checkmark">✓</span> Regexp object with dot notation methods</li>
+                            <li><span class="checkmark">✓</span> Pattern matching and extraction</li>
+                            <li><span class="checkmark">✓</span> Text replacement and manipulation</li>
+                            <li><span class="checkmark">✓</span> String method regex integration</li>
+                        </ul>
+                        <a href="https://github.com/zhubert/rush/tree/main/examples" class="btn btn-secondary">Try Examples</a>
+                    </div>
+                    <div class="code-window">
+                        <div class="window-chrome">
+                            <div class="window-dot dot-red"></div>
+                            <div class="window-dot dot-yellow"></div>
+                            <div class="window-dot dot-green"></div>
+                            <div class="window-title">regex.rush</div>
+                        </div>
+                        <div class="code-content">
+                            <pre><code class="language-javascript"># Create regex patterns
 email_pattern = Regexp("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}")
-text = "Contact john@example.com or support@rush-lang.org for help"
+phone_pattern = Regexp("\\d{3}-\\d{3}-\\d{4}")
 
-# Find all email addresses
+text = "Contact john@example.com or call 555-123-4567"
+
+# Find all matches
 emails = email_pattern.find_all(text)
-print("Found emails:", emails)
+phones = phone_pattern.find_all(text)
 
-# Replace emails with placeholder
+print("Found emails:", emails)  # ["john@example.com"]
+print("Found phones:", phones)  # ["555-123-4567"]
+
+# Replace with patterns
 safe_text = email_pattern.replace(text, "[EMAIL]")
 print("Safe text:", safe_text)
 
-# String methods also support regexp
-phone_text = "Call 123-456-7890 or 987-654-3210"
-phone_pattern = Regexp("\\d{3}-\\d{3}-\\d{4}")
-phones = phone_text.match(phone_pattern)
-print("Phone numbers:", phones)</code></pre>
+# String methods support regex too
+has_email = text.matches?(email_pattern)
+parts = text.split(phone_pattern)
+print("Has email:", has_email)  # true</code></pre>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
 
-                <div class="code-example">
-                    <div class="code-header">Bytecode VM & Performance</div>
-                    <div class="code-content">
-                        <pre><code class="language-bash"># Run with high-performance bytecode VM
-rush -bytecode program.rush
-
-# Advanced debugging with comprehensive logging
-rush -bytecode -log-level=debug program.rush
-rush -bytecode -log-level=trace program.rush
-
-# Performance analysis and metrics
-rush -bytecode -log-level=info large_program.rush
-
-# Available log levels for debugging:
-# - error: Critical issues only
-# - warn: Warnings and errors  
-# - info: Execution stats and performance metrics
-# - debug: Detailed execution flow and operations
-# - trace: Instruction-by-instruction execution</code></pre>
-                    </div>
+    <section class="quick-start">
+        <div class="container">
+            <div class="quick-start-content">
+                <div class="section-header animate-in">
+                    <h2 class="section-title">Getting started</h2>
+                    <p class="section-subtitle">Rush aims to be straightforward to install and learn. Try building with the language features available.</p>
                 </div>
-            </section>
 
-            <section id="quick-start" class="quick-start">
-                <div class="container">
-                    <h2>Quick Start</h2>
-                    <p>Get Rush up and running in minutes</p>
+                <div class="step-cards">
+                    <div class="step-card animate-in">
+                        <div class="step-number">1</div>
+                        <h4>Clone Repository</h4>
+                        <p>Download Rush from GitHub and navigate to the project directory</p>
+                    </div>
                     
-                    <div class="installation-steps">
-                        <div class="step">
-                            <div class="step-number">1</div>
-                            <h4>Clone Repository</h4>
-                            <p>Get the Rush source code from GitHub</p>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">2</div>
-                            <h4>Install</h4>
-                            <p>Run <code>make install</code> to build and install Rush system-wide</p>
-                        </div>
-                        <div class="step">
-                            <div class="step-number">3</div>
-                            <h4>Start Coding</h4>
-                            <p>Create your first Rush program and run it with <code>rush myfile.rush</code></p>
-                        </div>
+                    <div class="step-card animate-in">
+                        <div class="step-number">2</div>
+                        <h4>Install & Build</h4>
+                        <p>Run <code>make install</code> to build and install Rush system-wide</p>
                     </div>
+                    
+                    <div class="step-card animate-in">
+                        <div class="step-number">3</div>
+                        <h4>Start Coding</h4>
+                        <p>Create your first Rush program and run it with <code>rush file.rush</code></p>
+                    </div>
+                </div>
 
-                    <div class="code-example">
-                        <div class="code-header">Terminal</div>
-                        <div class="code-content">
-                            <pre><code class="language-bash"># Clone and install Rush
+                <div class="code-window" style="margin-top: 60px;">
+                    <div class="window-chrome">
+                        <div class="window-dot dot-red"></div>
+                        <div class="window-dot dot-yellow"></div>
+                        <div class="window-dot dot-green"></div>
+                        <div class="window-title">Terminal</div>
+                    </div>
+                    <div class="code-content">
+                        <pre><code class="language-bash"># Quick installation
 git clone https://github.com/zhubert/rush.git
-cd rush
-make install
+cd rush && make install
 
 # Start the interactive REPL
 rush
 
-# Run a Rush program (interpreter mode)
-rush examples/comprehensive_demo.rush
-
-# Run with high-performance bytecode VM
+# Run with bytecode VM for better performance  
 rush -bytecode examples/comprehensive_demo.rush
 
-# Debug with comprehensive logging
-rush -bytecode -log-level=debug examples/comprehensive_demo.rush</code></pre>
-                        </div>
+# Enable debug logging for development
+rush -bytecode -log-level=debug your_program.rush</code></pre>
                     </div>
                 </div>
-            </section>
-
-            <section class="section">
-                <h2>Simple Architecture</h2>
-                <p>Rush has a basic dual-execution design that's useful for comparing how different execution approaches work. Don't expect sophisticated optimization or advanced features.</p>
-                
-                <div class="features">
-                    <div class="feature">
-                        <h3>🔄 Interpreter vs VM</h3>
-                        <p>Basic tree-walking interpreter and simple stack-based VM. Good for learning the differences between approaches.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>📊 Simple Metrics</h3>
-                        <p>Basic execution statistics like instruction counts and timing. Nothing fancy, just educational data.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🔍 Debug Logging</h3>
-                        <p>Different log levels to see what's happening internally. Useful for learning how languages execute code.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>⚙️ Basic VM</h3>
-                        <p>Simple stack-based virtual machine. Minimalist implementation good for understanding VM concepts.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🎯 Learning Tools</h3>
-                        <p>Debug features designed for education rather than production use. Great for seeing how things work.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🧪 Error Handling</h3>
-                        <p>Basic error reporting and recovery. Simple implementation suitable for experimentation.</p>
-                    </div>
-                </div>
-
-                <div class="code-example">
-                    <div class="code-header">Comparing Execution Modes</div>
-                    <div class="code-content">
-                        <pre><code class="language-bash"># Compare interpreter vs bytecode VM (educational)
-time rush program.rush                    # Interpreter mode
-time rush -bytecode program.rush         # Bytecode VM mode
-
-# See what's happening internally
-rush -bytecode -log-level=info program.rush
-# Basic output includes:
-# - Execution time and basic metrics
-# - Stack operations and function calls  
-# - Simple memory and error tracking
-# - VM startup and cleanup information</code></pre>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section">
-                <h2>Want to Try It?</h2>
-                <p>Rush is a simple learning project, but if you're curious about language design or want to see AI-assisted development in action, here's what's available.</p>
-                
-                <div class="features">
-                    <div class="feature">
-                        <h3>📖 Basic Docs</h3>
-                        <p>Simple documentation in the docs/ directory. Don't expect comprehensive guides, just the basics.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🎮 Small Examples</h3>
-                        <p>A few example programs in examples/ directory. Good for seeing what Rush can do.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🧪 Interactive Shell</h3>
-                        <p>Basic REPL for trying things out. Type <code>rush</code> and start experimenting with simple programs.</p>
-                    </div>
-                </div>
-            </section>
+            </div>
         </div>
-    </main>
+    </section>
 
     <footer>
         <div class="container">
-            <div class="footer-links">
-                <a href="https://github.com/zhubert/rush">GitHub</a>
-                <a href="https://github.com/zhubert/rush/blob/main/docs/LANGUAGE_SPECIFICATION.md">Language Spec</a>
-                <a href="https://github.com/zhubert/rush/blob/main/docs/USER_GUIDE.md">User Guide</a>
-                <a href="https://github.com/zhubert/rush/blob/main/docs/API_REFERENCE.md">API Reference</a>
-                <a href="https://github.com/zhubert/rush/issues">Issues</a>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h3>Rush</h3>
+                    <p>A programming language exploring simplicity, expressiveness, and performance. Built through AI collaboration as an experiment in language development.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Documentation</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/zhubert/rush/blob/main/docs/USER_GUIDE.md">User Guide</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/docs/LANGUAGE_SPECIFICATION.md">Language Spec</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/docs/API_REFERENCE.md">API Reference</a></li>
+                        <li><a href="https://github.com/zhubert/rush/tree/main/examples">Examples</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/zhubert/rush">GitHub Repository</a></li>
+                        <li><a href="https://github.com/zhubert/rush/issues">Issues & Support</a></li>
+                        <li><a href="https://github.com/zhubert/rush/discussions">Discussions</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/CONTRIBUTING.md">Contributing</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://github.com/zhubert/rush/releases">Downloads</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/CHANGELOG.md">Changelog</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/LICENSE">MIT License</a></li>
+                        <li><a href="https://github.com/zhubert/rush/blob/main/CLAUDE.md">Developer Guide</a></li>
+                    </ul>
+                </div>
             </div>
-            <p>&copy; 2024 Rush Programming Language. Licensed under MIT License.</p>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Rush Programming Language. Open source under MIT License.</p>
+            </div>
         </div>
     </footer>
 
     <script>
         // Initialize syntax highlighting
         hljs.highlightAll();
-        
+
+        // Tab functionality
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -10% 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all animatable elements
+        document.querySelectorAll('.animate-in').forEach(el => {
+            observer.observe(el);
+        });
+
         // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -873,34 +1035,6 @@ rush -bytecode -log-level=info program.rush
                 }
             });
         });
-
-        // Tab functionality for Clean & Refined design
-        function initTabs() {
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const targetTab = button.getAttribute('data-tab');
-
-                    // Remove active class from all buttons and contents
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-
-                    // Add active class to clicked button and corresponding content
-                    button.classList.add('active');
-                    document.getElementById(targetTab).classList.add('active');
-                });
-            });
-
-            // Activate first tab by default
-            if (tabButtons.length > 0) {
-                tabButtons[0].click();
-            }
-        }
-
-        // Initialize tabs when DOM is loaded
-        initTabs();
     </script>
 </body>
 </html>
