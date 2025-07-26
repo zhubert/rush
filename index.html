@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rush Programming Language</title>
+    <title>Rush Programming Language - Experimental</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
-            --primary-color: #6366f1;
-            --secondary-color: #8b5cf6;
-            --accent-color: #f59e0b;
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --accent-color: #0ea5e9;
             --text-color: #1f2937;
-            --text-light: #6b7280;
+            --text-light: #64748b;
+            --text-muted: #94a3b8;
             --bg-color: #ffffff;
-            --bg-secondary: #f9fafb;
-            --border-color: #e5e7eb;
-            --code-bg: #111827;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --border-color: #e2e8f0;
+            --code-bg: #0f172a;
         }
 
         * {
@@ -26,39 +28,45 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'SF Pro Display', Roboto, sans-serif;
+            line-height: 1.65;
             color: var(--text-color);
             background: var(--bg-color);
+            font-weight: 400;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
         }
 
         header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            padding: 80px 0;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            color: var(--text-color);
+            padding: 100px 0 80px;
             text-align: center;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+            color: var(--primary-color);
+            letter-spacing: -0.025em;
         }
 
         .hero p {
-            font-size: 1.25rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
-            max-width: 600px;
+            font-size: 1.375rem;
+            margin-bottom: 40px;
+            color: var(--text-light);
+            max-width: 700px;
             margin-left: auto;
             margin-right: auto;
+            font-weight: 400;
         }
 
         .cta-buttons {
@@ -70,29 +78,35 @@
 
         .btn {
             display: inline-block;
-            padding: 12px 30px;
-            border-radius: 8px;
+            padding: 14px 32px;
+            border-radius: 12px;
             text-decoration: none;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             border: none;
             cursor: pointer;
+            font-size: 1rem;
         }
 
         .btn-primary {
-            background: var(--accent-color);
+            background: var(--primary-color);
             color: white;
         }
 
         .btn-secondary {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 2px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: var(--text-color);
+            border: 1.5px solid var(--border-color);
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--primary-color);
         }
 
         main {
@@ -104,18 +118,21 @@
         }
 
         .section h2 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
+            font-size: 2.75rem;
+            font-weight: 700;
+            margin-bottom: 24px;
             text-align: center;
-            color: var(--primary-color);
+            color: var(--text-color);
+            letter-spacing: -0.02em;
         }
 
         .section p {
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             color: var(--text-light);
             text-align: center;
             max-width: 800px;
-            margin: 0 auto 40px;
+            margin: 0 auto 48px;
+            line-height: 1.7;
         }
 
         .features {
@@ -127,43 +144,48 @@
 
         .feature {
             background: var(--bg-secondary);
-            padding: 30px;
-            border-radius: 12px;
+            padding: 32px;
+            border-radius: 16px;
             border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .feature:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(79, 70, 229, 0.08);
+            border-color: rgba(79, 70, 229, 0.2);
         }
 
         .feature h3 {
-            font-size: 1.25rem;
-            margin-bottom: 15px;
-            color: var(--primary-color);
+            font-size: 1.375rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-color);
         }
 
         .feature p {
             color: var(--text-light);
             text-align: left;
             margin: 0;
+            line-height: 1.6;
         }
 
         .code-example {
             background: var(--code-bg);
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            margin: 40px 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 48px 0;
+            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.15);
+            border: 1px solid rgba(71, 85, 105, 0.2);
         }
 
         .code-header {
-            background: #1f2937;
-            padding: 15px 20px;
-            color: #9ca3af;
-            font-size: 0.9rem;
-            border-bottom: 1px solid #374151;
+            background: #1e293b;
+            padding: 16px 24px;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-bottom: 1px solid #334155;
         }
 
         .code-content {
@@ -268,9 +290,9 @@
         <div class="container">
             <div class="hero">
                 <h1>Rush</h1>
-                <p>A modern, expressive programming language designed for simplicity and power</p>
+                <p>An experimental programming language for learning and exploration</p>
                 <div class="cta-buttons">
-                    <a href="#quick-start" class="btn btn-primary">Get Started</a>
+                    <a href="#quick-start" class="btn btn-primary">Try Rush</a>
                     <a href="https://github.com/zhubert/rush" class="btn btn-secondary">View on GitHub</a>
                 </div>
             </div>
@@ -282,25 +304,23 @@
             <section class="section">
                 <h2>What is Rush?</h2>
                 <p>
-                    Rush is a modern, dynamically-typed programming language built with Go and 
-                    <strong>written entirely by Agentic AI</strong>. It combines clean, readable syntax 
-                    with powerful features like first-class functions, object-oriented programming, 
-                    regular expressions, and dot notation methods with method chaining support. 
+                    Rush is an experimental programming language built with Go and 
+                    <strong>developed through AI collaboration</strong>. It's a learning project that explores 
+                    language design concepts like first-class functions, object-oriented programming, 
+                    regular expressions, and dot notation methods. 
                 </p>
                 <p>
-                    Featuring a <strong>dual-execution architecture</strong> with both interpreter and 
-                    <strong>high-performance bytecode VM</strong>, Rush offers advanced debugging capabilities, 
-                    comprehensive logging, and performance metrics. Perfect for both beginners learning programming 
-                    concepts and experienced developers who want a simple yet expressive language for experimentation and learning.
+                    This is a <strong>week-old experiment</strong> with both interpreter and bytecode VM execution modes, 
+                    basic debugging features, and logging capabilities. It's designed for 
+                    experimentation, learning programming language concepts, and exploring AI-assisted development.
                 </p>
                 
                 <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%); padding: 30px; border-radius: 12px; margin: 40px 0; text-align: center; border-left: 4px solid var(--primary-color);">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px; font-size: 1.5rem;">🤖 Built by AI</h3>
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px; font-size: 1.5rem;">🧪 Experimental Project</h3>
                     <p style="margin: 0; font-size: 1.1rem; color: var(--text-color);">
-                        Rush is an interesting example of AI-assisted software development. 
-                        Every component, from the lexer to the interpreter, was developed through 
-                        collaboration with AI systems, demonstrating how artificial intelligence 
-                        can help create complete programming language implementations.
+                        Rush is a learning experiment in AI-assisted language development. 
+                        Every component was built through collaboration with AI systems over the course of a week, 
+                        exploring what's possible when humans and AI work together on programming language design.
                     </p>
                 </div>
 
@@ -325,43 +345,43 @@ for (i = 0; i < len(languages); i = i + 1) {
             </section>
 
             <section class="section">
-                <h2>Why Choose Rush?</h2>
+                <h2>What Can You Explore?</h2>
                 <div class="features">
                     <div class="feature">
-                        <h3>🚀 Easy to Learn</h3>
-                        <p>Clean, intuitive syntax that's perfect for beginners while remaining powerful for advanced use cases.</p>
+                        <h3>🧪 Simple Syntax</h3>
+                        <p>Approachable syntax that's great for experimentation and learning language design concepts.</p>
                     </div>
                     <div class="feature">
                         <h3>⚡ Interactive REPL</h3>
-                        <p>Explore and experiment with Rush interactively. Perfect for learning and prototyping.</p>
+                        <p>Explore Rush features interactively. Great for trying out ideas and learning.</p>
                     </div>
                     <div class="feature">
                         <h3>🎯 Dynamic Typing</h3>
-                        <p>Variables can hold any type of value, making development fast and flexible.</p>
+                        <p>Variables can hold different types of values, making it easy to experiment with ideas.</p>
                     </div>
                     <div class="feature">
                         <h3>🧰 Dot Notation Methods</h3>
-                        <p>Built-in methods on all core types with method chaining support for strings, arrays, numbers, and collections.</p>
+                        <p>Experimental method chaining on strings, arrays, numbers, and other types.</p>
                     </div>
                     <div class="feature">
-                        <h3>🏗️ Object-Oriented</h3>
-                        <p>Classes, inheritance, and method calls for structured, maintainable code.</p>
+                        <h3>🏗️ Object-Oriented Features</h3>
+                        <p>Basic classes and inheritance for exploring object-oriented programming concepts.</p>
                     </div>
                     <div class="feature">
                         <h3>📦 Module System</h3>
-                        <p>Import and export functionality with aliasing for clean, organized code.</p>
+                        <p>Simple import/export functionality for organizing experimental code.</p>
                     </div>
                     <div class="feature">
                         <h3>🔍 Regular Expressions</h3>
-                        <p>Built-in regexp support with pattern matching, text processing, and string manipulation.</p>
+                        <p>Basic regexp support for experimenting with pattern matching and text processing.</p>
                     </div>
                     <div class="feature">
-                        <h3>⚡ Bytecode VM</h3>
-                        <p>High-performance bytecode virtual machine with advanced debugging and logging capabilities.</p>
+                        <h3>⚙️ Dual Execution</h3>
+                        <p>Both interpreter and bytecode VM modes for comparing execution approaches.</p>
                     </div>
                     <div class="feature">
-                        <h3>🛠️ Developer Tools</h3>
-                        <p>Comprehensive VM logging, performance metrics, and debugging tools for optimization.</p>
+                        <h3>🛠️ Learning Tools</h3>
+                        <p>VM logging and debugging features for understanding how languages work internally.</p>
                     </div>
                 </div>
             </section>
@@ -533,70 +553,70 @@ rush -bytecode -log-level=debug examples/comprehensive_demo.rush</code></pre>
             </section>
 
             <section class="section">
-                <h2>Advanced Architecture</h2>
-                <p>Rush features a sophisticated dual-execution architecture designed for development flexibility and performance optimization.</p>
+                <h2>Experimental Architecture</h2>
+                <p>Rush includes a basic dual-execution setup that's useful for learning how different execution approaches work.</p>
                 
                 <div class="features">
                     <div class="feature">
-                        <h3>🔄 Dual Execution Modes</h3>
-                        <p>Choose between interpreter mode for development and bytecode VM for optimized performance.</p>
+                        <h3>🔄 Two Execution Modes</h3>
+                        <p>Try interpreter mode for development or bytecode VM to see how virtual machines work.</p>
                     </div>
                     <div class="feature">
-                        <h3>📊 Performance Metrics</h3>
-                        <p>Built-in execution statistics including instructions per second, memory usage, and call counts.</p>
+                        <h3>📊 Basic Metrics</h3>
+                        <p>Simple execution statistics to understand what's happening during program execution.</p>
                     </div>
                     <div class="feature">
-                        <h3>🔍 Advanced Debugging</h3>
-                        <p>Comprehensive logging system with trace-level instruction debugging and stack inspection.</p>
+                        <h3>🔍 Learning-Focused Logging</h3>
+                        <p>Logging system that helps you understand instruction execution and stack operations.</p>
                     </div>
                     <div class="feature">
-                        <h3>⚙️ VM Optimization</h3>
-                        <p>Bytecode virtual machine with stack management, local variable optimization, and function call efficiency.</p>
+                        <h3>⚙️ Simple VM</h3>
+                        <p>Basic bytecode virtual machine for exploring how stack-based execution works.</p>
                     </div>
                     <div class="feature">
-                        <h3>🎯 Development Tools</h3>
-                        <p>Configurable log levels, performance profiling, and execution flow analysis for optimization.</p>
+                        <h3>🎯 Educational Tools</h3>
+                        <p>Different log levels and debugging features to learn about language implementation.</p>
                     </div>
                     <div class="feature">
-                        <h3>🚀 Robust Implementation</h3>
-                        <p>Comprehensive error handling, memory management, and performance monitoring for experimental and educational use.</p>
+                        <h3>🧪 Experimental Features</h3>
+                        <p>Basic error handling and management features suitable for experimentation and learning.</p>
                     </div>
                 </div>
 
                 <div class="code-example">
-                    <div class="code-header">VM Performance Analysis</div>
+                    <div class="code-header">Comparing Execution Modes</div>
                     <div class="code-content">
-                        <pre><code class="language-bash"># Performance comparison between modes
+                        <pre><code class="language-bash"># Compare interpreter vs bytecode VM (educational)
 time rush program.rush                    # Interpreter mode
 time rush -bytecode program.rush         # Bytecode VM mode
 
-# Detailed performance metrics
+# See what's happening internally
 rush -bytecode -log-level=info program.rush
-# Output includes:
-# - Execution time and instructions/second
+# Basic output includes:
+# - Execution time and basic metrics
 # - Stack operations and function calls  
-# - Memory allocations and error counts
-# - VM initialization and cleanup stats</code></pre>
+# - Simple memory and error tracking
+# - VM startup and cleanup information</code></pre>
                     </div>
                 </div>
             </section>
 
             <section class="section">
-                <h2>Explore More</h2>
-                <p>Ready to dive deeper? Check out these resources to master Rush programming.</p>
+                <h2>Continue Exploring</h2>
+                <p>Interested in experimenting further? Here are some resources to help you explore Rush.</p>
                 
                 <div class="features">
                     <div class="feature">
-                        <h3>📖 Documentation</h3>
-                        <p>Complete language specification, user guide, and API reference available in the docs/ directory.</p>
+                        <h3>📖 Basic Documentation</h3>
+                        <p>Simple language specification and guides available in the docs/ directory for learning.</p>
                     </div>
                     <div class="feature">
-                        <h3>🎮 Examples</h3>
-                        <p>Comprehensive demos including algorithms, games, and real-world applications in the examples/ directory.</p>
+                        <h3>🎮 Example Programs</h3>
+                        <p>Basic demos and examples in the examples/ directory to try out different features.</p>
                     </div>
                     <div class="feature">
                         <h3>🧪 Interactive REPL</h3>
-                        <p>Experiment with Rush features interactively. Type <code>rush</code> to start exploring!</p>
+                        <p>Experiment with Rush features interactively. Type <code>rush</code> to start trying things out!</p>
                     </div>
                 </div>
             </section>
