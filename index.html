@@ -528,6 +528,29 @@
                 padding: 0 20px;
             }
             
+            .hero {
+                min-height: auto;
+                padding: 60px 0;
+            }
+            
+            .hero-content {
+                gap: 40px;
+            }
+            
+            .hero h1 {
+                font-size: clamp(2.5rem, 8vw, 4rem);
+            }
+            
+            .hero .tagline {
+                font-size: 20px;
+                margin-bottom: 32px;
+            }
+            
+            .code-window {
+                max-width: 100%;
+                margin: 0 auto;
+            }
+            
             .features-grid {
                 grid-template-columns: 1fr;
             }
@@ -544,14 +567,48 @@
         }
 
         @media (max-width: 480px) {
+            .container {
+                padding: 0 16px;
+            }
+            
+            .hero {
+                padding: 40px 0;
+            }
+            
+            .hero-content {
+                gap: 32px;
+            }
+            
+            .hero h1 {
+                font-size: clamp(2rem, 10vw, 3rem);
+                margin-bottom: 16px;
+            }
+            
+            .hero .tagline {
+                font-size: 18px;
+                margin-bottom: 24px;
+            }
+            
             .hero-actions {
                 flex-direction: column;
                 width: 100%;
+                gap: 12px;
             }
             
             .btn {
                 width: 100%;
                 justify-content: center;
+                padding: 16px 24px;
+                font-size: 16px;
+            }
+            
+            .code-window {
+                border-radius: 12px;
+            }
+            
+            .code-content {
+                padding: 16px;
+                font-size: 13px;
             }
             
             .footer-content {
@@ -981,7 +1038,7 @@ rush -bytecode -log-level=debug your_program.rush</code></pre>
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2024 Rush Programming Language. Open source under MIT License.</p>
+                <p>&copy; 2025 Rush Programming Language. Open source under MIT License.</p>
             </div>
         </div>
     </footer>
