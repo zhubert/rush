@@ -6,19 +6,29 @@
     <title>Rush Programming Language - Experimental</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --secondary-color: #7c3aed;
-            --accent-color: #0ea5e9;
-            --text-color: #1f2937;
-            --text-light: #64748b;
-            --text-muted: #94a3b8;
+            /* Clean & Refined Color Palette - Apple-inspired */
+            --primary-color: #0066cc;
+            --primary-light: #3385d6;
+            --primary-dark: #004499;
+            --secondary-color: #5856d6;
+            --accent-color: #007aff;
+            --text-color: #1d1d1f;
+            --text-secondary: #424245;
+            --text-tertiary: #6e6e73;
+            --text-light: #86868b;
             --bg-color: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #f1f5f9;
-            --border-color: #e2e8f0;
-            --code-bg: #0f172a;
+            --bg-elevated: #f5f5f7;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f2f2f7;
+            --border-color: #d2d2d7;
+            --border-light: #e5e5ea;
+            --code-bg: #1e1e1e;
+            --shadow-light: rgba(0, 0, 0, 0.04);
+            --shadow-medium: rgba(0, 0, 0, 0.08);
+            --shadow-strong: rgba(0, 0, 0, 0.12);
         }
 
         * {
@@ -28,164 +38,237 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'SF Pro Display', Roboto, sans-serif;
-            line-height: 1.65;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
             color: var(--text-color);
             background: var(--bg-color);
             font-weight: 400;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            letter-spacing: -0.01em;
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 0 24px;
+            padding: 0 32px;
         }
 
         header {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-elevated) 40%, var(--bg-secondary) 100%);
             color: var(--text-color);
-            padding: 100px 0 80px;
+            padding: 120px 0 100px;
             text-align: center;
-            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center top, rgba(0, 102, 204, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero {
+            position: relative;
+            z-index: 1;
         }
 
         .hero h1 {
-            font-size: 4rem;
-            font-weight: 800;
-            margin-bottom: 24px;
-            color: var(--primary-color);
-            letter-spacing: -0.025em;
+            font-size: 4.5rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: var(--text-color);
+            letter-spacing: -0.04em;
+            line-height: 1.1;
         }
 
-        .hero p {
-            font-size: 1.375rem;
-            margin-bottom: 40px;
-            color: var(--text-light);
-            max-width: 700px;
+        .hero .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+
+        .hero .description {
+            font-size: 1.125rem;
+            margin-bottom: 48px;
+            color: var(--text-tertiary);
+            max-width: 650px;
             margin-left: auto;
             margin-right: auto;
             font-weight: 400;
+            line-height: 1.5;
         }
 
         .cta-buttons {
             display: flex;
-            gap: 20px;
+            gap: 24px;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .btn {
-            display: inline-block;
-            padding: 14px 32px;
+            display: inline-flex;
+            align-items: center;
+            padding: 16px 36px;
             border-radius: 12px;
             text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s ease;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 1.0625rem;
+            letter-spacing: -0.01em;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-primary {
             background: var(--primary-color);
             color: white;
+            box-shadow: 0 4px 14px var(--shadow-medium);
         }
 
         .btn-secondary {
-            background: transparent;
-            color: var(--text-color);
-            border: 1.5px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px var(--shadow-light);
         }
 
         .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            box-shadow: 0 8px 28px rgba(0, 102, 204, 0.25);
         }
 
         .btn-secondary:hover {
-            background: var(--bg-tertiary);
+            background: var(--bg-elevated);
             border-color: var(--primary-color);
+            box-shadow: 0 4px 16px var(--shadow-medium);
         }
 
         main {
-            padding: 80px 0;
+            padding: 100px 0;
         }
 
         .section {
-            margin-bottom: 80px;
+            margin-bottom: 120px;
         }
 
         .section h2 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            margin-bottom: 24px;
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 32px;
             text-align: center;
             color: var(--text-color);
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
         }
 
-        .section p {
-            font-size: 1.25rem;
-            color: var(--text-light);
+        .section > p {
+            font-size: 1.1875rem;
+            color: var(--text-tertiary);
             text-align: center;
-            max-width: 800px;
-            margin: 0 auto 48px;
-            line-height: 1.7;
+            max-width: 760px;
+            margin: 0 auto 64px;
+            line-height: 1.6;
+            font-weight: 400;
         }
 
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 60px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            margin-top: 80px;
         }
 
         .feature {
-            background: var(--bg-secondary);
-            padding: 32px;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            transition: all 0.2s ease;
+            background: var(--bg-elevated);
+            padding: 40px 32px;
+            border-radius: 20px;
+            border: 1px solid var(--border-light);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 102, 204, 0.02) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
         .feature:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(79, 70, 229, 0.08);
-            border-color: rgba(79, 70, 229, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px var(--shadow-medium);
+            border-color: rgba(0, 102, 204, 0.15);
+        }
+
+        .feature:hover::before {
+            opacity: 1;
         }
 
         .feature h3 {
-            font-size: 1.375rem;
+            font-size: 1.3125rem;
             font-weight: 600;
             margin-bottom: 16px;
             color: var(--text-color);
+            letter-spacing: -0.01em;
+            position: relative;
+            z-index: 1;
         }
 
         .feature p {
-            color: var(--text-light);
+            color: var(--text-tertiary);
             text-align: left;
             margin: 0;
             line-height: 1.6;
+            font-size: 1rem;
+            position: relative;
+            z-index: 1;
         }
 
         .code-example {
             background: var(--code-bg);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
-            margin: 48px 0;
-            box-shadow: 0 8px 25px rgba(15, 23, 42, 0.15);
-            border: 1px solid rgba(71, 85, 105, 0.2);
+            margin: 64px 0;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .code-example:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
         }
 
         .code-header {
-            background: #1e293b;
-            padding: 16px 24px;
-            color: #94a3b8;
-            font-size: 0.875rem;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px 28px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9375rem;
             font-weight: 500;
-            border-bottom: 1px solid #334155;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, monospace;
+            letter-spacing: -0.01em;
         }
 
         .code-content {
@@ -193,86 +276,191 @@
         }
 
         .code-content pre {
-            padding: 20px;
+            padding: 28px;
             margin: 0;
             overflow-x: auto;
+            background: transparent;
         }
 
         .code-content code {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Cascadia Code', monospace;
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            font-weight: 400;
         }
 
         .quick-start {
-            background: var(--bg-secondary);
-            padding: 60px 0;
-            border-radius: 20px;
-            margin: 60px 0;
+            background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-tertiary) 100%);
+            padding: 80px 0;
+            border-radius: 32px;
+            margin: 80px 0;
+            border: 1px solid var(--border-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-start::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(0, 102, 204, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .quick-start .container {
+            position: relative;
+            z-index: 1;
         }
 
         .installation-steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
         }
 
         .step {
             text-align: center;
-            padding: 20px;
+            padding: 32px 24px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--shadow-light);
         }
 
         .step-number {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
             background: var(--primary-color);
             color: white;
             border-radius: 50%;
-            line-height: 40px;
-            font-weight: bold;
-            margin-bottom: 15px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 1.125rem;
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
         }
 
         .step h4 {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             color: var(--text-color);
+            font-weight: 600;
+            font-size: 1.125rem;
+            letter-spacing: -0.01em;
+        }
+
+        .step p {
+            color: var(--text-tertiary);
+            font-size: 0.9375rem;
+            line-height: 1.5;
+            margin: 0;
         }
 
         footer {
-            background: var(--text-color);
+            background: linear-gradient(135deg, var(--text-color) 0%, #0f0f0f 100%);
             color: white;
-            padding: 40px 0;
+            padding: 64px 0 40px;
             text-align: center;
+            margin-top: 120px;
         }
 
         .footer-links {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
+            gap: 40px;
+            margin-bottom: 32px;
             flex-wrap: wrap;
         }
 
         .footer-links a {
-            color: #9ca3af;
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            letter-spacing: -0.01em;
         }
 
         .footer-links a:hover {
             color: white;
+            transform: translateY(-1px);
+        }
+
+        footer p {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        /* Tabbed Content Styling - Proposal B feature */
+        .tab-container {
+            margin: 80px 0;
+        }
+
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .tab-button {
+            padding: 16px 32px;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            font-family: inherit;
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         @media (max-width: 768px) {
             .hero h1 {
-                font-size: 2.5rem;
+                font-size: 3rem;
+            }
+            
+            .hero .subtitle {
+                font-size: 1.25rem;
+            }
+            
+            .hero .description {
+                font-size: 1rem;
             }
             
             .cta-buttons {
                 flex-direction: column;
                 align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 280px;
             }
             
             .features {
@@ -282,6 +470,38 @@
             .installation-steps {
                 grid-template-columns: 1fr;
             }
+            
+            .section h2 {
+                font-size: 2.25rem;
+            }
+            
+            .footer-links {
+                gap: 24px;
+            }
+            
+            .tab-nav {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .tab-button {
+                padding: 12px 20px;
+                font-size: 0.9375rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 20px;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .section h2 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
@@ -290,7 +510,8 @@
         <div class="container">
             <div class="hero">
                 <h1>Rush</h1>
-                <p>An experimental programming language for learning and exploration</p>
+                <p class="subtitle">An experimental programming language</p>
+                <p class="description">A week-old learning project exploring language design through AI collaboration. Built for experimentation, not production.</p>
                 <div class="cta-buttons">
                     <a href="#quick-start" class="btn btn-primary">Try Rush</a>
                     <a href="https://github.com/zhubert/rush" class="btn btn-secondary">View on GitHub</a>
@@ -304,23 +525,21 @@
             <section class="section">
                 <h2>What is Rush?</h2>
                 <p>
-                    Rush is an experimental programming language built with Go and 
-                    <strong>developed through AI collaboration</strong>. It's a learning project that explores 
-                    language design concepts like first-class functions, object-oriented programming, 
-                    regular expressions, and dot notation methods. 
+                    Rush is a simple experimental programming language created as a learning project. 
+                    Built in Go through AI collaboration, it explores basic language concepts like 
+                    functions, objects, and pattern matching in an approachable way.
                 </p>
                 <p>
-                    This is a <strong>week-old experiment</strong> with both interpreter and bytecode VM execution modes, 
-                    basic debugging features, and logging capabilities. It's designed for 
-                    experimentation, learning programming language concepts, and exploring AI-assisted development.
+                    This is a <strong>week-old experiment</strong> that shouldn't be used for anything important. 
+                    It includes basic interpreter and bytecode execution modes for educational comparison, 
+                    simple debugging features, and is designed purely for learning and experimentation.
                 </p>
                 
-                <div style="background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%); padding: 30px; border-radius: 12px; margin: 40px 0; text-align: center; border-left: 4px solid var(--primary-color);">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px; font-size: 1.5rem;">🧪 Experimental Project</h3>
-                    <p style="margin: 0; font-size: 1.1rem; color: var(--text-color);">
-                        Rush is a learning experiment in AI-assisted language development. 
-                        Every component was built through collaboration with AI systems over the course of a week, 
-                        exploring what's possible when humans and AI work together on programming language design.
+                <div style="background: linear-gradient(135deg, rgba(0, 102, 204, 0.05) 0%, rgba(88, 86, 214, 0.05) 100%); padding: 40px; border-radius: 20px; margin: 60px 0; text-align: center; border: 1px solid var(--border-light);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 20px; font-size: 1.375rem; font-weight: 600;">🧪 Learning Experiment</h3>
+                    <p style="margin: 0; font-size: 1.0625rem; color: var(--text-secondary); line-height: 1.6;">
+                        Rush is a week-old programming language experiment exploring what happens when humans and AI collaborate on language design. 
+                        It's a educational project for understanding how programming languages work, not a production tool.
                     </p>
                 </div>
 
@@ -345,43 +564,44 @@ for (i = 0; i < len(languages); i = i + 1) {
             </section>
 
             <section class="section">
-                <h2>What Can You Explore?</h2>
+                <h2>What Can You Experiment With?</h2>
+                <p>Rush includes basic implementations of common language features. Perfect for learning how these concepts work, but don't expect production-level polish.</p>
                 <div class="features">
                     <div class="feature">
                         <h3>🧪 Simple Syntax</h3>
-                        <p>Approachable syntax that's great for experimentation and learning language design concepts.</p>
+                        <p>Basic, approachable syntax designed for learning rather than complexity. Easy to read and experiment with.</p>
                     </div>
                     <div class="feature">
-                        <h3>⚡ Interactive REPL</h3>
-                        <p>Explore Rush features interactively. Great for trying out ideas and learning.</p>
+                        <h3>⚡ Basic REPL</h3>
+                        <p>Simple interactive environment for trying out language features. Good for quick experimentation.</p>
                     </div>
                     <div class="feature">
                         <h3>🎯 Dynamic Typing</h3>
-                        <p>Variables can hold different types of values, making it easy to experiment with ideas.</p>
+                        <p>Variables can hold different types. Makes the language flexible for learning, though not optimized for performance.</p>
                     </div>
                     <div class="feature">
-                        <h3>🧰 Dot Notation Methods</h3>
-                        <p>Experimental method chaining on strings, arrays, numbers, and other types.</p>
+                        <h3>🧰 Dot Notation</h3>
+                        <p>Basic method chaining on built-in types. Experimental implementation that's fun to play with.</p>
                     </div>
                     <div class="feature">
-                        <h3>🏗️ Object-Oriented Features</h3>
-                        <p>Basic classes and inheritance for exploring object-oriented programming concepts.</p>
+                        <h3>🏗️ Simple Objects</h3>
+                        <p>Basic class system with inheritance. Good for understanding OOP concepts, though quite minimal.</p>
                     </div>
                     <div class="feature">
-                        <h3>📦 Module System</h3>
-                        <p>Simple import/export functionality for organizing experimental code.</p>
+                        <h3>📦 Basic Modules</h3>
+                        <p>Simple import system for organizing code. Nothing fancy, just the basics for learning.</p>
                     </div>
                     <div class="feature">
-                        <h3>🔍 Regular Expressions</h3>
-                        <p>Basic regexp support for experimenting with pattern matching and text processing.</p>
+                        <h3>🔍 Regexp Support</h3>
+                        <p>Basic regular expression functionality. Useful for learning pattern matching concepts.</p>
                     </div>
                     <div class="feature">
-                        <h3>⚙️ Dual Execution</h3>
-                        <p>Both interpreter and bytecode VM modes for comparing execution approaches.</p>
+                        <h3>⚙️ Two Execution Modes</h3>
+                        <p>Compare interpreter vs bytecode VM execution. Educational rather than performance-focused.</p>
                     </div>
                     <div class="feature">
-                        <h3>🛠️ Learning Tools</h3>
-                        <p>VM logging and debugging features for understanding how languages work internally.</p>
+                        <h3>🛠️ Debug Logging</h3>
+                        <p>Basic logging to see what's happening internally. Helpful for understanding language implementation.</p>
                     </div>
                 </div>
             </section>
@@ -553,33 +773,33 @@ rush -bytecode -log-level=debug examples/comprehensive_demo.rush</code></pre>
             </section>
 
             <section class="section">
-                <h2>Experimental Architecture</h2>
-                <p>Rush includes a basic dual-execution setup that's useful for learning how different execution approaches work.</p>
+                <h2>Simple Architecture</h2>
+                <p>Rush has a basic dual-execution design that's useful for comparing how different execution approaches work. Don't expect sophisticated optimization or advanced features.</p>
                 
                 <div class="features">
                     <div class="feature">
-                        <h3>🔄 Two Execution Modes</h3>
-                        <p>Try interpreter mode for development or bytecode VM to see how virtual machines work.</p>
+                        <h3>🔄 Interpreter vs VM</h3>
+                        <p>Basic tree-walking interpreter and simple stack-based VM. Good for learning the differences between approaches.</p>
                     </div>
                     <div class="feature">
-                        <h3>📊 Basic Metrics</h3>
-                        <p>Simple execution statistics to understand what's happening during program execution.</p>
+                        <h3>📊 Simple Metrics</h3>
+                        <p>Basic execution statistics like instruction counts and timing. Nothing fancy, just educational data.</p>
                     </div>
                     <div class="feature">
-                        <h3>🔍 Learning-Focused Logging</h3>
-                        <p>Logging system that helps you understand instruction execution and stack operations.</p>
+                        <h3>🔍 Debug Logging</h3>
+                        <p>Different log levels to see what's happening internally. Useful for learning how languages execute code.</p>
                     </div>
                     <div class="feature">
-                        <h3>⚙️ Simple VM</h3>
-                        <p>Basic bytecode virtual machine for exploring how stack-based execution works.</p>
+                        <h3>⚙️ Basic VM</h3>
+                        <p>Simple stack-based virtual machine. Minimalist implementation good for understanding VM concepts.</p>
                     </div>
                     <div class="feature">
-                        <h3>🎯 Educational Tools</h3>
-                        <p>Different log levels and debugging features to learn about language implementation.</p>
+                        <h3>🎯 Learning Tools</h3>
+                        <p>Debug features designed for education rather than production use. Great for seeing how things work.</p>
                     </div>
                     <div class="feature">
-                        <h3>🧪 Experimental Features</h3>
-                        <p>Basic error handling and management features suitable for experimentation and learning.</p>
+                        <h3>🧪 Error Handling</h3>
+                        <p>Basic error reporting and recovery. Simple implementation suitable for experimentation.</p>
                     </div>
                 </div>
 
@@ -602,21 +822,21 @@ rush -bytecode -log-level=info program.rush
             </section>
 
             <section class="section">
-                <h2>Continue Exploring</h2>
-                <p>Interested in experimenting further? Here are some resources to help you explore Rush.</p>
+                <h2>Want to Try It?</h2>
+                <p>Rush is a simple learning project, but if you're curious about language design or want to see AI-assisted development in action, here's what's available.</p>
                 
                 <div class="features">
                     <div class="feature">
-                        <h3>📖 Basic Documentation</h3>
-                        <p>Simple language specification and guides available in the docs/ directory for learning.</p>
+                        <h3>📖 Basic Docs</h3>
+                        <p>Simple documentation in the docs/ directory. Don't expect comprehensive guides, just the basics.</p>
                     </div>
                     <div class="feature">
-                        <h3>🎮 Example Programs</h3>
-                        <p>Basic demos and examples in the examples/ directory to try out different features.</p>
+                        <h3>🎮 Small Examples</h3>
+                        <p>A few example programs in examples/ directory. Good for seeing what Rush can do.</p>
                     </div>
                     <div class="feature">
-                        <h3>🧪 Interactive REPL</h3>
-                        <p>Experiment with Rush features interactively. Type <code>rush</code> to start trying things out!</p>
+                        <h3>🧪 Interactive Shell</h3>
+                        <p>Basic REPL for trying things out. Type <code>rush</code> and start experimenting with simple programs.</p>
                     </div>
                 </div>
             </section>
@@ -653,6 +873,34 @@ rush -bytecode -log-level=info program.rush
                 }
             });
         });
+
+        // Tab functionality for Clean & Refined design
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.getAttribute('data-tab');
+
+                    // Remove active class from all buttons and contents
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding content
+                    button.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+
+            // Activate first tab by default
+            if (tabButtons.length > 0) {
+                tabButtons[0].click();
+            }
+        }
+
+        // Initialize tabs when DOM is loaded
+        initTabs();
     </script>
 </body>
 </html>
