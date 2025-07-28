@@ -1,22 +1,18 @@
 package compiler
-
 import (
 	"fmt"
 	"testing"
-
 	"rush/ast"
 	"rush/bytecode"
 	"rush/interpreter"
 	"rush/lexer"
 	"rush/parser"
 )
-
 type compilerTestCase struct {
 	input                string
 	expectedConstants    []interface{}
 	expectedInstructions []bytecode.Instructions
 }
-
 func TestIntegerArithmetic(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -26,7 +22,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpAdd),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -36,7 +31,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpPop),
 				bytecode.Make(bytecode.OpConstant, 1),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -46,7 +40,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpSub),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -56,7 +49,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpMul),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -66,7 +58,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpDiv),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -76,7 +67,6 @@ func TestIntegerArithmetic(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpMod),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -85,14 +75,11 @@ func TestIntegerArithmetic(t *testing.T) {
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpMinus),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestBooleanExpressions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -100,7 +87,6 @@ func TestBooleanExpressions(t *testing.T) {
 			expectedConstants: []interface{}{},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpTrue),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -108,7 +94,6 @@ func TestBooleanExpressions(t *testing.T) {
 			expectedConstants: []interface{}{},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpFalse),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -118,7 +103,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpGreaterThan),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -128,7 +112,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpGreaterThan),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -138,7 +121,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpEqual),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -148,7 +130,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpNotEqual),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -158,7 +139,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpTrue),
 				bytecode.Make(bytecode.OpFalse),
 				bytecode.Make(bytecode.OpEqual),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -168,7 +148,6 @@ func TestBooleanExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpTrue),
 				bytecode.Make(bytecode.OpFalse),
 				bytecode.Make(bytecode.OpNotEqual),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -177,14 +156,11 @@ func TestBooleanExpressions(t *testing.T) {
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpTrue),
 				bytecode.Make(bytecode.OpNot),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestConditionals(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -208,7 +184,6 @@ func TestConditionals(t *testing.T) {
 				// 0012
 				bytecode.Make(bytecode.OpConstant, 1),
 				// 0015
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -232,14 +207,11 @@ func TestConditionals(t *testing.T) {
 				// 0014
 				bytecode.Make(bytecode.OpConstant, 2),
 				// 0017
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestGlobalLetStatements(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -265,7 +237,6 @@ func TestGlobalLetStatements(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				bytecode.Make(bytecode.OpGetGlobal, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -281,14 +252,11 @@ func TestGlobalLetStatements(t *testing.T) {
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 1),
 				bytecode.Make(bytecode.OpGetGlobal, 1),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestStringExpressions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -296,7 +264,6 @@ func TestStringExpressions(t *testing.T) {
 			expectedConstants: []interface{}{"rush"},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpConstant, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -306,14 +273,11 @@ func TestStringExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpAdd),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestArrayLiterals(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -321,7 +285,6 @@ func TestArrayLiterals(t *testing.T) {
 			expectedConstants: []interface{}{},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpArray, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -332,7 +295,6 @@ func TestArrayLiterals(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpConstant, 2),
 				bytecode.Make(bytecode.OpArray, 3),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -349,14 +311,11 @@ func TestArrayLiterals(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 5),
 				bytecode.Make(bytecode.OpMul),
 				bytecode.Make(bytecode.OpArray, 3),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestHashLiterals(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -364,7 +323,6 @@ func TestHashLiterals(t *testing.T) {
 			expectedConstants: []interface{}{},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpHash, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -378,7 +336,6 @@ func TestHashLiterals(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 4),
 				bytecode.Make(bytecode.OpConstant, 5),
 				bytecode.Make(bytecode.OpHash, 3),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -394,14 +351,11 @@ func TestHashLiterals(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 5),
 				bytecode.Make(bytecode.OpMul),
 				bytecode.Make(bytecode.OpHash, 2),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestIndexExpressions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -416,7 +370,6 @@ func TestIndexExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 4),
 				bytecode.Make(bytecode.OpAdd),
 				bytecode.Make(bytecode.OpIndex),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -430,14 +383,11 @@ func TestIndexExpressions(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 3),
 				bytecode.Make(bytecode.OpSub),
 				bytecode.Make(bytecode.OpIndex),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestFunctions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -454,7 +404,6 @@ func TestFunctions(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 2, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -471,7 +420,6 @@ func TestFunctions(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 2, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -488,14 +436,11 @@ func TestFunctions(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 2, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestFunctionCalls(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -510,7 +455,6 @@ func TestFunctionCalls(t *testing.T) {
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 1, 0),
 				bytecode.Make(bytecode.OpCall, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -530,7 +474,6 @@ func TestFunctionCalls(t *testing.T) {
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpCall, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -551,7 +494,6 @@ func TestFunctionCalls(t *testing.T) {
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpConstant, 1),
 				bytecode.Make(bytecode.OpCall, 1),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -580,14 +522,11 @@ func TestFunctionCalls(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 2),
 				bytecode.Make(bytecode.OpConstant, 3),
 				bytecode.Make(bytecode.OpCall, 3),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestLetStatementScopes(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -606,7 +545,6 @@ func TestLetStatementScopes(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				bytecode.Make(bytecode.OpClosure, 1, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -627,7 +565,6 @@ func TestLetStatementScopes(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 1, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -654,14 +591,11 @@ func TestLetStatementScopes(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 2, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestBuiltins(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -679,7 +613,6 @@ func TestBuiltins(t *testing.T) {
 				bytecode.Make(bytecode.OpArray, 0),
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpCall, 2),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -694,14 +627,11 @@ func TestBuiltins(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 0, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestClosures(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -727,7 +657,6 @@ func TestClosures(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 1, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -763,7 +692,6 @@ func TestClosures(t *testing.T) {
 			},
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpClosure, 2, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -817,14 +745,11 @@ func TestClosures(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				bytecode.Make(bytecode.OpClosure, 6, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestRecursiveFunctions(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -852,7 +777,6 @@ func TestRecursiveFunctions(t *testing.T) {
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpConstant, 2),
 				bytecode.Make(bytecode.OpCall, 1),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -890,14 +814,11 @@ func TestRecursiveFunctions(t *testing.T) {
 				bytecode.Make(bytecode.OpSetGlobal, 0),
 				bytecode.Make(bytecode.OpGetGlobal, 0),
 				bytecode.Make(bytecode.OpCall, 0),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestWhileLoops(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -927,10 +848,8 @@ func TestWhileLoops(t *testing.T) {
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestForLoops(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -962,10 +881,8 @@ func TestForLoops(t *testing.T) {
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestPropertyAccess(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -974,7 +891,6 @@ func TestPropertyAccess(t *testing.T) {
 			expectedInstructions: []bytecode.Instructions{
 				bytecode.Make(bytecode.OpConstant, 0),
 				bytecode.Make(bytecode.OpGetProperty, 1),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 		{
@@ -986,14 +902,11 @@ func TestPropertyAccess(t *testing.T) {
 				bytecode.Make(bytecode.OpConstant, 2),
 				bytecode.Make(bytecode.OpArray, 3),
 				bytecode.Make(bytecode.OpGetProperty, 3),
-				bytecode.Make(bytecode.OpPop),
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestIndexAssignment(t *testing.T) {
 	tests := []compilerTestCase{
 		{
@@ -1036,42 +949,34 @@ func TestIndexAssignment(t *testing.T) {
 			},
 		},
 	}
-
 	runCompilerTests(t, tests)
 }
-
 func TestSymbolTable(t *testing.T) {
 	global := NewSymbolTable()
-	
 	a := global.Define("a")
 	expected := Symbol{Name: "a", Scope: GlobalScope, Index: 0}
 	if a != expected {
 		t.Errorf("expected a=%+v, got=%+v", expected, a)
 	}
-
 	b := global.Define("b")
 	expected = Symbol{Name: "b", Scope: GlobalScope, Index: 1}
 	if b != expected {
 		t.Errorf("expected b=%+v, got=%+v", expected, b)
 	}
 }
-
 func TestEnclosedSymbolTable(t *testing.T) {
 	global := NewSymbolTable()
 	global.Define("a")
 	global.Define("b")
-
 	local := NewEnclosedSymbolTable(global)
 	local.Define("c")
 	local.Define("d")
-
 	expected := []Symbol{
 		{Name: "a", Scope: GlobalScope, Index: 0},
 		{Name: "b", Scope: GlobalScope, Index: 1},
 		{Name: "c", Scope: LocalScope, Index: 0},
 		{Name: "d", Scope: LocalScope, Index: 1},
 	}
-
 	for _, sym := range expected {
 		result, ok := local.Resolve(sym.Name)
 		if !ok {
@@ -1084,23 +989,19 @@ func TestEnclosedSymbolTable(t *testing.T) {
 		}
 	}
 }
-
 func TestResolveBuiltins(t *testing.T) {
 	global := NewSymbolTable()
 	firstLocal := NewEnclosedSymbolTable(global)
 	secondLocal := NewEnclosedSymbolTable(firstLocal)
-
 	expected := []Symbol{
 		{Name: "a", Scope: BuiltinScope, Index: 0},
 		{Name: "c", Scope: BuiltinScope, Index: 1},
 		{Name: "e", Scope: BuiltinScope, Index: 2},
 		{Name: "f", Scope: BuiltinScope, Index: 3},
 	}
-
 	for i, sym := range expected {
 		global.DefineBuiltin(i, sym.Name)
 	}
-
 	for _, table := range []*SymbolTable{global, firstLocal, secondLocal} {
 		for _, sym := range expected {
 			result, ok := table.Resolve(sym.Name)
@@ -1115,20 +1016,16 @@ func TestResolveBuiltins(t *testing.T) {
 		}
 	}
 }
-
 func TestResolveFree(t *testing.T) {
 	global := NewSymbolTable()
 	global.Define("a")
 	global.Define("b")
-
 	firstLocal := NewEnclosedSymbolTable(global)
 	firstLocal.Define("c")
 	firstLocal.Define("d")
-
 	secondLocal := NewEnclosedSymbolTable(firstLocal)
 	secondLocal.Define("e")
 	secondLocal.Define("f")
-
 	tests := []struct {
 		table           *SymbolTable
 		expectedSymbols []Symbol
@@ -1160,7 +1057,6 @@ func TestResolveFree(t *testing.T) {
 			},
 		},
 	}
-
 	for _, tt := range tests {
 		for _, sym := range tt.expectedSymbols {
 			result, ok := tt.table.Resolve(sym.Name)
@@ -1173,13 +1069,11 @@ func TestResolveFree(t *testing.T) {
 					sym.Name, sym, result)
 			}
 		}
-
 		if len(tt.table.FreeSymbols) != len(tt.expectedFree) {
 			t.Errorf("wrong number of free symbols. got=%d, want=%d",
 				len(tt.table.FreeSymbols), len(tt.expectedFree))
 			continue
 		}
-
 		for i, sym := range tt.expectedFree {
 			result := tt.table.FreeSymbols[i]
 			if result != sym {
@@ -1189,13 +1083,10 @@ func TestResolveFree(t *testing.T) {
 		}
 	}
 }
-
 func TestResolveUnresolvable(t *testing.T) {
 	global := NewSymbolTable()
 	global.Define("a")
-
 	expected := Symbol{Name: "a", Scope: GlobalScope, Index: 0}
-
 	result, ok := global.Resolve("a")
 	if !ok {
 		t.Errorf("name a not resolvable")
@@ -1203,69 +1094,55 @@ func TestResolveUnresolvable(t *testing.T) {
 	if result != expected {
 		t.Errorf("expected a to resolve to %+v, got=%+v", expected, result)
 	}
-
 	_, ok = global.Resolve("b")
 	if ok {
 		t.Errorf("name b resolved, but was expected not to")
 	}
 }
-
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	t.Helper()
-
 	for _, tt := range tests {
 		program := parse(tt.input)
-
 		compiler := New()
 		err := compiler.Compile(program)
 		if err != nil {
 			t.Fatalf("compiler error: %s", err)
 		}
-
 		bytecode := compiler.Bytecode()
-
 		err = testInstructions(tt.expectedInstructions, bytecode.Instructions)
 		if err != nil {
 			t.Fatalf("testInstructions failed: %s", err)
 		}
-
 		err = testConstants(t, tt.expectedConstants, bytecode.Constants)
 		if err != nil {
 			t.Fatalf("testConstants failed: %s", err)
 		}
 	}
 }
-
 func parse(input string) *ast.Program {
 	l := lexer.New(input)
 	p := parser.New(l)
 	return p.ParseProgram()
 }
-
 func testInstructions(expected []bytecode.Instructions, actual bytecode.Instructions) error {
 	concatted := bytecode.FlattenInstructions(expected)
-
 	if len(actual) != len(concatted) {
 		return fmt.Errorf("wrong instructions length.\nwant=%q\ngot =%q",
 			concatted, actual)
 	}
-
 	for i, ins := range concatted {
 		if actual[i] != ins {
 			return fmt.Errorf("wrong instruction at %d.\nwant=%q\ngot =%q",
 				i, concatted, actual)
 		}
 	}
-
 	return nil
 }
-
 func testConstants(t *testing.T, expected []interface{}, actual []interpreter.Value) error {
 	if len(expected) != len(actual) {
 		return fmt.Errorf("wrong number of constants. got=%d, want=%d",
 			len(actual), len(expected))
 	}
-
 	for i, constant := range expected {
 		switch constant := constant.(type) {
 		case int:
@@ -1286,7 +1163,6 @@ func testConstants(t *testing.T, expected []interface{}, actual []interpreter.Va
 				return fmt.Errorf("constant %d - not a function: %T",
 					i, actual[i])
 			}
-
 			err := testInstructions(constant, bytecode.Instructions(fn.Instructions))
 			if err != nil {
 				return fmt.Errorf("constant %d - testInstructions failed: %s",
@@ -1294,34 +1170,27 @@ func testConstants(t *testing.T, expected []interface{}, actual []interpreter.Va
 			}
 		}
 	}
-
 	return nil
 }
-
 func testIntegerObject(expected int64, actual interpreter.Value) error {
 	result, ok := actual.(*interpreter.Integer)
 	if !ok {
 		return fmt.Errorf("object is not Integer. got=%T (%+v)", actual, actual)
 	}
-
 	if result.Value != expected {
 		return fmt.Errorf("object has wrong value. got=%d, want=%d",
 			result.Value, expected)
 	}
-
 	return nil
 }
-
 func testStringObject(expected string, actual interpreter.Value) error {
 	result, ok := actual.(*interpreter.String)
 	if !ok {
 		return fmt.Errorf("object is not String. got=%T (%+v)", actual, actual)
 	}
-
 	if result.Value != expected {
 		return fmt.Errorf("object has wrong value. got=%q, want=%q",
 			result.Value, expected)
 	}
-
 	return nil
 }

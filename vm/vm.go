@@ -1942,7 +1942,7 @@ func getMethodNames(methods map[string]*interpreter.CompiledFunction) []string {
 
 // LastPoppedStackElem returns the last popped element (for testing)
 func (vm *VM) LastPoppedStackElem() interpreter.Value {
-	return vm.stack[vm.sp]
+	return vm.StackTop()
 }
 
 // executeMethodCall handles method invocation on objects
