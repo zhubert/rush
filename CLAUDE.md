@@ -15,8 +15,8 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 12 - Enhanced Standard Library & Regular Expressions - **COMPLETE**
-**Next Phase**: Phase 13 - Performance & Compilation (Bytecode optimization, JIT compilation)
+**Current Phase**: Phase 13.4 - JIT Compilation - **COMPLETE**
+**Next Phase**: Phase 14 - Advanced Language Features
 
 ## Codebase Architecture
 
@@ -30,6 +30,7 @@ rush/
 ├── ast/               # AST node definitions for all language constructs
 ├── interpreter/       # Runtime evaluation and built-in function implementations
 ├── examples/          # Example Rush programs for testing and demonstration
+├── jit/               # Just-In-Time compilation system (ARM64 target)
 ├── std/              # Standard library modules (math.rush, string.rush, array.rush)
 ├── docs/              # User-facing documentation
 └── tests/             # Test suite (mirrors main directory structure)
@@ -55,6 +56,10 @@ make install        # Install Rush system-wide
 go test ./...       # Run all tests
 make dev FILE=example.rush  # Run file from source (development)
 make repl          # Start REPL from source
+
+# JIT compilation mode
+rush -jit program.rush              # Enable JIT compilation
+rush -jit -log-level=info program.rush  # JIT with statistics
 
 # Testing specific components
 go test ./lexer      # Test tokenization

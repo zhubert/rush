@@ -1,7 +1,9 @@
 package vm
 
 import (
+	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"os"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	"rush/bytecode"
 	"rush/compiler"
 	"rush/interpreter"
+	"rush/jit"
 )
 
 const (
@@ -118,6 +121,10 @@ type VM struct {
 	framesIndex  int                 // Current frame index
 	logger       *VMLogger           // Logger for debugging and monitoring
 	stats        *VMStats            // Execution statistics
+	
+	// JIT-specific fields
+	jitCompiler  *jit.JITCompiler    // JIT compiler instance
+	jitEnabled   bool                // Whether JIT compilation is enabled
 }
 
 // VMStats tracks execution statistics
@@ -128,6 +135,17 @@ type VMStats struct {
 	FunctionCalls     int64
 	MemoryAllocations int64
 	Errors            int64
+	
+	// Per-function execution counters
+	FunctionExecutions map[uint64]int64    // Function hash -> execution count
+	FunctionTimings    map[uint64]time.Duration // Function hash -> total execution time
+	
+	// JIT-specific statistics
+	JITCompilations    int64
+	JITHits            int64
+	JITMisses          int64
+	JITDeoptimizations int64
+	JITCompilationTime time.Duration
 }
 
 // New creates a new virtual machine
@@ -149,7 +167,11 @@ func NewWithLogger(bytecode *compiler.Bytecode, logLevel LogLevel) *VM {
 	frames[0] = mainFrame
 
 	logger := NewVMLogger(logLevel)
-	stats := &VMStats{StartTime: time.Now()}
+	stats := &VMStats{
+		StartTime:          time.Now(),
+		FunctionExecutions: make(map[uint64]int64),
+		FunctionTimings:    make(map[uint64]time.Duration),
+	}
 
 	vm := &VM{
 		constants:   bytecode.Constants,
@@ -160,6 +182,8 @@ func NewWithLogger(bytecode *compiler.Bytecode, logLevel LogLevel) *VM {
 		framesIndex: 1,
 		logger:      logger,
 		stats:       stats,
+		jitCompiler: nil,
+		jitEnabled:  false,
 	}
 
 	logger.Info("VM initialized with %d constants, %d stack size, %d globals size", 
@@ -185,6 +209,23 @@ func NewWithGlobalsStoreAndLogger(bytecode *compiler.Bytecode, s []interpreter.V
 	return vm
 }
 
+// NewWithJIT creates a new virtual machine with JIT compilation enabled
+func NewWithJIT(bytecode *compiler.Bytecode, logLevel LogLevel) *VM {
+	vm := NewWithLogger(bytecode, logLevel)
+	vm.jitCompiler = jit.NewJITCompiler()
+	vm.jitEnabled = true
+	vm.logger.Info("JIT compilation enabled")
+	return vm
+}
+
+// NewWithJITAndGlobalsStore creates a VM with JIT compilation and existing global state
+func NewWithJITAndGlobalsStore(bytecode *compiler.Bytecode, s []interpreter.Value) *VM {
+	vm := NewWithJIT(bytecode, LogNone)
+	vm.globals = s
+	vm.logger.Debug("VM initialized with JIT and %d existing global variables", len(s))
+	return vm
+}
+
 // SetLogLevel changes the logging level of the VM
 func (vm *VM) SetLogLevel(level LogLevel) {
 	vm.logger.level = level
@@ -198,6 +239,55 @@ func (vm *VM) GetStats() VMStats {
 	return stats
 }
 
+// GetJITStats returns JIT compilation statistics
+func (vm *VM) GetJITStats() jit.JITStats {
+	if vm.jitEnabled && vm.jitCompiler != nil {
+		return vm.jitCompiler.GetStats()
+	}
+	return jit.JITStats{} // Return empty stats if JIT is disabled
+}
+
+// RecordFunctionExecution tracks function execution for profiling
+func (vm *VM) RecordFunctionExecution(fnHash uint64, executionTime time.Duration) {
+	vm.stats.FunctionExecutions[fnHash]++
+	vm.stats.FunctionTimings[fnHash] += executionTime
+	
+	// Also record in JIT profiler if enabled
+	if vm.jitEnabled && vm.jitCompiler != nil {
+		vm.jitCompiler.RecordExecution(fnHash, executionTime)
+	}
+}
+
+// GetFunctionStats returns execution statistics for a specific function
+func (vm *VM) GetFunctionStats(fnHash uint64) (count int64, totalTime time.Duration) {
+	count = vm.stats.FunctionExecutions[fnHash]
+	totalTime = vm.stats.FunctionTimings[fnHash]
+	return
+}
+
+// UpdateJITStats updates JIT-related statistics
+func (vm *VM) UpdateJITStats(compilations, hits, misses, deoptimizations int64, compilationTime time.Duration) {
+	vm.stats.JITCompilations += compilations
+	vm.stats.JITHits += hits
+	vm.stats.JITMisses += misses
+	vm.stats.JITDeoptimizations += deoptimizations
+	vm.stats.JITCompilationTime += compilationTime
+}
+
+// generateFunctionHash creates a unique hash for a compiled function
+func (vm *VM) generateFunctionHash(fn *interpreter.CompiledFunction) uint64 {
+	hasher := fnv.New64a()
+	
+	// Hash the instructions
+	hasher.Write(fn.Instructions)
+	
+	// Hash function metadata
+	binary.Write(hasher, binary.LittleEndian, int32(fn.NumLocals))
+	binary.Write(hasher, binary.LittleEndian, int32(fn.NumParameters))
+	
+	return hasher.Sum64()
+}
+
 // PrintStats logs current execution statistics
 func (vm *VM) PrintStats() {
 	elapsed := time.Since(vm.stats.StartTime)
@@ -208,6 +298,27 @@ func (vm *VM) PrintStats() {
 	vm.logger.Info("Function calls: %d", vm.stats.FunctionCalls)
 	vm.logger.Info("Memory allocations: %d", vm.stats.MemoryAllocations)
 	vm.logger.Info("Errors encountered: %d", vm.stats.Errors)
+	
+	// Print per-function statistics
+	if len(vm.stats.FunctionExecutions) > 0 {
+		vm.logger.Info("Function executions: %d unique functions", len(vm.stats.FunctionExecutions))
+	}
+	
+	// Print JIT statistics if enabled
+	if vm.jitEnabled {
+		vm.logger.Info("=== JIT STATS ===")
+		vm.logger.Info("JIT compilations: %d", vm.stats.JITCompilations)
+		vm.logger.Info("JIT hits: %d", vm.stats.JITHits)
+		vm.logger.Info("JIT misses: %d", vm.stats.JITMisses)
+		vm.logger.Info("JIT deoptimizations: %d", vm.stats.JITDeoptimizations)
+		vm.logger.Info("JIT compilation time: %v", vm.stats.JITCompilationTime)
+		
+		if (vm.stats.JITHits + vm.stats.JITMisses) > 0 {
+			hitRate := float64(vm.stats.JITHits) / float64(vm.stats.JITHits + vm.stats.JITMisses) * 100
+			vm.logger.Info("JIT hit rate: %.2f%%", hitRate)
+		}
+	}
+	
 	if elapsed.Nanoseconds() > 0 {
 		ips := float64(vm.stats.InstructionCount) / elapsed.Seconds()
 		vm.logger.Info("Instructions per second: %.2f", ips)
@@ -1421,9 +1532,70 @@ func (vm *VM) callClosure(cl *interpreter.Closure, numArgs int) error {
 			cl.Fn.NumParameters, numArgs)
 	}
 
+	// JIT compilation and execution if enabled
+	if vm.jitEnabled && vm.jitCompiler != nil {
+		startTime := time.Now()
+		
+		// Generate function hash for profiling and JIT compilation
+		fnHash := vm.generateFunctionHash(cl.Fn)
+		
+		// Record function execution for profiling
+		vm.RecordFunctionExecution(fnHash, 0) // Will be updated with actual time later
+		
+		// Check if function should be JIT compiled
+		if vm.jitCompiler.ShouldCompile(fnHash) {
+			vm.logger.Debug("Attempting JIT compilation for function %d", fnHash)
+			
+			err := vm.jitCompiler.Compile(cl.Fn, fnHash)
+			if err != nil {
+				vm.logger.Debug("JIT compilation failed: %v, falling back to bytecode", err)
+				vm.stats.JITMisses++
+			} else {
+				vm.logger.Debug("JIT compilation succeeded for function %d", fnHash)
+				vm.stats.JITCompilations++
+			}
+		}
+		
+		// Attempt JIT execution if compiled code is available (only if we have compiled code)
+		// We need to check the cache directly rather than ShouldCompile again
+		if vm.jitCompiler.ShouldCompile(fnHash) && vm.jitCompiler.GetStats().CompilationsSucceeded > 0 {
+			// Try to execute JIT compiled code
+			args := make([]interpreter.Value, numArgs)
+			for i := 0; i < numArgs; i++ {
+				args[i] = vm.stack[vm.sp-numArgs+i]
+			}
+			
+			result, err := vm.jitCompiler.Execute(fnHash, args, vm.globals)
+			if err != nil {
+				// JIT execution failed, deoptimize to bytecode
+				vm.logger.Debug("JIT execution failed: %v, deoptimizing to bytecode", err)
+				vm.stats.JITDeoptimizations++
+				// Fall through to bytecode execution
+			} else {
+				// JIT execution succeeded
+				executionTime := time.Since(startTime)
+				vm.RecordFunctionExecution(fnHash, executionTime)
+				vm.stats.JITHits++
+				
+				// Remove function and arguments from stack
+				vm.sp -= numArgs + 1
+				
+				// Push result
+				if result != nil {
+					return vm.push(result)
+				}
+				return vm.push(interpreter.NULL)
+			}
+		}
+		
+		// Update execution time for bytecode fallback
+		executionTime := time.Since(startTime)
+		vm.RecordFunctionExecution(fnHash, executionTime)
+	}
+
+	// Bytecode execution (original implementation)
 	frame := NewFrame(cl, vm.sp-numArgs)
 	vm.pushFrame(frame)
-
 
 	// Initialize all local variable slots to NULL
 	for i := vm.sp; i < frame.basePointer + cl.Fn.NumLocals; i++ {
