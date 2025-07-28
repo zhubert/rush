@@ -79,16 +79,21 @@
         }
 
         .hero-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 80px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
+            gap: 80px;
             position: relative;
             z-index: 1;
         }
 
         .hero-text {
+            flex: 1;
             max-width: 540px;
+        }
+
+        .hero-visual {
+            flex: 1;
         }
 
         .hero-badge {
@@ -518,7 +523,7 @@
         /* Responsive Design */
         @media (max-width: 1024px) {
             .hero-content {
-                grid-template-columns: 1fr;
+                flex-direction: column;
                 gap: 60px;
                 text-align: center;
             }
@@ -540,7 +545,12 @@
             }
             
             .hero-content {
+                flex-direction: column;
                 gap: 40px;
+            }
+            
+            .hero-text {
+                max-width: 100%;
             }
             
             .hero h1 {
@@ -582,7 +592,12 @@
             }
             
             .hero-content {
+                flex-direction: column;
                 gap: 32px;
+            }
+            
+            .hero-text {
+                max-width: 100%;
             }
             
             .hero h1 {
