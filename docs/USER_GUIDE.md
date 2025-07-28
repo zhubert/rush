@@ -5,21 +5,22 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [Basic Concepts](#basic-concepts)
-3. [Working with Data](#working-with-data)
-4. [Functions](#functions)
-5. [Control Flow](#control-flow)
-6. [Object-Oriented Programming](#object-oriented-programming)
-7. [Error Handling](#error-handling)
-8. [Module System](#module-system)
-9. [JSON Processing](#json-processing)
-10. [File System Operations](#file-system-operations)
-11. [Standard Library](#standard-library)
-12. [Built-in Functions](#built-in-functions)
-13. [Examples](#examples)
-14. [REPL Usage](#repl-usage)
-15. [Common Patterns](#common-patterns)
-16. [Tips and Best Practices](#tips-and-best-practices)
+2. [Performance Modes](#performance-modes)
+3. [Basic Concepts](#basic-concepts)
+4. [Working with Data](#working-with-data)
+5. [Functions](#functions)
+6. [Control Flow](#control-flow)
+7. [Object-Oriented Programming](#object-oriented-programming)
+8. [Error Handling](#error-handling)
+9. [Module System](#module-system)
+10. [JSON Processing](#json-processing)
+11. [File System Operations](#file-system-operations)
+12. [Standard Library](#standard-library)
+13. [Built-in Functions](#built-in-functions)
+14. [Examples](#examples)
+15. [REPL Usage](#repl-usage)
+16. [Common Patterns](#common-patterns)
+17. [Tips and Best Practices](#tips-and-best-practices)
 
 ## Getting Started
 
@@ -35,6 +36,12 @@ Welcome to Rush, a modern, dynamically-typed programming language designed for s
 ```bash
 # Execute a file
 rush your_program.rush
+
+# Execute with bytecode VM for better performance
+rush -bytecode your_program.rush
+
+# Execute with JIT compilation for maximum performance (ARM64 only)
+rush -jit your_program.rush
 
 # Start interactive REPL
 rush
@@ -66,6 +73,103 @@ print("Hello, Rush!")
 Run it:
 ```bash
 rush hello.rush
+```
+
+## Performance Modes
+
+Rush offers three execution modes, each optimized for different use cases:
+
+### Tree-Walking Interpreter (Default)
+
+The default execution mode uses a tree-walking interpreter that directly evaluates the Abstract Syntax Tree (AST).
+
+```bash
+# Execute with interpreter (default)
+rush program.rush
+```
+
+**Best for:**
+- Development and debugging
+- Short-running scripts
+- Interactive REPL sessions
+
+**Characteristics:**
+- Immediate execution
+- Full debugging support
+- Lowest memory usage
+- Slower execution for compute-intensive tasks
+
+### Bytecode Virtual Machine
+
+The bytecode VM compiles Rush code to bytecode instructions and executes them on a virtual machine.
+
+```bash
+# Execute with bytecode VM
+rush -bytecode program.rush
+
+# With performance monitoring
+rush -bytecode -log-level=info program.rush
+```
+
+**Best for:**
+- Production applications
+- Long-running programs
+- Better performance than interpreter
+
+**Characteristics:**
+- Compilation to bytecode
+- Faster execution than interpreter
+- Performance monitoring available
+- Good balance of speed and compatibility
+
+### JIT Compilation (ARM64)
+
+The Just-In-Time compiler provides the highest performance by compiling hot functions to native ARM64 machine code.
+
+```bash
+# Execute with JIT compilation
+rush -jit program.rush
+
+# With JIT statistics
+rush -jit -log-level=info program.rush
+```
+
+**Best for:**
+- Compute-intensive applications
+- Functions called repeatedly
+- Maximum performance requirements
+
+**Characteristics:**
+- Native ARM64 code generation
+- Adaptive optimization (functions become "hot" after 100+ calls)
+- Up to 15x performance improvement for hot functions
+- Automatic fallback to bytecode VM
+- ARM64 architecture only
+
+### Performance Monitoring
+
+All execution modes support performance monitoring through log levels:
+
+```bash
+# Basic execution information
+rush -bytecode -log-level=info program.rush
+
+# Detailed debugging information
+rush -bytecode -log-level=debug program.rush
+
+# Full execution tracing
+rush -bytecode -log-level=trace program.rush
+```
+
+Example JIT statistics output:
+```
+JIT Statistics:
+  Compilations attempted: 45
+  Compilations succeeded: 12
+  JIT hits: 156
+  JIT misses: 23
+  Deoptimizations: 2
+  Hot threshold: 100 calls
 ```
 
 ## Basic Concepts

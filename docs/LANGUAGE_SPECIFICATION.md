@@ -6,17 +6,103 @@ Rush is a dynamically-typed, interpreted programming language with clean syntax 
 
 ## Table of Contents
 
-1. [Lexical Structure](#lexical-structure)
-2. [Data Types](#data-types)
-3. [Variables](#variables)
-4. [Expressions](#expressions)
-5. [Statements](#statements)
-6. [Functions](#functions)
-7. [Control Flow](#control-flow)
-8. [Error Handling](#error-handling)
-9. [Module System](#module-system)
-10. [Built-in Functions](#built-in-functions)
-11. [Grammar](#grammar)
+1. [Execution Architecture](#execution-architecture)
+2. [Lexical Structure](#lexical-structure)
+3. [Data Types](#data-types)
+4. [Variables](#variables)
+5. [Expressions](#expressions)
+6. [Statements](#statements)
+7. [Functions](#functions)
+8. [Control Flow](#control-flow)
+9. [Error Handling](#error-handling)
+10. [Module System](#module-system)
+11. [Built-in Functions](#built-in-functions)
+12. [Grammar](#grammar)
+
+## Execution Architecture
+
+Rush implements a tiered execution system with three distinct modes:
+
+### 1. Tree-Walking Interpreter (Level 0)
+
+The default execution mode performs direct evaluation of the Abstract Syntax Tree (AST):
+
+```
+Source Code → Lexer → Parser → AST → Interpreter → Result
+```
+
+**Characteristics:**
+- Direct AST traversal and evaluation
+- No compilation step
+- Immediate execution
+- Best for development and debugging
+- Slower performance for compute-intensive tasks
+
+### 2. Bytecode Virtual Machine (Level 1)
+
+The bytecode mode compiles Rush source to intermediate bytecode instructions:
+
+```
+Source Code → Lexer → Parser → AST → Compiler → Bytecode → VM → Result
+```
+
+**Characteristics:**
+- Compilation to stack-based bytecode
+- Virtual machine execution
+- Better performance than interpreter
+- Comprehensive logging and debugging support
+- Good balance of speed and portability
+
+**Bytecode Instructions Include:**
+- `OpConstant` - Load constant value
+- `OpAdd`, `OpSub`, `OpMul`, `OpDiv` - Arithmetic operations
+- `OpEqual`, `OpNotEqual`, `OpGreaterThan` - Comparison operations
+- `OpJump`, `OpJumpNotTruthy` - Control flow
+- `OpCall`, `OpReturn` - Function operations
+- `OpGetGlobal`, `OpSetGlobal` - Variable access
+
+### 3. JIT Compilation (Level 2)
+
+The JIT mode provides adaptive optimization with native code generation:
+
+```
+Source Code → Lexer → Parser → AST → Compiler → Bytecode → VM → JIT → ARM64 → Result
+                                                            ↑
+                                                      (Hot Functions)
+```
+
+**Characteristics:**
+- ARM64 architecture support
+- Hot path detection (threshold: 100+ function calls)
+- Native machine code generation
+- Automatic deoptimization and fallback
+- Up to 15x performance improvement for hot functions
+- Code cache with LRU eviction
+
+**JIT Process:**
+1. Functions start in bytecode VM
+2. Execution count tracked per function
+3. Hot functions (100+ calls) trigger JIT compilation
+4. ARM64 code generated and cached
+5. Subsequent calls execute native code
+6. Fallback to bytecode VM on compilation failure
+
+### Command Line Interface
+
+```bash
+# Tree-walking interpreter (default)
+rush program.rush
+
+# Bytecode virtual machine
+rush -bytecode program.rush
+
+# JIT compilation (ARM64 only)
+rush -jit program.rush
+
+# Performance monitoring
+rush -bytecode -log-level=info program.rush
+rush -jit -log-level=info program.rush
+```
 
 ## Lexical Structure
 
