@@ -43,6 +43,7 @@
             background: var(--bg-primary);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
         }
 
         .container {
@@ -83,6 +84,7 @@
 
         .hero-text {
             max-width: 540px;
+            width: 100%;
         }
 
         .hero-badge {
@@ -531,24 +533,45 @@
             .hero {
                 min-height: auto;
                 padding: 60px 0;
+                overflow-x: hidden;
             }
             
             .hero-content {
                 gap: 40px;
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .hero-text {
+                max-width: 100%;
+                width: 100%;
             }
             
             .hero h1 {
                 font-size: clamp(2.5rem, 8vw, 4rem);
+                word-wrap: break-word;
             }
             
             .hero .tagline {
                 font-size: 20px;
                 margin-bottom: 32px;
+                word-wrap: break-word;
+            }
+            
+            .hero-actions {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .hero-badge {
+                max-width: 100%;
             }
             
             .code-window {
                 max-width: 100%;
                 margin: 0 auto;
+                width: 100%;
+                box-sizing: border-box;
             }
             
             .features-grid {
@@ -573,26 +596,43 @@
             
             .hero {
                 padding: 40px 0;
+                overflow-x: hidden;
             }
             
             .hero-content {
                 gap: 32px;
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .hero-text {
+                max-width: 100%;
+                width: 100%;
             }
             
             .hero h1 {
                 font-size: clamp(2rem, 10vw, 3rem);
                 margin-bottom: 16px;
+                word-wrap: break-word;
+                hyphens: auto;
             }
             
             .hero .tagline {
                 font-size: 18px;
                 margin-bottom: 24px;
+                word-wrap: break-word;
             }
             
             .hero-actions {
                 flex-direction: column;
                 width: 100%;
                 gap: 12px;
+                max-width: 100%;
+            }
+            
+            .hero-badge {
+                max-width: 100%;
+                word-wrap: break-word;
             }
             
             .btn {
@@ -600,15 +640,22 @@
                 justify-content: center;
                 padding: 16px 24px;
                 font-size: 16px;
+                box-sizing: border-box;
+                min-width: 0;
             }
             
             .code-window {
                 border-radius: 12px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             .code-content {
                 padding: 16px;
                 font-size: 13px;
+                overflow-x: auto;
+                word-wrap: break-word;
             }
             
             .footer-content {
