@@ -180,19 +180,33 @@ func (g *ARM64CodeGen) Generate(instructions bytecode.Instructions) ([]byte, err
 
 // emitPrologue generates function entry code
 func (g *ARM64CodeGen) emitPrologue() {
-	// Standard ARM64 function prologue
-	// Save frame pointer and link register
-	// Set up stack frame
+	// Standard ARM64 function prologue following AAPCS64
+	// Save frame pointer (X29) and link register (X30)
+	// stp x29, x30, [sp, #-16]!
+	g.emit32(0xA9BF7FFF) // STP X29, X30, [SP, #-16]!
 	
-	// For now, emit a simple prologue
-	// In a full implementation, this would save registers and set up stack
-	g.emit32(ARM64_MOV_IMM | (X9 << 5)) // MOV X9, #0 (initialize temp register)
+	// Set up frame pointer: mov x29, sp
+	g.emit32(0x910003FD) // MOV X29, SP
+	
+	// Allocate stack space for locals (adjust as needed)
+	// sub sp, sp, #64
+	g.emit32(ARM64_SUB_IMM | (SP << 0) | (SP << 5) | (64 << 10))
+	
+	// Arguments are already in X0-X7 per ARM64 ABI
+	// Globals pointer in X8, Stack pointer in X9, Stack size in X10
 }
 
 // emitEpilogue generates function exit code
 func (g *ARM64CodeGen) emitEpilogue() {
-	// Standard ARM64 function epilogue
-	// Restore registers and return
+	// Standard ARM64 function epilogue following AAPCS64
+	// Deallocate stack space: add sp, sp, #64
+	g.emit32(ARM64_ADD_IMM | (SP << 0) | (SP << 5) | (64 << 10))
+	
+	// Restore frame pointer and link register
+	// ldp x29, x30, [sp], #16
+	g.emit32(0xA8C17FFF) // LDP X29, X30, [SP], #16
+	
+	// Return to caller
 	g.emit32(ARM64_RET) // RET
 }
 

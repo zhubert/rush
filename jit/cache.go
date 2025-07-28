@@ -37,6 +37,21 @@ type ExecutionContext struct {
 	Stack   []interpreter.Value
 }
 
+// ARM64ExecutionContext holds ARM64-specific execution context
+type ARM64ExecutionContext struct {
+	Args       [8]uint64 // ARM64 X0-X7 argument registers
+	GlobalsPtr uintptr   // Pointer to globals array
+	StackPtr   uintptr   // Pointer to stack
+	StackSize  int       // Stack size
+}
+
+// ARM64Result holds the result of ARM64 function execution
+type ARM64Result struct {
+	Value uint64 // Return value in X0
+	Type  uint8  // Value type indicator
+	Error uint8  // Error flag
+}
+
 const (
 	DefaultMaxCacheEntries = 1000
 	DefaultMaxCacheSize    = 64 * 1024 * 1024 // 64MB
@@ -203,10 +218,15 @@ func (c *CodeCache) evictLRU() error {
 	return c.Remove(oldestHash)
 }
 
-// Execute runs compiled ARM64 code
+// Execute runs compiled ARM64 code with exception handling
 func (code *CompiledCode) Execute(args []interpreter.Value, globals []interpreter.Value) (interpreter.Value, error) {
 	if code.codePtr == 0 {
 		return nil, fmt.Errorf("no executable code available")
+	}
+	
+	// Validate execution environment
+	if err := ValidateExecutionEnvironment(); err != nil {
+		return nil, fmt.Errorf("execution environment validation failed: %v", err)
 	}
 	
 	// Create execution context
@@ -216,29 +236,76 @@ func (code *CompiledCode) Execute(args []interpreter.Value, globals []interprete
 		Stack:   make([]interpreter.Value, 1024), // Stack for execution
 	}
 	
-	// Execute ARM64 code (this would be implemented in assembly)
-	result, err := code.executeNative(ctx)
+	// Set up exception handler
+	handler := NewARM64ExceptionHandler()
+	if err := handler.Install(); err != nil {
+		return nil, fmt.Errorf("failed to install exception handler: %v", err)
+	}
+	defer handler.Uninstall()
+	
+	// Execute ARM64 code with exception handling
+	var result interpreter.Value
+	var execErr error
+	
+	_, excInfo, err := handler.SafeExecuteARM64(func() (uint64, error) {
+		var execResult interpreter.Value
+		execResult, execErr = code.executeNative(ctx)
+		result = execResult
+		return 0, execErr
+	})
+	
 	if err != nil {
-		// Deoptimization - fallback to interpreter
-		return nil, fmt.Errorf("JIT execution failed, deoptimizing: %v", err)
+		// Check if exception is recoverable
+		if excInfo != nil && excInfo.Recoverable {
+			// Attempt recovery
+			if recoverErr := handler.RecoverFromException(excInfo); recoverErr == nil {
+				// Deoptimize and fall back to interpreter
+				return nil, fmt.Errorf("JIT execution failed, deoptimizing: %v", err)
+			}
+		}
+		return nil, fmt.Errorf("ARM64 execution failed with unrecoverable exception: %v", err)
+	}
+	
+	if execErr != nil {
+		return nil, fmt.Errorf("JIT execution failed, deoptimizing: %v", execErr)
 	}
 	
 	return result, nil
 }
 
 // executeNative executes the ARM64 code
-// This is a placeholder - actual implementation would involve calling
-// the ARM64 code through function pointers and proper calling conventions
 func (code *CompiledCode) executeNative(ctx *ExecutionContext) (interpreter.Value, error) {
-	// This is a placeholder for actual ARM64 code execution
-	// In a real implementation, this would:
-	// 1. Set up ARM64 calling convention (X0-X7 for args)
-	// 2. Call the compiled code at code.codePtr
-	// 3. Handle the return value according to ARM64 ABI
-	// 4. Convert ARM64 return values back to Rush values
+	if code.codePtr == 0 {
+		return nil, fmt.Errorf("no executable code pointer")
+	}
 	
-	// For now, return an error to indicate deoptimization needed
-	return nil, fmt.Errorf("ARM64 execution not yet implemented")
+	// Marshal Rush values to ARM64 calling convention
+	arm64Args, err := code.marshalArgsToARM64(ctx.Args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal arguments: %v", err)
+	}
+	
+	// Set up ARM64 execution context
+	arm64Ctx := &ARM64ExecutionContext{
+		Args:       arm64Args,
+		GlobalsPtr: uintptr(unsafe.Pointer(&ctx.Globals[0])),
+		StackPtr:   uintptr(unsafe.Pointer(&ctx.Stack[0])),
+		StackSize:  len(ctx.Stack),
+	}
+	
+	// Call ARM64 function with proper error handling
+	result, err := code.callARM64Function(arm64Ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ARM64 execution failed: %v", err)
+	}
+	
+	// Unmarshal ARM64 result back to Rush value
+	rushResult, err := code.unmarshalResultFromARM64(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal result: %v", err)
+	}
+	
+	return rushResult, nil
 }
 
 // GetStats returns cache statistics
@@ -288,4 +355,88 @@ func (c *CodeCache) Clear() error {
 	c.size = 0
 	
 	return nil
+}
+
+// marshalArgsToARM64 converts Rush values to ARM64 calling convention
+func (code *CompiledCode) marshalArgsToARM64(args []interpreter.Value) ([8]uint64, error) {
+	var arm64Args [8]uint64
+	
+	// ARM64 calling convention: first 8 args in X0-X7
+	for i, arg := range args {
+		if i >= 8 {
+			return arm64Args, fmt.Errorf("too many arguments for ARM64 calling convention: %d", len(args))
+		}
+		
+		// Convert Rush value to 64-bit representation
+		val, err := code.valueToUint64(arg)
+		if err != nil {
+			return arm64Args, fmt.Errorf("failed to marshal argument %d: %v", i, err)
+		}
+		arm64Args[i] = val
+	}
+	
+	return arm64Args, nil
+}
+
+// unmarshalResultFromARM64 converts ARM64 result back to Rush value
+func (code *CompiledCode) unmarshalResultFromARM64(result *ARM64Result) (interpreter.Value, error) {
+	if result.Error != 0 {
+		return nil, fmt.Errorf("ARM64 execution error: code %d", result.Error)
+	}
+	
+	// Convert based on type indicator
+	return code.uint64ToValue(result.Value, result.Type)
+}
+
+// valueToUint64 converts a Rush value to 64-bit representation
+func (code *CompiledCode) valueToUint64(value interpreter.Value) (uint64, error) {
+	switch v := value.(type) {
+	case *interpreter.Integer:
+		return uint64(v.Value), nil
+	case *interpreter.Float:
+		return *(*uint64)(unsafe.Pointer(&v.Value)), nil
+	case *interpreter.Boolean:
+		if v.Value {
+			return 1, nil
+		}
+		return 0, nil
+	case *interpreter.String:
+		// Store pointer to string data
+		return uint64(uintptr(unsafe.Pointer(&v.Value))), nil
+	case *interpreter.Null:
+		return 0, nil
+	default:
+		return 0, fmt.Errorf("unsupported value type for ARM64 marshaling: %T", value)
+	}
+}
+
+// uint64ToValue converts 64-bit representation back to Rush value
+func (code *CompiledCode) uint64ToValue(val uint64, typeIndicator uint8) (interpreter.Value, error) {
+	switch typeIndicator {
+	case 0: // INTEGER
+		return &interpreter.Integer{Value: int64(val)}, nil
+	case 1: // FLOAT
+		floatVal := *(*float64)(unsafe.Pointer(&val))
+		return &interpreter.Float{Value: floatVal}, nil
+	case 2: // BOOLEAN
+		return &interpreter.Boolean{Value: val != 0}, nil
+	case 3: // STRING
+		// Reconstruct string from pointer (careful with memory management)
+		if val == 0 {
+			return &interpreter.String{Value: ""}, nil
+		}
+		strPtr := (*string)(unsafe.Pointer(uintptr(val)))
+		return &interpreter.String{Value: *strPtr}, nil
+	case 4: // NULL
+		return &interpreter.Null{}, nil
+	default:
+		return nil, fmt.Errorf("unknown type indicator: %d", typeIndicator)
+	}
+}
+
+// callARM64Function executes the compiled ARM64 code
+func (code *CompiledCode) callARM64Function(ctx *ARM64ExecutionContext) (*ARM64Result, error) {
+	// This is where we make the actual function call to ARM64 code
+	// Using CGO and assembly for the actual call
+	return callARM64Code(code.codePtr, ctx)
 }
