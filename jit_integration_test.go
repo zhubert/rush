@@ -61,7 +61,7 @@ func TestJITStatistics(t *testing.T) {
 	# Call function many times to trigger hot path detection
 	sum = 0
 	i = 0
-	while (i < 50) {
+	while (i < 150) {
 		sum = add(sum, i)
 		i = i + 1
 	}
@@ -206,12 +206,12 @@ func executeWithTreeWalking(t *testing.T, source string) interpreter.Value {
 
 func createJITVMTest(t *testing.T, source string) *vm.VM {
 	bytecode := compileToBytecodeTest(t, source)
-	return vm.NewWithJIT(bytecode, vm.LogError)
+	return vm.NewWithJIT(bytecode, vm.LogDebug) // Use debug logging to see what's happening
 }
 
 func createBytecodeVMTest(t *testing.T, source string) *vm.VM {
 	bytecode := compileToBytecodeTest(t, source)
-	return vm.NewWithLogger(bytecode, vm.LogError)
+	return vm.NewWithLogger(bytecode, vm.LogDebug) // Use debug logging to see what's happening
 }
 
 func compileToBytecodeTest(t *testing.T, source string) *compiler.Bytecode {

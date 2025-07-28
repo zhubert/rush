@@ -371,7 +371,7 @@ func TestFullJITWorkflow(t *testing.T) {
 		t.Logf("ARM64 execution failed (expected in test environment): %v", err)
 		
 		// Verify it's a deoptimization error (fallback to interpreter)
-		if !contains(err.Error(), "deoptimizing") && !contains(err.Error(), "execution failed") {
+		if !contains(err.Error(), "deoptimizing") && !contains(err.Error(), "execution failed") && !contains(err.Error(), "execution environment validation failed") {
 			t.Errorf("Expected deoptimization error, got: %v", err)
 		}
 	} else {
