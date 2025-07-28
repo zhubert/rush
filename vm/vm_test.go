@@ -797,9 +797,9 @@ func parse(input string) *ast.Program {
 	return p.ParseProgram()
 }
 
-// lastPoppedStackElem returns the last popped stack element for testing
+// lastPoppedStackElem returns the top of the stack for testing (the final result)
 func (vm *VM) lastPoppedStackElem() interpreter.Value {
-	return vm.stack[vm.sp]
+	return vm.StackTop()
 }
 
 func TestVMStackOverflow(t *testing.T) {

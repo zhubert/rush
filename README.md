@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-12%20complete-green)](#phases)
+[![Phase](https://img.shields.io/badge/phase-13.4%20complete-green)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -20,6 +20,9 @@ make install
 
 # Or just build without installing
 make build
+
+# Build with JIT support (ARM64 only)
+make build
 ```
 
 After installation, you can use Rush from anywhere:
@@ -27,6 +30,12 @@ After installation, you can use Rush from anywhere:
 ```bash
 # Execute a Rush file
 rush examples/comprehensive_demo.rush
+
+# Execute with bytecode VM for better performance
+rush -bytecode examples/comprehensive_demo.rush
+
+# Execute with JIT compilation (ARM64 only)
+rush -jit examples/comprehensive_demo.rush
 
 # Start interactive REPL
 rush
@@ -58,6 +67,9 @@ rush hello.rush
 
 # From source
 make dev FILE=hello.rush
+
+# With JIT compilation
+rush -jit hello.rush
 ```
 
 ## ✨ Features
@@ -92,6 +104,8 @@ make dev FILE=hello.rush
 - **System Installation**: Install globally with `make install`
 - **Development Tools**: REPL, file execution, comprehensive error messages
 - **Clean Syntax**: Modern, readable syntax inspired by contemporary languages
+- **JIT Compilation**: ARM64 JIT compiler for high-performance execution
+- **Tiered Execution**: Tree-walking interpreter, bytecode VM, and JIT compilation modes
 
 ## 📚 Language Overview
 
@@ -532,6 +546,34 @@ print("Bob is admin:", check_admin("bob"))      # false
 - **[Algorithms Demo](examples/algorithms_demo.rush)** - Sorting, searching, and algorithms
 - **[Games Demo](examples/game_demo.rush)** - Interactive games and simulations
 
+## ⚡ Performance Modes
+
+Rush offers multiple execution modes for different performance needs:
+
+### Tree-Walking Interpreter (Default)
+```bash
+# Default mode - good for development and debugging
+rush program.rush
+```
+
+### Bytecode Virtual Machine
+```bash
+# Faster execution with bytecode compilation
+rush -bytecode program.rush
+
+# With performance monitoring
+rush -bytecode -log-level=info program.rush
+```
+
+### JIT Compilation (ARM64)
+```bash
+# Just-In-Time compilation for maximum performance
+rush -jit program.rush
+
+# JIT with detailed statistics
+rush -jit -log-level=info program.rush
+```
+
 ## 🧪 Interactive REPL
 
 Start the REPL for interactive exploration:
@@ -563,6 +605,9 @@ rush/
 ├── parser/            # AST generation
 ├── ast/               # AST node definitions
 ├── interpreter/       # Runtime evaluation
+├── vm/                # Bytecode virtual machine
+├── bytecode/          # Bytecode instruction definitions
+├── jit/               # Just-In-Time ARM64 compiler
 ├── examples/          # Example programs
 ├── docs/              # Documentation
 └── tests/             # Test suite
@@ -580,14 +625,21 @@ go test ./...
 go test ./lexer      # Lexer tests
 go test ./parser     # Parser tests
 go test ./interpreter # Interpreter tests
+go test ./vm         # VM tests
+go test ./jit        # JIT tests
 go test .            # Integration tests
+
+# Run JIT benchmarks (ARM64 only)
+go test -bench=. ./jit_integration_test.go
 ```
 
 ### Test Coverage
 - **Lexer Tests**: Tokenization of all language constructs
 - **Parser Tests**: AST generation for all syntax
 - **Interpreter Tests**: Runtime evaluation and built-ins
-- **Integration Tests**: End-to-end program execution
+- **VM Tests**: Bytecode compilation and execution
+- **JIT Tests**: ARM64 code generation and optimization
+- **Integration Tests**: End-to-end program execution across all modes
 - **Example Tests**: All example programs execute successfully
 
 ## 📈 Development Phases
@@ -609,7 +661,7 @@ Rush was developed through a systematic phased approach:
 - **✅ Phase 10**: Object System - Classes, inheritance, and method enhancements
 - **✅ Phase 11**: Enhanced Standard Library - String/array/math/collections modules, JSON, file I/O
 - **✅ Phase 12**: Enhanced Standard Library & Regular Expressions - Comprehensive regexp support
-- **🔄 Phase 13**: Performance & Compilation - Bytecode optimization, JIT compilation
+- **✅ Phase 13**: Performance & Compilation - Bytecode VM, ARM64 JIT compilation system
 - **🔄 Phase 14**: Developer Tooling - Language server, debugger, IDE integration
 
 **📋 Development Tracking**: Phases under development are tracked in the [Initial Development GitHub Project](https://github.com/users/zhubert/projects/1).

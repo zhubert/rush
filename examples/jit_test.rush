@@ -1,0 +1,50 @@
+# Simple JIT test program
+# This program tests basic arithmetic with function calls to trigger JIT compilation
+
+fibonacci = fn(n) {
+    if (n <= 1) {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+factorial = fn(n) {
+    if (n <= 1) {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+print("=== JIT Test Program ===")
+
+# Test fibonacci (will trigger hot path detection)
+print("Fibonacci sequence:")
+i = 0
+while (i < 10) {
+    print("fib(" + i + ") = " + fibonacci(i))
+    i = i + 1
+}
+
+# Test factorial (will also trigger hot path detection)  
+print("Factorial sequence:")
+i = 0
+while (i < 8) {
+    print(i + "! = " + factorial(i))
+    i = i + 1
+}
+
+# Simple arithmetic test
+add_numbers = fn(a, b) {
+    return a + b
+}
+
+print("Arithmetic test:")
+sum = 0
+i = 0
+while (i < 100) {
+    sum = add_numbers(sum, i)
+    i = i + 1
+}
+print("Sum of 0-99: " + sum)
+
+print("JIT test completed!")

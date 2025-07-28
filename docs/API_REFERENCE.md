@@ -4,16 +4,72 @@ This document provides comprehensive documentation for all built-in functions av
 
 ## Table of Contents
 
-1. [Core Built-in Functions](#core-built-in-functions)
-2. [String Built-in Functions](#string-built-in-functions)
-3. [Array Built-in Functions](#array-built-in-functions)
-4. [Hash Built-in Functions](#hash-built-in-functions)
-5. [Math Built-in Functions](#math-built-in-functions)
-6. [JSON Built-in Functions](#json-built-in-functions)
-7. [Regular Expression Built-in Functions](#regular-expression-built-in-functions)
-8. [File System Built-in Functions](#file-system-built-in-functions)
-9. [Standard Library Modules](#standard-library-modules)
-10. [Error Types](#error-types)
+1. [Execution Modes](#execution-modes)
+2. [Core Built-in Functions](#core-built-in-functions)
+3. [String Built-in Functions](#string-built-in-functions)
+4. [Array Built-in Functions](#array-built-in-functions)
+5. [Hash Built-in Functions](#hash-built-in-functions)
+6. [Math Built-in Functions](#math-built-in-functions)
+7. [JSON Built-in Functions](#json-built-in-functions)
+8. [Regular Expression Built-in Functions](#regular-expression-built-in-functions)
+9. [File System Built-in Functions](#file-system-built-in-functions)
+10. [Standard Library Modules](#standard-library-modules)
+11. [Error Types](#error-types)
+
+## Execution Modes
+
+Rush provides three execution modes with different performance characteristics:
+
+### Tree-Walking Interpreter (Default)
+
+```bash
+rush program.rush
+```
+
+Direct AST evaluation. Best for development and debugging.
+
+### Bytecode Virtual Machine
+
+```bash
+rush -bytecode program.rush
+rush -bytecode -log-level=info program.rush  # With statistics
+```
+
+Compiles to bytecode and executes on a virtual machine. Better performance than interpreter.
+
+**Log Levels:**
+- `none` - No logging (default)
+- `error` - Only errors
+- `warn` - Warnings and errors
+- `info` - Execution statistics and performance metrics
+- `debug` - Detailed execution flow
+- `trace` - Instruction-by-instruction tracing
+
+### JIT Compilation (ARM64)
+
+```bash
+rush -jit program.rush
+rush -jit -log-level=info program.rush  # With JIT statistics
+```
+
+Just-In-Time compilation to native ARM64 code. Maximum performance for compute-intensive functions.
+
+**JIT Features:**
+- Hot path detection (functions become "hot" after 100+ calls)
+- Native ARM64 code generation
+- Adaptive optimization
+- Automatic fallback to bytecode VM
+- Performance statistics
+
+**JIT Statistics Output:**
+```
+JIT Statistics:
+  Compilations attempted: 45
+  Compilations succeeded: 12
+  JIT hits: 156
+  JIT misses: 23
+  Deoptimizations: 2
+```
 
 ## Core Built-in Functions
 

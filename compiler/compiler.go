@@ -93,6 +93,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return err
 			}
 		}
+		
+		// Remove the last OpPop to leave the final expression result on the stack
+		if c.lastInstructionIs(bytecode.OpPop) {
+			c.removeLastPop()
+		}
 
 	case *ast.ExpressionStatement:
 		err := c.Compile(node.Expression)
