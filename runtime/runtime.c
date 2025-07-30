@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // Rush object types
 typedef enum {
@@ -17,8 +18,13 @@ typedef struct {
     long long value;
 } RushObject;
 
+// Simple print function for string data (used by LLVM AOT)  
+void rush_print(const char* str, size_t len) {
+    write(STDOUT_FILENO, str, len);
+}
+
 // Print function for Rush objects
-void rush_print(RushObject obj) {
+void rush_print_object(RushObject obj) {
     switch (obj.type) {
         case RUSH_INTEGER:
             printf("%lld", obj.value);
@@ -51,7 +57,7 @@ void rush_print(RushObject obj) {
 
 // Print with newline
 void rush_println(RushObject obj) {
-    rush_print(obj);
+    rush_print_object(obj);
     printf("\n");
 }
 

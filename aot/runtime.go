@@ -218,17 +218,31 @@ func (c *BuiltinFunctionsComponent) IsRequired(options *CompileOptions) bool {
 func (c *BuiltinFunctionsComponent) GenerateCode() ([]byte, error) {
 	// Compiled versions of essential built-in functions
 	code := []byte{
-		// rush_print function
+		// rush_print function - prints string to stdout
+		// Parameters: x0 = string pointer, x1 = string length
 		0xFD, 0x7B, 0xBF, 0xA9, // stp x29, x30, [sp, #-16]!
 		0xFD, 0x03, 0x00, 0x91, // mov x29, sp
-		// ... print implementation using system calls
+		
+		// Prepare write syscall arguments
+		0x20, 0x00, 0x80, 0xD2, // mov x0, #1        ; fd = stdout (1)
+		// x1 already contains string pointer (first argument)
+		// x2 already contains string length (second argument)  
+		0x02, 0x00, 0x00, 0x91, // mov x2, x1        ; length = x1
+		0x01, 0x00, 0x00, 0x91, // mov x1, x0        ; buffer = x0
+		0x20, 0x00, 0x80, 0xD2, // mov x0, #1        ; fd = stdout
+		
+		// Make write system call (syscall number 64 on macOS ARM64)
+		0x00, 0x08, 0x80, 0xD2, // mov x0, #64       ; write syscall number
+		0x01, 0x00, 0x00, 0xD4, // svc #0           ; system call
+		
 		0xFD, 0x7B, 0xC1, 0xA8, // ldp x29, x30, [sp], #16
 		0xC0, 0x03, 0x5F, 0xD6, // ret
 		
 		// rush_len function
 		0xFD, 0x7B, 0xBF, 0xA9, // stp x29, x30, [sp, #-16]!
 		0xFD, 0x03, 0x00, 0x91, // mov x29, sp
-		// ... length calculation implementation
+		// Return length from string object (assumed in x0)
+		0x00, 0x04, 0x40, 0xF9, // ldr x0, [x0, #8] ; Load length field
 		0xFD, 0x7B, 0xC1, 0xA8, // ldp x29, x30, [sp], #16
 		0xC0, 0x03, 0x5F, 0xD6, // ret
 	}
@@ -240,12 +254,12 @@ func (c *BuiltinFunctionsComponent) GetSymbols() map[string]Symbol {
 		"rush_print": {
 			Name:   "rush_print",
 			Offset: 0,
-			Size:   20,
+			Size:   40, // Updated size for new implementation
 			Type:   SymbolFunction,
 		},
 		"rush_len": {
 			Name:   "rush_len",
-			Offset: 20,
+			Offset: 40, // Updated offset 
 			Size:   20,
 			Type:   SymbolFunction,
 		},

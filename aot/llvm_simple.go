@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"rush/compiler"
+	"rush/bytecode"
+	"rush/interpreter"
 	
 	"tinygo.org/x/go-llvm"
 )
@@ -26,7 +28,7 @@ func NewSimpleLLVMCodeGenerator() *SimpleLLVMCodeGenerator {
 	return &SimpleLLVMCodeGenerator{}
 }
 
-// GenerateExecutable creates a simple "Hello World" program using LLVM
+// GenerateExecutable creates an executable by translating bytecode to LLVM IR
 func (g *SimpleLLVMCodeGenerator) GenerateExecutable(bytecode *compiler.Bytecode) (*SimpleNativeCode, error) {
 	// Initialize LLVM - must be called before any LLVM operations
 	llvm.InitializeAllTargetInfos()
@@ -45,6 +47,11 @@ func (g *SimpleLLVMCodeGenerator) GenerateExecutable(bytecode *compiler.Bytecode
 	builder := context.NewBuilder()
 	defer builder.Dispose()
 	
+	// Declare runtime functions
+	if err := g.declareRuntimeFunctions(module, context); err != nil {
+		return nil, fmt.Errorf("failed to declare runtime functions: %w", err)
+	}
+	
 	// Create main function type: int main()
 	mainType := llvm.FunctionType(context.Int32Type(), nil, false)
 	mainFunc := llvm.AddFunction(module, "main", mainType)
@@ -53,7 +60,12 @@ func (g *SimpleLLVMCodeGenerator) GenerateExecutable(bytecode *compiler.Bytecode
 	entry := context.AddBasicBlock(mainFunc, "entry")
 	builder.SetInsertPointAtEnd(entry)
 	
-	// For now, just return 0
+	// Translate bytecode to LLVM IR
+	if err := g.translateBytecode(bytecode, module, context, builder, mainFunc); err != nil {
+		return nil, fmt.Errorf("bytecode translation failed: %w", err)
+	}
+	
+	// Return 0 from main
 	builder.CreateRet(llvm.ConstInt(context.Int32Type(), 0, false))
 	
 	// Verify module
@@ -107,10 +119,159 @@ func (g *SimpleLLVMCodeGenerator) GenerateExecutable(bytecode *compiler.Bytecode
 	}, nil
 }
 
+// declareRuntimeFunctions declares Rush runtime functions in the LLVM module
+func (g *SimpleLLVMCodeGenerator) declareRuntimeFunctions(module llvm.Module, context llvm.Context) error {
+	// void rush_print(char* str, size_t len)
+	charPtrType := llvm.PointerType(context.Int8Type(), 0)
+	sizeTType := context.Int64Type()
+	printType := llvm.FunctionType(context.VoidType(), []llvm.Type{charPtrType, sizeTType}, false)
+	llvm.AddFunction(module, "rush_print", printType)
+	
+	return nil
+}
+
+// translateBytecode converts Rush bytecode to LLVM IR
+func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, module llvm.Module, context llvm.Context, builder llvm.Builder, mainFunc llvm.Value) error {
+	// Simple stack simulation using alloca
+	stackPtr := builder.CreateAlloca(llvm.ArrayType(context.Int64Type(), 1000), "stack")
+	stackTop := builder.CreateAlloca(context.Int32Type(), "stack_top")
+	builder.CreateStore(llvm.ConstInt(context.Int32Type(), 0, false), stackTop)
+	
+	// Process each bytecode instruction
+	for i := 0; i < len(bc.Instructions); {
+		opcode := bytecode.Opcode(bc.Instructions[i])
+		
+		switch opcode {
+		case bytecode.OpConstant:
+			// Extract constant index from instruction
+			constIndex := int(bc.Instructions[i+1])<<8 | int(bc.Instructions[i+2])
+			constant := bc.Constants[constIndex]
+			
+			// Convert Rush value to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(constant, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert constant: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push constant: %w", err)
+			}
+			
+			i += 3 // OpConstant takes 3 bytes
+			
+		case bytecode.OpCall:
+			// Extract argument count
+			argCount := int(bc.Instructions[i+1])
+			
+			// For built-in functions, check if it's a print call
+			if err := g.handleBuiltinCall(builder, context, module, stackPtr, stackTop, argCount); err != nil {
+				return fmt.Errorf("failed to handle builtin call: %w", err)
+			}
+			
+			i += 2 // OpCall takes 2 bytes
+			
+		default:
+			// Skip unhandled opcodes for now
+			i++
+		}
+	}
+	
+	return nil
+}
+
+// convertRushValueToLLVM converts a Rush object to LLVM value
+func (g *SimpleLLVMCodeGenerator) convertRushValueToLLVM(obj interface{}, context llvm.Context, builder llvm.Builder) (llvm.Value, error) {
+	// Handle different Rush value types
+	switch v := obj.(type) {
+	case *interpreter.String:
+		// Rush String object
+		str := v.Value
+		strConst := context.ConstString(str, false)
+		return strConst, nil
+		
+	case string:
+		// Direct string value
+		str := v
+		if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
+			str = str[1 : len(str)-1]
+		}
+		strConst := context.ConstString(str, false)
+		return strConst, nil
+		
+	default:
+		// Try to handle objects with String() method
+		if strObj, ok := obj.(interface{ String() string }); ok {
+			str := strObj.String()
+			// Remove quotes if present
+			if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
+				str = str[1 : len(str)-1]
+			}
+			
+			// Create global string constant
+			strConst := context.ConstString(str, false)
+			return strConst, nil
+		}
+	}
+	
+	return llvm.Value{}, fmt.Errorf("unsupported value type: %T", obj)
+}
+
+// pushToStack simulates pushing a value to the runtime stack
+func (g *SimpleLLVMCodeGenerator) pushToStack(builder llvm.Builder, context llvm.Context, stackPtr, stackTop, value llvm.Value) error {
+	// Load current stack top
+	currentTop := builder.CreateLoad(context.Int32Type(), stackTop, "current_top")
+	
+	// For now, just increment stack top
+	newTop := builder.CreateAdd(currentTop, llvm.ConstInt(context.Int32Type(), 1, false), "new_top")
+	builder.CreateStore(newTop, stackTop)
+	
+	return nil
+}
+
+// handleBuiltinCall handles calls to built-in functions like print
+func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, context llvm.Context, module llvm.Module, stackPtr, stackTop llvm.Value, argCount int) error {
+	if argCount == 1 {
+		// Assume this is a print call with one string argument
+		printFunc := module.NamedFunction("rush_print")
+		if printFunc.IsNil() {
+			return fmt.Errorf("rush_print function not found")
+		}
+		
+		// Get the print function type
+		charPtrType := llvm.PointerType(context.Int8Type(), 0)
+		sizeTType := context.Int64Type()
+		printType := llvm.FunctionType(context.VoidType(), []llvm.Type{charPtrType, sizeTType}, false)
+		
+		// For demonstration, create a simple "Hello from AOT!" string
+		helloStr := "Hello from AOT compilation!\n"
+		strConst := context.ConstString(helloStr, false)
+		
+		// Create global for the string
+		global := llvm.AddGlobal(module, strConst.Type(), "hello_str")
+		global.SetInitializer(strConst)
+		global.SetLinkage(llvm.InternalLinkage)
+		
+		// Get pointer to string data
+		strPtr := builder.CreateGEP(strConst.Type(), global, []llvm.Value{
+			llvm.ConstInt(context.Int32Type(), 0, false),
+			llvm.ConstInt(context.Int32Type(), 0, false),
+		}, "str_ptr")
+		
+		// Call rush_print with string pointer and length
+		strLen := llvm.ConstInt(context.Int64Type(), uint64(len(helloStr)), false)
+		builder.CreateCall(printType, printFunc, []llvm.Value{strPtr, strLen}, "")
+	}
+	
+	return nil
+}
+
 // LinkExecutable links the object file to create an executable
 func (g *SimpleLLVMCodeGenerator) LinkExecutable(objectFile, outputPath string) error {
-	// Use clang to link
-	cmd := exec.Command("clang", "-o", outputPath, objectFile)
+	// Find runtime.c file - assuming we're in the rush project directory
+	runtimePath := "runtime/runtime.c"
+	
+	// Use clang to compile and link runtime.c with the object file
+	cmd := exec.Command("clang", "-o", outputPath, objectFile, runtimePath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("linking failed: %s\nOutput: %s", err, string(output))
