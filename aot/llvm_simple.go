@@ -1,3 +1,5 @@
+//go:build llvm14 || llvm15 || llvm16 || llvm17 || llvm18 || llvm19 || llvm20
+
 package aot
 
 import (
