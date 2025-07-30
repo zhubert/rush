@@ -15,8 +15,8 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 13.4 - JIT Compilation - **COMPLETE**
-**Next Phase**: Phase 14 - Advanced Language Features
+**Current Phase**: Phase 14 - AOT Compilation - **IN PROGRESS**
+**Previous Phase**: Phase 13.4 - JIT Compilation - **COMPLETE**
 
 ## Codebase Architecture
 
@@ -31,6 +31,7 @@ rush/
 ├── interpreter/       # Runtime evaluation and built-in function implementations
 ├── examples/          # Example Rush programs for testing and demonstration
 ├── jit/               # Just-In-Time compilation system (ARM64 target)
+├── aot/               # Ahead-Of-Time compilation system (ARM64 target)
 ├── std/              # Standard library modules (math.rush, string.rush, array.rush)
 ├── docs/              # User-facing documentation
 └── tests/             # Test suite (mirrors main directory structure)
@@ -44,6 +45,7 @@ rush/
 - **Language constructs**: Define AST nodes in `ast/ast.go`
 - **Error types**: Define in `interpreter/errors.go`
 - **VM operations**: Implement in `vm/vm.go` with corresponding bytecode in `bytecode/instruction.go`
+- **AOT compilation**: Implement in `aot/` directory (compiler, analyzer, code generation, runtime, linker)
 
 ## Development Workflow
 
@@ -61,11 +63,18 @@ make repl          # Start REPL from source
 rush -jit program.rush              # Enable JIT compilation
 rush -jit -log-level=info program.rush  # JIT with statistics
 
+# AOT compilation mode
+rush -aot program.rush              # Create standalone executable
+rush -aot -O 2 program.rush         # AOT with aggressive optimization
+rush -aot -o myapp program.rush     # Specify output executable name
+rush -aot -O 2 -o myapp program.rush # Full AOT compilation options
+
 # Testing specific components
 go test ./lexer      # Test tokenization
 go test ./parser     # Test AST generation
 go test ./interpreter # Test runtime evaluation
 go test ./vm         # Test bytecode VM
+go test ./aot        # Test AOT compilation
 go test .           # Integration tests
 
 # VM Execution with Logging (Bytecode Mode)
