@@ -26,7 +26,7 @@ help:
 .PHONY: build
 build:
 	@echo "Building Rush..."
-	go build -tags llvm20 -o $(BINARY_NAME) $(BUILD_CMD)
+	go build -o $(BINARY_NAME) $(BUILD_CMD)
 	@echo "Build complete: $(BINARY_NAME)"
 
 # Install Rush system-wide
@@ -73,11 +73,11 @@ dev:
 		echo "Usage: make dev FILE=path/to/file.rush"; \
 		echo "Example: make dev FILE=examples/comprehensive_demo.rush"; \
 	else \
-		go run -tags llvm20 $(BUILD_CMD) $(FILE); \
+		go run $(BUILD_CMD) $(FILE); \
 	fi
 
 # Start REPL from source
 .PHONY: repl
 repl:
 	@echo "Starting Rush REPL..."
-	go run -tags llvm20 $(BUILD_CMD)
+	go run $(BUILD_CMD)
