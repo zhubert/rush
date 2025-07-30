@@ -1,0 +1,359 @@
+package aot
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	
+	"rush/compiler"
+	"rush/interpreter"
+	
+	"tinygo.org/x/go-llvm"
+)
+
+// LLVMCodeGenerator generates LLVM IR from Rush bytecode
+type LLVMCodeGenerator struct {
+	context llvm.Context
+	module  llvm.Module
+	builder llvm.Builder
+	
+	// Runtime function declarations
+	rushPrint   llvm.Value
+	rushPrintf  llvm.Value
+	rushMalloc  llvm.Value
+	rushFree    llvm.Value
+	
+	// Type declarations
+	intType    llvm.Type
+	floatType  llvm.Type
+	boolType   llvm.Type
+	stringType llvm.Type
+	objectType llvm.Type
+}
+
+// LLVMNativeCode represents LLVM-generated code
+type LLVMNativeCode struct {
+	Module     llvm.Module
+	ObjectFile string // Path to generated object file
+	Symbols    map[string]Symbol
+	EntryPoint string
+}
+
+// NewLLVMCodeGenerator creates a new LLVM-based code generator
+func NewLLVMCodeGenerator() *LLVMCodeGenerator {
+	context := llvm.NewContext()
+	module := context.NewModule("rush_program")
+	
+	gen := &LLVMCodeGenerator{
+		context: context,
+		module:  module,
+		builder: context.NewBuilder(),
+	}
+	
+	gen.initializeTypes()
+	gen.declareRuntimeFunctions()
+	
+	return gen
+}
+
+// initializeTypes sets up LLVM types for Rush objects
+func (g *LLVMCodeGenerator) initializeTypes() {
+	g.intType = g.context.Int64Type()
+	g.floatType = g.context.DoubleType()
+	g.boolType = g.context.Int1Type()
+	g.stringType = g.context.Int8Type().PointerType()
+	
+	// Rush object type (tagged union)
+	// struct { type: i32, value: i64 }
+	objectFields := []llvm.Type{
+		g.context.Int32Type(), // object type tag
+		g.context.Int64Type(), // value (can hold int, float bits, or pointer)
+	}
+	g.objectType = g.context.StructType(objectFields, false)
+}
+
+// declareRuntimeFunctions declares external runtime functions
+func (g *LLVMCodeGenerator) declareRuntimeFunctions() {
+	// printf function for output
+	printfType := llvm.FunctionType(
+		g.context.Int32Type(),
+		[]llvm.Type{g.stringType},
+		true, // variadic
+	)
+	g.rushPrintf = g.module.AddFunction("printf", printfType)
+	
+	// Simple print function
+	printType := llvm.FunctionType(
+		g.context.VoidType(),
+		[]llvm.Type{g.objectType},
+		false,
+	)
+	g.rushPrint = g.module.AddFunction("rush_print", printType)
+	
+	// Memory management
+	mallocType := llvm.FunctionType(
+		g.stringType, // void*
+		[]llvm.Type{g.context.Int64Type()},
+		false,
+	)
+	g.rushMalloc = g.module.AddFunction("malloc", mallocType)
+	
+	freeType := llvm.FunctionType(
+		g.context.VoidType(),
+		[]llvm.Type{g.stringType},
+		false,
+	)
+	g.rushFree = g.module.AddFunction("free", freeType)
+}
+
+// GenerateExecutable compiles bytecode to LLVM IR and then to native code
+func (g *LLVMCodeGenerator) GenerateExecutable(bytecode *compiler.Bytecode) (*LLVMNativeCode, error) {
+	// Create main function
+	mainType := llvm.FunctionType(g.context.Int32Type(), nil, false)
+	mainFunc := g.module.AddFunction("main", mainType)
+	
+	// Create entry basic block
+	entry := g.context.AddBasicBlock(mainFunc, "entry")
+	g.builder.SetInsertPoint(entry, entry.FirstInstruction())
+	
+	// Generate LLVM IR from bytecode
+	if err := g.generateFromBytecode(bytecode); err != nil {
+		return nil, fmt.Errorf("LLVM IR generation failed: %w", err)
+	}
+	
+	// Return 0 from main
+	g.builder.CreateRet(llvm.ConstInt(g.context.Int32Type(), 0, false))
+	
+	// Verify the module
+	if err := llvm.VerifyModule(g.module, llvm.ReturnStatusAction); err != nil {
+		return nil, fmt.Errorf("module verification failed: %w", err)
+	}
+	
+	// Generate object file
+	objectFile, err := g.compileToObject()
+	if err != nil {
+		return nil, fmt.Errorf("object compilation failed: %w", err)
+	}
+	
+	return &LLVMNativeCode{
+		Module:     g.module,
+		ObjectFile: objectFile,
+		Symbols:    make(map[string]Symbol),
+		EntryPoint: "main",
+	}, nil
+}
+
+// generateFromBytecode converts Rush bytecode to LLVM IR
+func (g *LLVMCodeGenerator) generateFromBytecode(bytecode *compiler.Bytecode) error {
+	// Create a stack for the Rush VM simulation
+	stack := make([]llvm.Value, 0)
+	
+	// Process each bytecode instruction
+	for i, instruction := range bytecode.Instructions {
+		switch instruction {
+		case byte(compiler.OpConstant):
+			// Get constant index
+			constIndex := int(bytecode.Instructions[i+1])<<8 | int(bytecode.Instructions[i+2])
+			
+			// Get constant value
+			constant := bytecode.Constants[constIndex]
+			llvmValue := g.objectToLLVMValue(constant)
+			
+			// Push to stack
+			stack = append(stack, llvmValue)
+			
+		case byte(compiler.OpAdd):
+			if len(stack) < 2 {
+				return fmt.Errorf("insufficient stack for OpAdd")
+			}
+			
+			// Pop two values
+			right := stack[len(stack)-1]
+			left := stack[len(stack)-2]
+			stack = stack[:len(stack)-2]
+			
+			// Generate addition
+			result := g.builder.CreateAdd(left, right, "add")
+			stack = append(stack, result)
+			
+		case byte(compiler.OpPrint):
+			if len(stack) < 1 {
+				return fmt.Errorf("insufficient stack for OpPrint")
+			}
+			
+			// Pop value to print
+			value := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			
+			// Generate print call
+			g.builder.CreateCall(g.rushPrint, []llvm.Value{value}, "")
+			
+		case byte(compiler.OpPop):
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1]
+			}
+			
+		// Add more opcodes as needed
+		default:
+			// Skip unknown opcodes for now
+			continue
+		}
+	}
+	
+	return nil
+}
+
+// objectToLLVMValue converts a Rush object to an LLVM value
+func (g *LLVMCodeGenerator) objectToLLVMValue(obj interpreter.Value) llvm.Value {
+	switch obj := obj.(type) {
+	case *interpreter.Integer:
+		// Create Rush object struct with integer value
+		objValue := llvm.Undef(g.objectType)
+		objValue = g.builder.CreateInsertValue(objValue, 
+			llvm.ConstInt(g.context.Int32Type(), 1, false), 0, "") // type = INTEGER
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int64Type(), uint64(obj.Value), false), 1, "")
+		return objValue
+		
+	case *interpreter.Float:
+		// Create Rush object struct with float value (stored as int64 bits)
+		objValue := llvm.Undef(g.objectType)
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int32Type(), 2, false), 0, "") // type = FLOAT
+		
+		// Convert float to int64 bits
+		floatVal := llvm.ConstFloat(g.floatType, obj.Value)
+		intBits := g.builder.CreateBitCast(floatVal, g.context.Int64Type(), "")
+		objValue = g.builder.CreateInsertValue(objValue, intBits, 1, "")
+		return objValue
+		
+	case *interpreter.Boolean:
+		objValue := llvm.Undef(g.objectType)
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int32Type(), 3, false), 0, "") // type = BOOLEAN
+		
+		var boolVal uint64
+		if obj.Value {
+			boolVal = 1
+		}
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int64Type(), boolVal, false), 1, "")
+		return objValue
+		
+	case *interpreter.String:
+		// For now, create a simple string constant
+		objValue := llvm.Undef(g.objectType)
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int32Type(), 4, false), 0, "") // type = STRING
+		
+		// Create global string constant
+		strConst := g.builder.CreateGlobalStringPtr(obj.Value, "str")
+		strPtr := g.builder.CreatePtrToInt(strConst, g.context.Int64Type(), "")
+		objValue = g.builder.CreateInsertValue(objValue, strPtr, 1, "")
+		return objValue
+		
+	default:
+		// Return null object for unsupported types
+		objValue := llvm.Undef(g.objectType)
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int32Type(), 0, false), 0, "") // type = NULL
+		objValue = g.builder.CreateInsertValue(objValue,
+			llvm.ConstInt(g.context.Int64Type(), 0, false), 1, "")
+		return objValue
+	}
+}
+
+// compileToObject compiles LLVM IR to an object file
+func (g *LLVMCodeGenerator) compileToObject() (string, error) {
+	// Initialize LLVM targets
+	llvm.InitializeAllTargets()
+	llvm.InitializeAllTargetMCs()
+	llvm.InitializeAllAsmParsers()
+	llvm.InitializeAllAsmPrinters()
+	
+	// Get target triple
+	targetTriple := llvm.DefaultTargetTriple()
+	target, err := llvm.GetTargetFromTriple(targetTriple)
+	if err != nil {
+		return "", fmt.Errorf("failed to get target: %w", err)
+	}
+	
+	// Create target machine
+	machine := target.CreateTargetMachine(
+		targetTriple,
+		"generic", // CPU
+		"",        // Features
+		llvm.CodeGenLevelDefault,
+		llvm.RelocDefault,
+		llvm.CodeModelDefault,
+	)
+	defer machine.Dispose()
+	
+	// Set target data layout
+	g.module.SetDataLayout(machine.CreateDataLayout())
+	g.module.SetTarget(targetTriple)
+	
+	// Create temporary object file
+	tempDir := os.TempDir()
+	objectFile := filepath.Join(tempDir, "rush_program.o")
+	
+	// Compile to object file
+	if err := machine.EmitToFile(g.module, objectFile, llvm.ObjectFile); err != nil {
+		return "", fmt.Errorf("failed to emit object file: %w", err)
+	}
+	
+	return objectFile, nil
+}
+
+// LinkExecutable links the object file into a final executable
+func (g *LLVMCodeGenerator) LinkExecutable(objectFile, outputPath string) error {
+	// Compile the runtime
+	runtimeObj, err := g.compileRuntime()
+	if err != nil {
+		return fmt.Errorf("failed to compile runtime: %w", err)
+	}
+	defer os.Remove(runtimeObj) // Clean up temporary file
+	
+	// Use system linker to create executable
+	// This links with libc automatically
+	cmd := exec.Command("clang", 
+		"-o", outputPath,
+		objectFile,
+		runtimeObj,
+		"-lc", // Link with C standard library
+	)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("linking failed: %s\nOutput: %s", err, string(output))
+	}
+	
+	return nil
+}
+
+// compileRuntime compiles the C runtime to an object file
+func (g *LLVMCodeGenerator) compileRuntime() (string, error) {
+	// Get path to runtime.c
+	runtimePath := "runtime/runtime.c"
+	
+	// Create temporary object file
+	tempDir := os.TempDir()
+	runtimeObj := filepath.Join(tempDir, "rush_runtime.o")
+	
+	// Compile runtime.c to object file
+	cmd := exec.Command("clang", "-c", "-o", runtimeObj, runtimePath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("runtime compilation failed: %s\nOutput: %s", err, string(output))
+	}
+	
+	return runtimeObj, nil
+}
+
+// Dispose cleans up LLVM resources
+func (g *LLVMCodeGenerator) Dispose() {
+	g.builder.Dispose()
+	g.module.Dispose()
+	g.context.Dispose()
+}
