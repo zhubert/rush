@@ -3,6 +3,7 @@ package aot
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -15,9 +16,7 @@ import (
 // AOTCompiler manages Ahead-of-Time compilation for Rush programs
 type AOTCompiler struct {
 	analyzer     *StaticAnalyzer
-	codeGen      *ARM64CodeGenerator
-	runtime      *RuntimeBuilder
-	linker       *ExecutableLinker
+	codeGen      *SimpleLLVMCodeGenerator
 	options      *CompileOptions
 	stats        *AOTStats
 }
@@ -50,9 +49,7 @@ type AOTStats struct {
 func NewAOTCompiler(options *CompileOptions) *AOTCompiler {
 	return &AOTCompiler{
 		analyzer: NewStaticAnalyzer(),
-		codeGen:  NewARM64CodeGenerator(),
-		runtime:  NewRuntimeBuilder(),
-		linker:   NewExecutableLinker(),
+		codeGen:  NewSimpleLLVMCodeGenerator(),
 		options:  options,
 		stats:    &AOTStats{},
 	}
@@ -99,36 +96,26 @@ func (c *AOTCompiler) CompileProgram(sourcePath string) error {
 	}
 	c.stats.AnalysisTime = time.Since(analysisStart)
 
-	// Step 4: Generate ARM64 machine code
+	// Step 4: Generate LLVM IR and compile to object file
 	codeGenStart := time.Now()
-	nativeCode, err := c.codeGen.GenerateExecutable(optimizedBytecode)
+	llvmCode, err := c.codeGen.GenerateExecutable(optimizedBytecode)
 	if err != nil {
-		return fmt.Errorf("code generation failed: %w", err)
+		return fmt.Errorf("LLVM code generation failed: %w", err)
 	}
 	c.stats.CodeGenTime = time.Since(codeGenStart)
-	c.stats.NativeInstructions = int64(len(nativeCode.Instructions))
 
-	// Step 5: Build minimal runtime
-	runtime, err := c.runtime.BuildRuntime(c.options)
-	if err != nil {
-		return fmt.Errorf("runtime build failed: %w", err)
-	}
-
-	// Step 6: Link executable
+	// Step 5: Link executable using LLVM/Clang
 	linkStart := time.Now()
-	executable, err := c.linker.LinkExecutable(nativeCode, runtime, c.options)
-	if err != nil {
+	outputPath := c.getOutputPath(sourcePath)
+	if err := c.linkWithRuntime(llvmCode.ObjectFile, outputPath); err != nil {
 		return fmt.Errorf("linking failed: %w", err)
 	}
 	c.stats.LinkTime = time.Since(linkStart)
 
-	// Step 7: Write executable to disk
-	outputPath := c.getOutputPath(sourcePath)
-	if err := c.writeExecutable(outputPath, executable); err != nil {
-		return fmt.Errorf("write executable failed: %w", err)
+	// Get executable size
+	if stat, err := os.Stat(outputPath); err == nil {
+		c.stats.ExecutableSize = stat.Size()
 	}
-
-	c.stats.ExecutableSize = int64(len(executable.Data))
 	return nil
 }
 
@@ -177,24 +164,58 @@ func (c *AOTCompiler) getOutputPath(sourcePath string) string {
 	return filepath.Join(dir, name)
 }
 
-// writeExecutable writes the compiled executable to disk
-func (c *AOTCompiler) writeExecutable(path string, executable *LinkedExecutable) error {
-	file, err := os.Create(path)
+// linkWithRuntime links the object file with the Rush runtime and system libraries
+func (c *AOTCompiler) linkWithRuntime(objectFile, outputPath string) error {
+	// First, compile the runtime.c file
+	runtimeObj, err := c.compileRuntime()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compile runtime: %w", err)
 	}
-	defer file.Close()
+	defer os.Remove(runtimeObj) // Clean up temporary file
+	
+	// Use clang to link everything together
+	return c.codeGen.LinkExecutable(objectFile, outputPath)
+}
 
-	if _, err := file.Write(executable.Data); err != nil {
-		return err
+// compileRuntime compiles the C runtime to an object file
+func (c *AOTCompiler) compileRuntime() (string, error) {
+	// Get path to runtime.c - find it relative to module root
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
 	}
-
-	// Make executable
-	if err := os.Chmod(path, 0755); err != nil {
-		return err
+	
+	// Look for runtime.c in common locations
+	runtimePaths := []string{
+		"runtime/runtime.c",                    // From module root
+		"../runtime/runtime.c",                 // From subdirectory
+		filepath.Join(wd, "runtime/runtime.c"), // Absolute path
 	}
-
-	return nil
+	
+	var runtimePath string
+	for _, path := range runtimePaths {
+		if _, err := os.Stat(path); err == nil {
+			runtimePath = path
+			break
+		}
+	}
+	
+	if runtimePath == "" {
+		return "", fmt.Errorf("runtime.c not found in any expected location")
+	}
+	
+	// Create temporary object file
+	tempDir := os.TempDir()
+	runtimeObj := filepath.Join(tempDir, "rush_runtime.o")
+	
+	// Compile runtime.c to object file
+	cmd := exec.Command("clang", "-c", "-o", runtimeObj, runtimePath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("runtime compilation failed: %s\nOutput: %s", err, string(output))
+	}
+	
+	return runtimeObj, nil
 }
 
 // GetStats returns compilation statistics
