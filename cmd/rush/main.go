@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"rush/aot"
 	"rush/ast"
 	"rush/bytecode"
 	"rush/compiler"
@@ -22,6 +23,9 @@ func main() {
 	// Define command line flags
 	bytecodeMode := flag.Bool("bytecode", false, "Use bytecode compilation and VM execution")
 	jitMode := flag.Bool("jit", false, "Use JIT compilation with bytecode VM execution")
+	aotMode := flag.Bool("aot", false, "Use ahead-of-time compilation to create standalone executable")
+	outputPath := flag.String("o", "", "Output path for AOT compiled executable")
+	optimizeLevel := flag.Int("O", 1, "Optimization level for AOT compilation (0=none, 1=basic, 2=aggressive)")
 	useCache := flag.Bool("cache", false, "Enable bytecode caching")
 	clearCache := flag.Bool("clear-cache", false, "Clear bytecode cache and exit")
 	cacheStats := flag.Bool("cache-stats", false, "Show cache statistics and exit")
@@ -52,14 +56,23 @@ func main() {
 	}
 
 	// Validate execution mode flags
-	if *jitMode && *bytecodeMode {
-		fmt.Println("Error: Cannot specify both -jit and -bytecode flags")
+	modeCount := 0
+	if *jitMode { modeCount++ }
+	if *bytecodeMode { modeCount++ }
+	if *aotMode { modeCount++ }
+	
+	if modeCount > 1 {
+		fmt.Println("Error: Cannot specify multiple execution modes (-jit, -bytecode, -aot)")
 		os.Exit(1)
 	}
 
 	// Get remaining arguments after flag parsing
 	args := flag.Args()
 	if len(args) < 1 {
+		if *aotMode {
+			fmt.Println("Error: AOT mode requires a source file")
+			os.Exit(1)
+		}
 		// Start REPL mode
 		startREPL(*bytecodeMode, *jitMode)
 		return
@@ -82,7 +95,14 @@ func main() {
 	}
 
 	// Execute the file using the selected mode
-	if *jitMode {
+	if *aotMode {
+		fmt.Printf("Rush AOT compiler - compiling file: %s\n", filename)
+		err := compileFileAOT(filename, *outputPath, *optimizeLevel)
+		if err != nil {
+			fmt.Printf("AOT compilation error: %v\n", err)
+			os.Exit(1)
+		}
+	} else if *jitMode {
 		fmt.Printf("Rush JIT compiler - executing file: %s\n", filename)
 		err := executeFileJIT(filename, string(input), *useCache, vmLogLevel)
 		if err != nil {
@@ -554,4 +574,44 @@ func evaluateInputJIT(input string, globals []interpreter.Value) []interpreter.V
 	}
 	
 	return globals
+}
+
+// compileFileAOT performs ahead-of-time compilation of a Rush source file
+func compileFileAOT(filename, outputPath string, optimizationLevel int) error {
+	// Configure AOT compilation options
+	options := aot.DefaultCompileOptions()
+	options.OptimizationLevel = optimizationLevel
+	if outputPath != "" {
+		options.OutputPath = outputPath
+	}
+	
+	// Create AOT compiler
+	compiler := aot.NewAOTCompiler(options)
+	
+	// Compile the program
+	err := compiler.CompileProgram(filename)
+	if err != nil {
+		return fmt.Errorf("AOT compilation failed: %w", err)
+	}
+	
+	// Print compilation statistics
+	compiler.PrintStats()
+	
+	// Determine output path for success message
+	outputFile := options.OutputPath
+	if outputFile == "" {
+		// Simple default: remove .rush extension
+		if strings.HasSuffix(filename, ".rush") {
+			outputFile = filename[:len(filename)-5]
+		} else {
+			outputFile = filename + "_compiled"
+		}
+	}
+	
+	fmt.Printf("\nAOT compilation successful!\n")
+	fmt.Printf("Executable created: %s\n", outputFile)
+	fmt.Printf("Executable size: %d bytes\n", compiler.GetStats().ExecutableSize)
+	fmt.Printf("Optimization level: %d\n", optimizationLevel)
+	
+	return nil
 }
