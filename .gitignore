@@ -29,3 +29,18 @@ go.work
 # OS files
 .DS_Store
 Thumbs.db
+
+# AOT compilation outputs
+*.o
+examples/*/
+examples/array_demo
+examples/json_demo
+examples/math_demo
+examples/comprehensive_demo
+examples/algorithms_demo
+examples/game_demo
+examples/hash_demo
+examples/regexp_demo
+simple_test
+math_demo
+*.backup
