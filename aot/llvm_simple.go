@@ -139,12 +139,23 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 	
 	// Process each bytecode instruction
 	for i := 0; i < len(bc.Instructions); {
+		if i >= len(bc.Instructions) {
+			break
+		}
 		opcode := bytecode.Opcode(bc.Instructions[i])
 		
 		switch opcode {
 		case bytecode.OpConstant:
 			// Extract constant index from instruction
-			constIndex := int(bc.Instructions[i+1])<<8 | int(bc.Instructions[i+2])
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpConstant instruction incomplete at position %d", i)
+			}
+			constIndex := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			// Bounds check for constants array
+			if constIndex >= len(bc.Constants) {
+				return fmt.Errorf("constant index %d out of range (constants length: %d)", constIndex, len(bc.Constants))
+			}
 			constant := bc.Constants[constIndex]
 			
 			// Convert Rush value to LLVM value and push to stack
@@ -161,6 +172,9 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			
 		case bytecode.OpCall:
 			// Extract argument count
+			if i+1 >= len(bc.Instructions) {
+				return fmt.Errorf("OpCall instruction incomplete at position %d", i)
+			}
 			argCount := int(bc.Instructions[i+1])
 			
 			// For built-in functions, check if it's a print call
@@ -171,8 +185,20 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			i += 2 // OpCall takes 2 bytes
 			
 		default:
-			// Skip unhandled opcodes for now
-			i++
+			// For unhandled opcodes, use the definition to get the correct length
+			def, err := bytecode.Lookup(opcode)
+			if err != nil {
+				return fmt.Errorf("unknown opcode %d at position %d: %w", int(opcode), i, err)
+			}
+			
+			// Calculate instruction length: 1 (opcode) + sum of operand widths
+			instrLength := 1
+			for _, width := range def.OperandWidths {
+				instrLength += width
+			}
+			
+			// Silently skip unhandled opcodes
+			i += instrLength
 		}
 	}
 	
@@ -188,6 +214,26 @@ func (g *SimpleLLVMCodeGenerator) convertRushValueToLLVM(obj interface{}, contex
 		str := v.Value
 		strConst := context.ConstString(str, false)
 		return strConst, nil
+		
+	case *interpreter.Integer:
+		// Rush Integer object
+		intVal := llvm.ConstInt(context.Int64Type(), uint64(v.Value), true)
+		return intVal, nil
+		
+	case *interpreter.Float:
+		// Rush Float object
+		floatVal := llvm.ConstFloat(context.DoubleType(), v.Value)
+		return floatVal, nil
+		
+	case *interpreter.Boolean:
+		// Rush Boolean object
+		var boolVal llvm.Value
+		if v.Value {
+			boolVal = llvm.ConstInt(context.Int1Type(), 1, false)
+		} else {
+			boolVal = llvm.ConstInt(context.Int1Type(), 0, false)
+		}
+		return boolVal, nil
 		
 	case string:
 		// Direct string value
