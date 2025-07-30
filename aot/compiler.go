@@ -179,8 +179,30 @@ func (c *AOTCompiler) linkWithRuntime(objectFile, outputPath string) error {
 
 // compileRuntime compiles the C runtime to an object file
 func (c *AOTCompiler) compileRuntime() (string, error) {
-	// Get path to runtime.c
-	runtimePath := "runtime/runtime.c"
+	// Get path to runtime.c - find it relative to module root
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+	
+	// Look for runtime.c in common locations
+	runtimePaths := []string{
+		"runtime/runtime.c",                    // From module root
+		"../runtime/runtime.c",                 // From subdirectory
+		filepath.Join(wd, "runtime/runtime.c"), // Absolute path
+	}
+	
+	var runtimePath string
+	for _, path := range runtimePaths {
+		if _, err := os.Stat(path); err == nil {
+			runtimePath = path
+			break
+		}
+	}
+	
+	if runtimePath == "" {
+		return "", fmt.Errorf("runtime.c not found in any expected location")
+	}
 	
 	// Create temporary object file
 	tempDir := os.TempDir()
