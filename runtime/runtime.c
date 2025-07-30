@@ -23,6 +23,12 @@ void rush_print(const char* str, size_t len) {
     write(STDOUT_FILENO, str, len);
 }
 
+// Print function with newline (matches interpreter behavior)
+void rush_print_line(const char* str, size_t len) {
+    write(STDOUT_FILENO, str, len);
+    write(STDOUT_FILENO, "\n", 1);
+}
+
 // Print function for Rush objects
 void rush_print_object(RushObject obj) {
     switch (obj.type) {

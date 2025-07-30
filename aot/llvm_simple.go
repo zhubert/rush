@@ -127,6 +127,10 @@ func (g *SimpleLLVMCodeGenerator) declareRuntimeFunctions(module llvm.Module, co
 	printType := llvm.FunctionType(context.VoidType(), []llvm.Type{charPtrType, sizeTType}, false)
 	llvm.AddFunction(module, "rush_print", printType)
 	
+	// void rush_print_line(char* str, size_t len) - print with newline
+	printlnType := llvm.FunctionType(context.VoidType(), []llvm.Type{charPtrType, sizeTType}, false)
+	llvm.AddFunction(module, "rush_print_line", printlnType)
+	
 	return nil
 }
 
@@ -137,8 +141,8 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 	stackTop := builder.CreateAlloca(context.Int32Type(), "stack_top")
 	builder.CreateStore(llvm.ConstInt(context.Int32Type(), 0, false), stackTop)
 	
-	// Keep track of the last pushed value for print calls
-	var lastPushedConstant interface{}
+	// Keep track of constants on the stack
+	constantStack := make([]interface{}, 0)
 	
 	// Process each bytecode instruction
 	for i := 0; i < len(bc.Instructions); {
@@ -161,8 +165,8 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			}
 			constant := bc.Constants[constIndex]
 			
-			// Store the constant for potential use in print calls
-			lastPushedConstant = constant
+			// Store the constant on our simulated stack
+			constantStack = append(constantStack, constant)
 			
 			// Convert Rush value to LLVM value and push to stack
 			llvmValue, err := g.convertRushValueToLLVM(constant, context, builder)
@@ -176,6 +180,128 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			
 			i += 3 // OpConstant takes 3 bytes
 			
+		case bytecode.OpTrue:
+			// Push boolean true value onto constant stack
+			trueValue := &interpreter.Boolean{Value: true}
+			constantStack = append(constantStack, trueValue)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue := llvm.ConstInt(context.Int1Type(), 1, false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push true: %w", err)
+			}
+			
+			i += 1 // OpTrue takes 1 byte
+			
+		case bytecode.OpFalse:
+			// Push boolean false value onto constant stack
+			falseValue := &interpreter.Boolean{Value: false}
+			constantStack = append(constantStack, falseValue)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue := llvm.ConstInt(context.Int1Type(), 0, false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push false: %w", err)
+			}
+			
+			i += 1 // OpFalse takes 1 byte
+			
+		case bytecode.OpNull:
+			// Push null value onto constant stack
+			nullValue := &interpreter.Null{}
+			constantStack = append(constantStack, nullValue)
+			
+			// For LLVM, represent null as 0
+			llvmValue := llvm.ConstInt(context.Int64Type(), 0, false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push null: %w", err)
+			}
+			
+			i += 1 // OpNull takes 1 byte
+			
+		case bytecode.OpArray:
+			// Extract element count from instruction
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpArray instruction incomplete at position %d", i)
+			}
+			elementCount := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			// Pop elements from constant stack and create array
+			if len(constantStack) < elementCount {
+				return fmt.Errorf("not enough elements on stack for array of size %d", elementCount)
+			}
+			
+			// Get the elements (they're at the end of the stack)
+			elements := constantStack[len(constantStack)-elementCount:]
+			constantStack = constantStack[:len(constantStack)-elementCount]
+			
+			// Create array object
+			arrayElements := make([]interpreter.Value, elementCount)
+			for i, elem := range elements {
+				if val, ok := elem.(interpreter.Value); ok {
+					arrayElements[i] = val
+				} else {
+					return fmt.Errorf("invalid array element type: %T", elem)
+				}
+			}
+			arrayValue := &interpreter.Array{Elements: arrayElements}
+			constantStack = append(constantStack, arrayValue)
+			
+			// For LLVM, just push a placeholder (arrays need complex runtime support)
+			llvmValue := llvm.ConstInt(context.Int64Type(), uint64(elementCount), false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push array: %w", err)
+			}
+			
+			i += 3 // OpArray takes 3 bytes (1 opcode + 2 count)
+			
+		case bytecode.OpHash:
+			// Extract pair count from instruction
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpHash instruction incomplete at position %d", i)
+			}
+			pairCount := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			elementCount := pairCount * 2 // keys + values
+			
+			// Pop elements from constant stack and create hash
+			if len(constantStack) < elementCount {
+				return fmt.Errorf("not enough elements on stack for hash with %d pairs", pairCount)
+			}
+			
+			// Get the elements (they're at the end of the stack)
+			elements := constantStack[len(constantStack)-elementCount:]
+			constantStack = constantStack[:len(constantStack)-elementCount]
+			
+			// Create hash object (pairs are key, value, key, value, ...)
+			pairs := make(map[interpreter.HashKey]interpreter.Value)
+			keys := make([]interpreter.Value, 0, pairCount)
+			for i := 0; i < len(elements); i += 2 {
+				keyElem := elements[i]
+				valueElem := elements[i+1]
+				
+				// Convert to Value types
+				key, ok1 := keyElem.(interpreter.Value)
+				value, ok2 := valueElem.(interpreter.Value)
+				if !ok1 || !ok2 {
+					return fmt.Errorf("invalid hash element types: key %T, value %T", keyElem, valueElem)
+				}
+				
+				// Create hash key and store
+				hashKey := interpreter.CreateHashKey(key)
+				pairs[hashKey] = value
+				keys = append(keys, key)
+			}
+			hashValue := &interpreter.Hash{Pairs: pairs, Keys: keys}
+			constantStack = append(constantStack, hashValue)
+			
+			// For LLVM, just push a placeholder (hashes need complex runtime support)
+			llvmValue := llvm.ConstInt(context.Int64Type(), uint64(pairCount), false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push hash: %w", err)
+			}
+			
+			i += 3 // OpHash takes 3 bytes (1 opcode + 2 count)
+			
 		case bytecode.OpCall:
 			// Extract argument count
 			if i+1 >= len(bc.Instructions) {
@@ -184,7 +310,15 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			argCount := int(bc.Instructions[i+1])
 			
 			// For built-in functions, check if it's a print call
-			if err := g.handleBuiltinCall(builder, context, module, stackPtr, stackTop, argCount, lastPushedConstant); err != nil {
+			// Get the argument from the constant stack
+			var currentConstant interface{}
+			if len(constantStack) > 0 {
+				// Pop the last constant from the stack
+				currentConstant = constantStack[len(constantStack)-1]
+				constantStack = constantStack[:len(constantStack)-1]
+			}
+			
+			if err := g.handleBuiltinCall(builder, context, module, stackPtr, stackTop, argCount, currentConstant); err != nil {
 				return fmt.Errorf("failed to handle builtin call: %w", err)
 			}
 			
@@ -251,7 +385,16 @@ func (g *SimpleLLVMCodeGenerator) convertRushValueToLLVM(obj interface{}, contex
 		return strConst, nil
 		
 	default:
-		// Try to handle objects with String() method
+		// Try to handle objects with Inspect() method (proper Rush formatting)
+		if inspectObj, ok := obj.(interface{ Inspect() string }); ok {
+			str := inspectObj.Inspect()
+			
+			// Create global string constant with proper formatting
+			strConst := context.ConstString(str, false)
+			return strConst, nil
+		}
+		
+		// Fallback: try to handle objects with String() method
 		if strObj, ok := obj.(interface{ String() string }); ok {
 			str := strObj.String()
 			// Remove quotes if present
@@ -281,12 +424,12 @@ func (g *SimpleLLVMCodeGenerator) pushToStack(builder llvm.Builder, context llvm
 }
 
 // handleBuiltinCall handles calls to built-in functions like print
-func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, context llvm.Context, module llvm.Module, stackPtr, stackTop llvm.Value, argCount int, lastConstant interface{}) error {
+func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, context llvm.Context, module llvm.Module, stackPtr, stackTop llvm.Value, argCount int, currentConstant interface{}) error {
 	if argCount == 1 {
 		// Assume this is a print call with one string argument
-		printFunc := module.NamedFunction("rush_print")
+		printFunc := module.NamedFunction("rush_print_line")
 		if printFunc.IsNil() {
-			return fmt.Errorf("rush_print function not found")
+			return fmt.Errorf("rush_print_line function not found")
 		}
 		
 		// Get the print function type
@@ -302,10 +445,10 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 		newTop := builder.CreateSub(currentTop, llvm.ConstInt(context.Int32Type(), 1, false), "new_top")
 		builder.CreateStore(newTop, stackTop)
 		
-		// Extract the actual string value from the last constant
+		// Extract the actual string value from the current constant
 		var actualStr string
-		if lastConstant != nil {
-			switch v := lastConstant.(type) {
+		if currentConstant != nil {
+			switch v := currentConstant.(type) {
 			case *interpreter.String:
 				actualStr = v.Value
 			case string:
@@ -316,8 +459,10 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 					actualStr = v
 				}
 			default:
-				// Try to get string representation
-				if strObj, ok := lastConstant.(interface{ String() string }); ok {
+				// Try to get proper Rush string representation using Inspect()
+				if inspectObj, ok := currentConstant.(interface{ Inspect() string }); ok {
+					actualStr = inspectObj.Inspect()
+				} else if strObj, ok := currentConstant.(interface{ String() string }); ok {
 					str := strObj.String()
 					// Remove quotes if present
 					if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
@@ -326,11 +471,11 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 						actualStr = str
 					}
 				} else {
-					actualStr = fmt.Sprintf("%v", lastConstant)
+					actualStr = fmt.Sprintf("%v", currentConstant)
 				}
 			}
 		} else {
-			actualStr = "[null]"
+			actualStr = "null"
 		}
 		
 		// Create LLVM constant string from the actual value
@@ -347,7 +492,7 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 			llvm.ConstInt(context.Int32Type(), 0, false),
 		}, "str_ptr")
 		
-		// Call rush_print with string pointer and length
+		// Call rush_print_line with string pointer and length
 		strLen := llvm.ConstInt(context.Int64Type(), uint64(len(actualStr)), false)
 		builder.CreateCall(printType, printFunc, []llvm.Value{strPtr, strLen}, "")
 	}
