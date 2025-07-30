@@ -137,6 +137,9 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 	stackTop := builder.CreateAlloca(context.Int32Type(), "stack_top")
 	builder.CreateStore(llvm.ConstInt(context.Int32Type(), 0, false), stackTop)
 	
+	// Keep track of the last pushed value for print calls
+	var lastPushedConstant interface{}
+	
 	// Process each bytecode instruction
 	for i := 0; i < len(bc.Instructions); {
 		if i >= len(bc.Instructions) {
@@ -158,6 +161,9 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			}
 			constant := bc.Constants[constIndex]
 			
+			// Store the constant for potential use in print calls
+			lastPushedConstant = constant
+			
 			// Convert Rush value to LLVM value and push to stack
 			llvmValue, err := g.convertRushValueToLLVM(constant, context, builder)
 			if err != nil {
@@ -178,7 +184,7 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			argCount := int(bc.Instructions[i+1])
 			
 			// For built-in functions, check if it's a print call
-			if err := g.handleBuiltinCall(builder, context, module, stackPtr, stackTop, argCount); err != nil {
+			if err := g.handleBuiltinCall(builder, context, module, stackPtr, stackTop, argCount, lastPushedConstant); err != nil {
 				return fmt.Errorf("failed to handle builtin call: %w", err)
 			}
 			
@@ -275,7 +281,7 @@ func (g *SimpleLLVMCodeGenerator) pushToStack(builder llvm.Builder, context llvm
 }
 
 // handleBuiltinCall handles calls to built-in functions like print
-func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, context llvm.Context, module llvm.Module, stackPtr, stackTop llvm.Value, argCount int) error {
+func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, context llvm.Context, module llvm.Module, stackPtr, stackTop llvm.Value, argCount int, lastConstant interface{}) error {
 	if argCount == 1 {
 		// Assume this is a print call with one string argument
 		printFunc := module.NamedFunction("rush_print")
@@ -288,12 +294,50 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 		sizeTType := context.Int64Type()
 		printType := llvm.FunctionType(context.VoidType(), []llvm.Type{charPtrType, sizeTType}, false)
 		
-		// For demonstration, create a simple "Hello from AOT!" string
-		helloStr := "Hello from AOT compilation!\n"
-		strConst := context.ConstString(helloStr, false)
+		// Pop the argument from the stack (simulated)
+		// Load current stack top
+		currentTop := builder.CreateLoad(context.Int32Type(), stackTop, "current_top")
+		
+		// Decrement stack top to pop the value
+		newTop := builder.CreateSub(currentTop, llvm.ConstInt(context.Int32Type(), 1, false), "new_top")
+		builder.CreateStore(newTop, stackTop)
+		
+		// Extract the actual string value from the last constant
+		var actualStr string
+		if lastConstant != nil {
+			switch v := lastConstant.(type) {
+			case *interpreter.String:
+				actualStr = v.Value
+			case string:
+				// Remove quotes if present
+				if len(v) >= 2 && v[0] == '"' && v[len(v)-1] == '"' {
+					actualStr = v[1 : len(v)-1]
+				} else {
+					actualStr = v
+				}
+			default:
+				// Try to get string representation
+				if strObj, ok := lastConstant.(interface{ String() string }); ok {
+					str := strObj.String()
+					// Remove quotes if present
+					if len(str) >= 2 && str[0] == '"' && str[len(str)-1] == '"' {
+						actualStr = str[1 : len(str)-1]
+					} else {
+						actualStr = str
+					}
+				} else {
+					actualStr = fmt.Sprintf("%v", lastConstant)
+				}
+			}
+		} else {
+			actualStr = "[null]"
+		}
+		
+		// Create LLVM constant string from the actual value
+		strConst := context.ConstString(actualStr, false)
 		
 		// Create global for the string
-		global := llvm.AddGlobal(module, strConst.Type(), "hello_str")
+		global := llvm.AddGlobal(module, strConst.Type(), "print_str")
 		global.SetInitializer(strConst)
 		global.SetLinkage(llvm.InternalLinkage)
 		
@@ -304,7 +348,7 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 		}, "str_ptr")
 		
 		// Call rush_print with string pointer and length
-		strLen := llvm.ConstInt(context.Int64Type(), uint64(len(helloStr)), false)
+		strLen := llvm.ConstInt(context.Int64Type(), uint64(len(actualStr)), false)
 		builder.CreateCall(printType, printFunc, []llvm.Value{strPtr, strLen}, "")
 	}
 	
