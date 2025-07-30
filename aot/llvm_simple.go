@@ -143,6 +143,10 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 	
 	// Keep track of constants on the stack
 	constantStack := make([]interface{}, 0)
+	// Track global variables
+	globals := make(map[int]interface{})
+	// Track local variables for function scopes (simple approach)
+	locals := make(map[int]interface{})
 	
 	// Process each bytecode instruction
 	for i := 0; i < len(bc.Instructions); {
@@ -324,6 +328,433 @@ func (g *SimpleLLVMCodeGenerator) translateBytecode(bc *compiler.Bytecode, modul
 			
 			i += 2 // OpCall takes 2 bytes
 			
+		case bytecode.OpIndex:
+			// Pop index and array from constant stack and perform indexing
+			if len(constantStack) < 2 {
+				return fmt.Errorf("not enough elements on stack for index operation")
+			}
+			
+			// The VM pops in this order: index first, then left (array/object)
+			// But on our stack, they are: [..., left, index] 
+			// So we pop index (last), then left (now last)
+			index := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			left := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			// Perform the indexing operation (left[index])
+			result, err := g.executeIndexOperation(left, index)
+			if err != nil {
+				return fmt.Errorf("failed to execute index operation: %w", err)
+			}
+			
+			// Push result back onto constant stack
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert index result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push index result: %w", err)
+			}
+			
+			i += 1 // OpIndex takes 1 byte
+			
+		case bytecode.OpPop:
+			// Pop value from constant stack (discard it)
+			if len(constantStack) > 0 {
+				constantStack = constantStack[:len(constantStack)-1]
+			}
+			
+			i += 1 // OpPop takes 1 byte
+			
+		case bytecode.OpAdd, bytecode.OpSub, bytecode.OpMul, bytecode.OpDiv, bytecode.OpMod:
+			// Pop two operands and perform arithmetic operation
+			if len(constantStack) < 2 {
+				return fmt.Errorf("not enough operands for arithmetic operation")
+			}
+			
+			right := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			left := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			result, err := g.executeArithmeticOperation(opcode, left, right)
+			if err != nil {
+				return fmt.Errorf("failed to execute arithmetic operation: %w", err)
+			}
+			
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert arithmetic result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push arithmetic result: %w", err)
+			}
+			
+			i += 1 // Arithmetic ops take 1 byte
+			
+		case bytecode.OpEqual, bytecode.OpNotEqual, bytecode.OpGreaterThan, bytecode.OpLessThan, 
+			 bytecode.OpGreaterEqual, bytecode.OpLessEqual:
+			// Pop two operands and perform comparison
+			if len(constantStack) < 2 {
+				return fmt.Errorf("not enough operands for comparison operation")
+			}
+			
+			right := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			left := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			result, err := g.executeComparisonOperation(opcode, left, right)
+			if err != nil {
+				return fmt.Errorf("failed to execute comparison operation: %w", err)
+			}
+			
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert comparison result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push comparison result: %w", err)
+			}
+			
+			i += 1 // Comparison ops take 1 byte
+			
+		case bytecode.OpAnd, bytecode.OpOr:
+			// Pop two operands and perform logical operation
+			if len(constantStack) < 2 {
+				return fmt.Errorf("not enough operands for logical operation")
+			}
+			
+			right := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			left := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			result, err := g.executeLogicalOperation(opcode, left, right)
+			if err != nil {
+				return fmt.Errorf("failed to execute logical operation: %w", err)
+			}
+			
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert logical result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push logical result: %w", err)
+			}
+			
+			i += 1 // Logical ops take 1 byte
+			
+		case bytecode.OpNot:
+			// Pop one operand and perform logical NOT
+			if len(constantStack) < 1 {
+				return fmt.Errorf("not enough operands for NOT operation")
+			}
+			
+			operand := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			result, err := g.executeNotOperation(operand)
+			if err != nil {
+				return fmt.Errorf("failed to execute NOT operation: %w", err)
+			}
+			
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert NOT result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push NOT result: %w", err)
+			}
+			
+			i += 1 // OpNot takes 1 byte
+			
+		case bytecode.OpMinus:
+			// Pop one operand and perform unary minus
+			if len(constantStack) < 1 {
+				return fmt.Errorf("not enough operands for minus operation")
+			}
+			
+			operand := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			result, err := g.executeMinusOperation(operand)
+			if err != nil {
+				return fmt.Errorf("failed to execute minus operation: %w", err)
+			}
+			
+			constantStack = append(constantStack, result)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(result, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert minus result: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push minus result: %w", err)
+			}
+			
+			i += 1 // OpMinus takes 1 byte
+			
+		case bytecode.OpGetGlobal:
+			// Get global variable value
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpGetGlobal instruction incomplete at position %d", i)
+			}
+			globalIndex := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			value, exists := globals[globalIndex]
+			if !exists {
+				value = &interpreter.Null{}
+			}
+			
+			constantStack = append(constantStack, value)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(value, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert global value: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push global value: %w", err)
+			}
+			
+			i += 3 // OpGetGlobal takes 3 bytes
+			
+		case bytecode.OpSetGlobal:
+			// Set global variable value
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpSetGlobal instruction incomplete at position %d", i)
+			}
+			globalIndex := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			if len(constantStack) < 1 {
+				return fmt.Errorf("no value to set for global variable at index %d (position %d, stack size %d)", globalIndex, i, len(constantStack))
+			}
+			
+			value := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			globals[globalIndex] = value
+			
+			i += 3 // OpSetGlobal takes 3 bytes
+			
+		case bytecode.OpGetLocal:
+			// Get local variable value
+			if i+1 >= len(bc.Instructions) {
+				return fmt.Errorf("OpGetLocal instruction incomplete at position %d", i)
+			}
+			localIndex := int(bc.Instructions[i+1])
+			
+			value, exists := locals[localIndex]
+			if !exists {
+				value = &interpreter.Null{}
+			}
+			
+			constantStack = append(constantStack, value)
+			
+			// Convert to LLVM value and push to stack
+			llvmValue, err := g.convertRushValueToLLVM(value, context, builder)
+			if err != nil {
+				return fmt.Errorf("failed to convert local value: %w", err)
+			}
+			
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push local value: %w", err)
+			}
+			
+			i += 2 // OpGetLocal takes 2 bytes
+			
+		case bytecode.OpSetLocal:
+			// Set local variable value
+			if i+1 >= len(bc.Instructions) {
+				return fmt.Errorf("OpSetLocal instruction incomplete at position %d", i)
+			}
+			localIndex := int(bc.Instructions[i+1])
+			
+			if len(constantStack) < 1 {
+				return fmt.Errorf("no value to set for local variable")
+			}
+			
+			value := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			locals[localIndex] = value
+			
+			i += 2 // OpSetLocal takes 2 bytes
+			
+		case bytecode.OpJump:
+			// Unconditional jump
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpJump instruction incomplete at position %d", i)
+			}
+			jumpOffset := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			// For constant stack simulation, we just jump to the new position
+			// The LLVM generation doesn't handle control flow properly yet,
+			// but we can simulate the execution for constant folding
+			i = jumpOffset
+			continue
+			
+		case bytecode.OpJumpNotTruthy:
+			// Conditional jump if top of stack is not truthy
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpJumpNotTruthy instruction incomplete at position %d", i)
+			}
+			jumpOffset := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			if len(constantStack) < 1 {
+				return fmt.Errorf("no value to test for truthiness")
+			}
+			
+			condition := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			// Convert to Rush value and test truthiness
+			condVal, err := g.toRushValue(condition)
+			if err != nil {
+				return fmt.Errorf("failed to convert condition value: %w", err)
+			}
+			
+			if !g.isTruthy(condVal) {
+				i = jumpOffset
+				continue
+			}
+			
+			i += 3 // OpJumpNotTruthy takes 3 bytes
+			
+		case bytecode.OpJumpTruthy:
+			// Conditional jump if top of stack is truthy
+			if i+2 >= len(bc.Instructions) {
+				return fmt.Errorf("OpJumpTruthy instruction incomplete at position %d", i)
+			}
+			jumpOffset := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			
+			if len(constantStack) < 1 {
+				return fmt.Errorf("no value to test for truthiness")
+			}
+			
+			condition := constantStack[len(constantStack)-1]
+			constantStack = constantStack[:len(constantStack)-1]
+			
+			// Convert to Rush value and test truthiness
+			condVal, err := g.toRushValue(condition)
+			if err != nil {
+				return fmt.Errorf("failed to convert condition value: %w", err)
+			}
+			
+			if g.isTruthy(condVal) {
+				i = jumpOffset
+				continue
+			}
+			
+			i += 3 // OpJumpTruthy takes 3 bytes
+			
+		case bytecode.OpGetBuiltin:
+			// Get builtin function
+			if i+1 >= len(bc.Instructions) {
+				return fmt.Errorf("OpGetBuiltin instruction incomplete at position %d", i)
+			}
+			builtinIndex := int(bc.Instructions[i+1])
+			
+			// Create a placeholder builtin function object
+			// This is a simplified representation for our constant stack simulation
+			builtin := &interpreter.BuiltinFunction{
+				Fn: func(args ...interpreter.Value) interpreter.Value {
+					return &interpreter.Null{}
+				},
+			}
+			constantStack = append(constantStack, builtin)
+			
+			// Convert to LLVM value (simplified)
+			llvmValue := llvm.ConstInt(context.Int64Type(), uint64(builtinIndex), false)
+			if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+				return fmt.Errorf("failed to push builtin: %w", err)
+			}
+			
+			i += 2 // OpGetBuiltin takes 2 bytes
+			
+		case bytecode.OpReturn:
+			// Return value from function
+			if len(constantStack) > 0 {
+				// Pop the return value but keep it for potential use
+				returnValue := constantStack[len(constantStack)-1]
+				constantStack = constantStack[:len(constantStack)-1]
+				
+				// For our simulation, we can push it back
+				constantStack = append(constantStack, returnValue)
+			}
+			
+			i += 1 // OpReturn takes 1 byte
+			
+		case bytecode.OpReturnVoid:
+			// Return without value
+			constantStack = append(constantStack, &interpreter.Null{})
+			
+			i += 1 // OpReturnVoid takes 1 byte
+			
+		case bytecode.OpClosure:
+			// Create a closure
+			if i+3 >= len(bc.Instructions) {
+				return fmt.Errorf("OpClosure instruction incomplete at position %d", i)
+			}
+			constIndex := int(bytecode.ReadUint16(bc.Instructions[i+1:]))
+			numFreeVars := int(bc.Instructions[i+3])
+			
+			// Create a simple closure placeholder
+			if constIndex < len(bc.Constants) {
+				if fn, ok := bc.Constants[constIndex].(*interpreter.CompiledFunction); ok {
+					// Create a closure with the function
+					freeVars := make([]interpreter.Value, numFreeVars)
+					for j := 0; j < numFreeVars; j++ {
+						if len(constantStack) > 0 {
+							freeVars[numFreeVars-1-j] = constantStack[len(constantStack)-1].(interpreter.Value)
+							constantStack = constantStack[:len(constantStack)-1]
+						} else {
+							freeVars[numFreeVars-1-j] = &interpreter.Null{}
+						}
+					}
+					
+					closure := &interpreter.Closure{
+						Fn:   fn,
+						Free: freeVars,
+					}
+					constantStack = append(constantStack, closure)
+					
+					// Convert to LLVM value (simplified)
+					llvmValue := llvm.ConstInt(context.Int64Type(), uint64(constIndex), false)
+					if err := g.pushToStack(builder, context, stackPtr, stackTop, llvmValue); err != nil {
+						return fmt.Errorf("failed to push closure: %w", err)
+					}
+				}
+			}
+			
+			i += 4 // OpClosure takes 4 bytes
+			
 		default:
 			// For unhandled opcodes, use the definition to get the correct length
 			def, err := bytecode.Lookup(opcode)
@@ -498,6 +929,492 @@ func (g *SimpleLLVMCodeGenerator) handleBuiltinCall(builder llvm.Builder, contex
 	}
 	
 	return nil
+}
+
+// executeIndexOperation performs array/hash/string indexing operation
+func (g *SimpleLLVMCodeGenerator) executeIndexOperation(left, index interface{}) (interface{}, error) {
+	// Convert interfaces to Rush value types if needed
+	var leftVal, indexVal interpreter.Value
+	
+	// Handle left operand
+	switch v := left.(type) {
+	case interpreter.Value:
+		leftVal = v
+	case *interpreter.Array:
+		leftVal = v
+	case *interpreter.String:
+		leftVal = v
+	case *interpreter.Hash:
+		leftVal = v
+	default:
+		return nil, fmt.Errorf("invalid left operand for index operation: %T", left)
+	}
+	
+	// Handle index operand
+	switch v := index.(type) {
+	case interpreter.Value:
+		indexVal = v
+	case *interpreter.Integer:
+		indexVal = v
+	case *interpreter.String:
+		indexVal = v
+	default:
+		return nil, fmt.Errorf("invalid index operand: %T", index)
+	}
+	
+	// Perform indexing based on left operand type
+	switch {
+	case leftVal.Type() == interpreter.ARRAY_VALUE && indexVal.Type() == interpreter.INTEGER_VALUE:
+		return g.executeArrayIndex(leftVal, indexVal)
+	case leftVal.Type() == interpreter.STRING_VALUE && indexVal.Type() == interpreter.INTEGER_VALUE:
+		return g.executeStringIndex(leftVal, indexVal)
+	case leftVal.Type() == interpreter.HASH_VALUE:
+		return g.executeHashIndex(leftVal, indexVal)
+	default:
+		return nil, fmt.Errorf("index operator not supported: %T[%T]", leftVal, indexVal)
+	}
+}
+
+// executeArrayIndex performs array indexing
+func (g *SimpleLLVMCodeGenerator) executeArrayIndex(array, index interpreter.Value) (interface{}, error) {
+	arrayObject := array.(*interpreter.Array)
+	i := index.(*interpreter.Integer).Value
+	max := int64(len(arrayObject.Elements) - 1)
+	
+	if i < 0 || i > max {
+		return &interpreter.Null{}, nil
+	}
+	
+	return arrayObject.Elements[i], nil
+}
+
+// executeStringIndex performs string indexing
+func (g *SimpleLLVMCodeGenerator) executeStringIndex(str, index interpreter.Value) (interface{}, error) {
+	stringObject := str.(*interpreter.String)
+	i := index.(*interpreter.Integer).Value
+	max := int64(len(stringObject.Value) - 1)
+	
+	if i < 0 || i > max {
+		return &interpreter.Null{}, nil
+	}
+	
+	// Return character as string
+	char := string(stringObject.Value[i])
+	return &interpreter.String{Value: char}, nil
+}
+
+// executeHashIndex performs hash indexing
+func (g *SimpleLLVMCodeGenerator) executeHashIndex(hash, index interpreter.Value) (interface{}, error) {
+	hashObject := hash.(*interpreter.Hash)
+	
+	// Convert index to hash key
+	var hashKey interpreter.HashKey
+	switch idx := index.(type) {
+	case *interpreter.String:
+		hashKey = interpreter.CreateHashKey(idx)
+	case *interpreter.Integer:
+		hashKey = interpreter.CreateHashKey(idx)
+	case *interpreter.Boolean:
+		hashKey = interpreter.CreateHashKey(idx)
+	case *interpreter.Float:
+		hashKey = interpreter.CreateHashKey(idx)
+	default:
+		return nil, fmt.Errorf("unusable as hash key: %T", index)
+	}
+	
+	pair, exists := hashObject.Pairs[hashKey]
+	if !exists {
+		return &interpreter.Null{}, nil
+	}
+	
+	return pair, nil
+}
+
+// executeArithmeticOperation performs arithmetic operations
+func (g *SimpleLLVMCodeGenerator) executeArithmeticOperation(opcode bytecode.Opcode, left, right interface{}) (interface{}, error) {
+	// Convert to Rush values
+	leftVal, err := g.toRushValue(left)
+	if err != nil {
+		return nil, err
+	}
+	rightVal, err := g.toRushValue(right)
+	if err != nil {
+		return nil, err
+	}
+	
+	switch opcode {
+	case bytecode.OpAdd:
+		return g.executeAdd(leftVal, rightVal)
+	case bytecode.OpSub:
+		return g.executeSub(leftVal, rightVal)
+	case bytecode.OpMul:
+		return g.executeMul(leftVal, rightVal)
+	case bytecode.OpDiv:
+		return g.executeDiv(leftVal, rightVal)
+	case bytecode.OpMod:
+		return g.executeMod(leftVal, rightVal)
+	default:
+		return nil, fmt.Errorf("unknown arithmetic operation: %v", opcode)
+	}
+}
+
+// executeAdd performs addition
+func (g *SimpleLLVMCodeGenerator) executeAdd(left, right interpreter.Value) (interface{}, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		return &interpreter.Integer{Value: l + r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l + r}, nil
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := float64(left.(*interpreter.Integer).Value)
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l + r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := float64(right.(*interpreter.Integer).Value)
+		return &interpreter.Float{Value: l + r}, nil
+	case left.Type() == interpreter.STRING_VALUE && right.Type() == interpreter.STRING_VALUE:
+		l := left.(*interpreter.String).Value
+		r := right.(*interpreter.String).Value
+		return &interpreter.String{Value: l + r}, nil
+	case left.Type() == interpreter.STRING_VALUE:
+		l := left.(*interpreter.String).Value
+		r := right.Inspect()
+		return &interpreter.String{Value: l + r}, nil
+	case right.Type() == interpreter.STRING_VALUE:
+		l := left.Inspect()
+		r := right.(*interpreter.String).Value
+		return &interpreter.String{Value: l + r}, nil
+	default:
+		return nil, fmt.Errorf("unsupported types for addition: %T + %T", left, right)
+	}
+}
+
+// executeSub performs subtraction
+func (g *SimpleLLVMCodeGenerator) executeSub(left, right interpreter.Value) (interface{}, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		return &interpreter.Integer{Value: l - r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l - r}, nil
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := float64(left.(*interpreter.Integer).Value)
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l - r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := float64(right.(*interpreter.Integer).Value)
+		return &interpreter.Float{Value: l - r}, nil
+	default:
+		return nil, fmt.Errorf("unsupported types for subtraction: %T - %T", left, right)
+	}
+}
+
+// executeMul performs multiplication
+func (g *SimpleLLVMCodeGenerator) executeMul(left, right interpreter.Value) (interface{}, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		return &interpreter.Integer{Value: l * r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l * r}, nil
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := float64(left.(*interpreter.Integer).Value)
+		r := right.(*interpreter.Float).Value
+		return &interpreter.Float{Value: l * r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := float64(right.(*interpreter.Integer).Value)
+		return &interpreter.Float{Value: l * r}, nil
+	default:
+		return nil, fmt.Errorf("unsupported types for multiplication: %T * %T", left, right)
+	}
+}
+
+// executeDiv performs division
+func (g *SimpleLLVMCodeGenerator) executeDiv(left, right interpreter.Value) (interface{}, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		if r == 0 {
+			return nil, fmt.Errorf("division by zero")
+		}
+		return &interpreter.Integer{Value: l / r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := right.(*interpreter.Float).Value
+		if r == 0 {
+			return nil, fmt.Errorf("division by zero")
+		}
+		return &interpreter.Float{Value: l / r}, nil
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := float64(left.(*interpreter.Integer).Value)
+		r := right.(*interpreter.Float).Value
+		if r == 0 {
+			return nil, fmt.Errorf("division by zero")
+		}
+		return &interpreter.Float{Value: l / r}, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := float64(right.(*interpreter.Integer).Value)
+		if r == 0 {
+			return nil, fmt.Errorf("division by zero")
+		}
+		return &interpreter.Float{Value: l / r}, nil
+	default:
+		return nil, fmt.Errorf("unsupported types for division: %T / %T", left, right)
+	}
+}
+
+// executeMod performs modulo
+func (g *SimpleLLVMCodeGenerator) executeMod(left, right interpreter.Value) (interface{}, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		if r == 0 {
+			return nil, fmt.Errorf("modulo by zero")
+		}
+		return &interpreter.Integer{Value: l % r}, nil
+	default:
+		return nil, fmt.Errorf("unsupported types for modulo: %T %% %T", left, right)
+	}
+}
+
+// executeComparisonOperation performs comparison operations
+func (g *SimpleLLVMCodeGenerator) executeComparisonOperation(opcode bytecode.Opcode, left, right interface{}) (interface{}, error) {
+	leftVal, err := g.toRushValue(left)
+	if err != nil {
+		return nil, err
+	}
+	rightVal, err := g.toRushValue(right)
+	if err != nil {
+		return nil, err
+	}
+	
+	switch opcode {
+	case bytecode.OpEqual:
+		return &interpreter.Boolean{Value: g.isEqual(leftVal, rightVal)}, nil
+	case bytecode.OpNotEqual:
+		return &interpreter.Boolean{Value: !g.isEqual(leftVal, rightVal)}, nil
+	case bytecode.OpGreaterThan:
+		result, err := g.compare(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
+		return &interpreter.Boolean{Value: result > 0}, nil
+	case bytecode.OpLessThan:
+		result, err := g.compare(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
+		return &interpreter.Boolean{Value: result < 0}, nil
+	case bytecode.OpGreaterEqual:
+		result, err := g.compare(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
+		return &interpreter.Boolean{Value: result >= 0}, nil
+	case bytecode.OpLessEqual:
+		result, err := g.compare(leftVal, rightVal)
+		if err != nil {
+			return nil, err
+		}
+		return &interpreter.Boolean{Value: result <= 0}, nil
+	default:
+		return nil, fmt.Errorf("unknown comparison operation: %v", opcode)
+	}
+}
+
+// isEqual checks if two values are equal
+func (g *SimpleLLVMCodeGenerator) isEqual(left, right interpreter.Value) bool {
+	if left.Type() != right.Type() {
+		return false
+	}
+	
+	switch left.Type() {
+	case interpreter.INTEGER_VALUE:
+		return left.(*interpreter.Integer).Value == right.(*interpreter.Integer).Value
+	case interpreter.FLOAT_VALUE:
+		return left.(*interpreter.Float).Value == right.(*interpreter.Float).Value
+	case interpreter.STRING_VALUE:
+		return left.(*interpreter.String).Value == right.(*interpreter.String).Value
+	case interpreter.BOOLEAN_VALUE:
+		return left.(*interpreter.Boolean).Value == right.(*interpreter.Boolean).Value
+	case interpreter.NULL_VALUE:
+		return true
+	default:
+		return false
+	}
+}
+
+// compare compares two values, returns -1, 0, or 1
+func (g *SimpleLLVMCodeGenerator) compare(left, right interpreter.Value) (int, error) {
+	switch {
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Integer).Value
+		r := right.(*interpreter.Integer).Value
+		if l < r {
+			return -1, nil
+		} else if l > r {
+			return 1, nil
+		}
+		return 0, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := right.(*interpreter.Float).Value
+		if l < r {
+			return -1, nil
+		} else if l > r {
+			return 1, nil
+		}
+		return 0, nil
+	case left.Type() == interpreter.INTEGER_VALUE && right.Type() == interpreter.FLOAT_VALUE:
+		l := float64(left.(*interpreter.Integer).Value)
+		r := right.(*interpreter.Float).Value
+		if l < r {
+			return -1, nil
+		} else if l > r {
+			return 1, nil
+		}
+		return 0, nil
+	case left.Type() == interpreter.FLOAT_VALUE && right.Type() == interpreter.INTEGER_VALUE:
+		l := left.(*interpreter.Float).Value
+		r := float64(right.(*interpreter.Integer).Value)
+		if l < r {
+			return -1, nil
+		} else if l > r {
+			return 1, nil
+		}
+		return 0, nil
+	case left.Type() == interpreter.STRING_VALUE && right.Type() == interpreter.STRING_VALUE:
+		l := left.(*interpreter.String).Value
+		r := right.(*interpreter.String).Value
+		if l < r {
+			return -1, nil
+		} else if l > r {
+			return 1, nil
+		}
+		return 0, nil
+	default:
+		// For unsupported comparisons, treat them as unequal (return 1)
+		// This is a fallback to prevent crashes during compilation
+		return 1, nil
+	}
+}
+
+// executeLogicalOperation performs logical operations
+func (g *SimpleLLVMCodeGenerator) executeLogicalOperation(opcode bytecode.Opcode, left, right interface{}) (interface{}, error) {
+	leftVal, err := g.toRushValue(left)
+	if err != nil {
+		return nil, err
+	}
+	rightVal, err := g.toRushValue(right)
+	if err != nil {
+		return nil, err
+	}
+	
+	switch opcode {
+	case bytecode.OpAnd:
+		if g.isTruthy(leftVal) {
+			return rightVal, nil
+		}
+		return leftVal, nil
+	case bytecode.OpOr:
+		if g.isTruthy(leftVal) {
+			return leftVal, nil
+		}
+		return rightVal, nil
+	default:
+		return nil, fmt.Errorf("unknown logical operation: %v", opcode)
+	}
+}
+
+// executeNotOperation performs logical NOT
+func (g *SimpleLLVMCodeGenerator) executeNotOperation(operand interface{}) (interface{}, error) {
+	val, err := g.toRushValue(operand)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &interpreter.Boolean{Value: !g.isTruthy(val)}, nil
+}
+
+// executeMinusOperation performs unary minus
+func (g *SimpleLLVMCodeGenerator) executeMinusOperation(operand interface{}) (interface{}, error) {
+	val, err := g.toRushValue(operand)
+	if err != nil {
+		return nil, err
+	}
+	
+	switch val.Type() {
+	case interpreter.INTEGER_VALUE:
+		return &interpreter.Integer{Value: -val.(*interpreter.Integer).Value}, nil
+	case interpreter.FLOAT_VALUE:
+		return &interpreter.Float{Value: -val.(*interpreter.Float).Value}, nil
+	default:
+		return nil, fmt.Errorf("unsupported type for unary minus: %T", val)
+	}
+}
+
+// isTruthy determines if a value is truthy
+func (g *SimpleLLVMCodeGenerator) isTruthy(val interpreter.Value) bool {
+	switch val.Type() {
+	case interpreter.BOOLEAN_VALUE:
+		return val.(*interpreter.Boolean).Value
+	case interpreter.NULL_VALUE:
+		return false
+	case interpreter.INTEGER_VALUE:
+		return val.(*interpreter.Integer).Value != 0
+	case interpreter.FLOAT_VALUE:
+		return val.(*interpreter.Float).Value != 0.0
+	case interpreter.STRING_VALUE:
+		return val.(*interpreter.String).Value != ""
+	default:
+		return true
+	}
+}
+
+// toRushValue converts interface{} to Rush Value
+func (g *SimpleLLVMCodeGenerator) toRushValue(val interface{}) (interpreter.Value, error) {
+	switch v := val.(type) {
+	case interpreter.Value:
+		return v, nil
+	case *interpreter.Integer:
+		return v, nil
+	case *interpreter.Float:
+		return v, nil
+	case *interpreter.String:
+		return v, nil
+	case *interpreter.Boolean:
+		return v, nil
+	case *interpreter.Null:
+		return v, nil
+	case *interpreter.Array:
+		return v, nil
+	case *interpreter.Hash:
+		return v, nil
+	case *interpreter.BuiltinFunction:
+		return v, nil
+	case *interpreter.CompiledFunction:
+		return v, nil
+	case *interpreter.Closure:
+		return v, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %T to Rush value", val)
+	}
 }
 
 // LinkExecutable links the object file to create an executable
