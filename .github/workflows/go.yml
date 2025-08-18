@@ -21,19 +21,8 @@ jobs:
       with:
         go-version: '>=1.23'
 
-    - name: Install LLVM
-      run: |
-        # Add LLVM APT repository
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm.list
-        sudo apt-get update
-        sudo apt-get install -y llvm-18-dev libllvm18 clang-18
-        # Create symlinks for default tools
-        sudo ln -sf /usr/bin/llvm-config-18 /usr/bin/llvm-config
-        sudo ln -sf /usr/bin/clang-18 /usr/bin/clang
-
     - name: Build
-      run: go build -tags llvm18 -v ./...
+      run: go build -v ./...
 
     - name: Test
-      run: go test -tags llvm18 -v ./...
+      run: go test -v ./...
