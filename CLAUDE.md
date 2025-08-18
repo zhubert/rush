@@ -15,8 +15,21 @@
 For detailed project plans, implementation roadmaps, and feature tracking, see:
 https://github.com/zhubert/rush/issues
 
-**Current Phase**: Phase 13.4 - JIT Compilation - **COMPLETE**
-**Previous Phase**: Phase 13.3 - VM Optimization - **COMPLETE**
+**Current Phase**: Maintenance & Bug Fixes - **ONGOING**
+**Previous Phase**: Phase 13.4 - JIT Compilation - **COMPLETE**
+
+## Recent Updates (January 2025)
+
+### Bug Fixes & Cleanup
+- **VM Stack Underflow Fix**: Resolved critical panic in nested if-else statements during bytecode execution
+- **LLVM Removal**: Cleaned up unused LLVM infrastructure and dependencies from AOT compilation system
+- **CI Simplification**: Streamlined GitHub Actions workflow to use standard Go toolchain only
+
+### Current Execution Modes
+Rush supports three high-performance execution modes:
+1. **Tree-walking Interpreter** (default) - Direct AST evaluation
+2. **Bytecode VM** (`-bytecode` flag) - Stack-based virtual machine
+3. **JIT Compilation** (`-jit` flag) - Native ARM64 machine code generation
 
 ## Codebase Architecture
 
@@ -29,21 +42,24 @@ rush/
 ├── parser/            # AST generation - converts tokens to Abstract Syntax Tree
 ├── ast/               # AST node definitions for all language constructs
 ├── interpreter/       # Runtime evaluation and built-in function implementations
-├── examples/          # Example Rush programs for testing and demonstration
+├── vm/                # Bytecode virtual machine and stack-based execution
+├── bytecode/          # Bytecode instruction definitions and serialization
+├── compiler/          # Bytecode compiler (AST → bytecode)
 ├── jit/               # Just-In-Time compilation system (ARM64 target)
-├── std/              # Standard library modules (math.rush, string.rush, array.rush)
+├── examples/          # Example Rush programs for testing and demonstration
+├── std/              # Standard library modules (math.rush)
 ├── docs/              # User-facing documentation
 └── tests/             # Test suite (mirrors main directory structure)
 ```
 
 ### Navigation Shortcuts
 
-- **New operators**: Add to `lexer/lexer.go` → `parser/parser.go` → `interpreter/interpreter.go` + `vm/vm.go`
+- **New operators**: Add to `lexer/lexer.go` → `parser/parser.go` → `interpreter/interpreter.go` + `compiler/compiler.go` + `vm/vm.go`
 - **Built-in functions**: Add to `interpreter/builtins.go`
 - **Standard library**: Add modules to `std/` directory
 - **Language constructs**: Define AST nodes in `ast/ast.go`
-- **Error types**: Define in `interpreter/errors.go`
-- **VM operations**: Implement in `vm/vm.go` with corresponding bytecode in `bytecode/instruction.go`
+- **Bytecode operations**: Add to `bytecode/instruction.go` and implement in `vm/vm.go`
+- **Compilation**: Extend `compiler/compiler.go` for new AST nodes
 
 ## Development Workflow
 
@@ -65,7 +81,9 @@ rush -jit -log-level=info program.rush  # JIT with statistics
 go test ./lexer      # Test tokenization
 go test ./parser     # Test AST generation
 go test ./interpreter # Test runtime evaluation
+go test ./compiler   # Test bytecode compilation
 go test ./vm         # Test bytecode VM
+go test ./jit        # Test JIT compilation
 go test .           # Integration tests
 
 # VM Execution with Logging (Bytecode Mode)

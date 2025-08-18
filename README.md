@@ -1,7 +1,7 @@
 # Rush Programming Language
 
 [![Tests](https://img.shields.io/badge/tests-passing-green)](./tests)
-[![Phase](https://img.shields.io/badge/phase-13.4%20complete-green)](#phases)
+[![Phase](https://img.shields.io/badge/phase-maintenance%20%26%20fixes-blue)](#phases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Rush is a modern, dynamically-typed programming language designed for simplicity and expressiveness. Built with Go, Rush features clean syntax inspired by modern languages with C-style control flow.
@@ -607,6 +607,7 @@ rush/
 ├── interpreter/       # Runtime evaluation
 ├── vm/                # Bytecode virtual machine
 ├── bytecode/          # Bytecode instruction definitions
+├── compiler/          # Bytecode compiler (AST → bytecode)
 ├── jit/               # Just-In-Time ARM64 compiler
 ├── examples/          # Example programs
 ├── docs/              # Documentation
@@ -625,6 +626,7 @@ go test ./...
 go test ./lexer      # Lexer tests
 go test ./parser     # Parser tests
 go test ./interpreter # Interpreter tests
+go test ./compiler   # Compiler tests
 go test ./vm         # VM tests
 go test ./jit        # JIT tests
 go test .            # Integration tests
@@ -637,7 +639,8 @@ go test -bench=. ./jit_integration_test.go
 - **Lexer Tests**: Tokenization of all language constructs
 - **Parser Tests**: AST generation for all syntax
 - **Interpreter Tests**: Runtime evaluation and built-ins
-- **VM Tests**: Bytecode compilation and execution
+- **Compiler Tests**: Bytecode compilation and optimization
+- **VM Tests**: Bytecode execution and stack operations
 - **JIT Tests**: ARM64 code generation and optimization
 - **Integration Tests**: End-to-end program execution across all modes
 - **Example Tests**: All example programs execute successfully
@@ -662,7 +665,12 @@ Rush was developed through a systematic phased approach:
 - **✅ Phase 11**: Enhanced Standard Library - String/array/math/collections modules, JSON, file I/O
 - **✅ Phase 12**: Enhanced Standard Library & Regular Expressions - Comprehensive regexp support
 - **✅ Phase 13**: Performance & Compilation - Bytecode VM, ARM64 JIT compilation system
-- **🔄 Phase 14**: Developer Tooling - Language server, debugger, IDE integration
+
+### Current Focus (January 2025)
+- **🔧 Maintenance & Bug Fixes**: Stability improvements and issue resolution
+  - Fixed critical VM stack underflow in nested if-else statements
+  - Removed unused LLVM infrastructure and dependencies
+  - Simplified CI/CD pipeline for better build reliability
 
 **📋 Development Tracking**: Phases under development are tracked in the [Initial Development GitHub Project](https://github.com/users/zhubert/projects/1).
 

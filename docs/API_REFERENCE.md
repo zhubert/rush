@@ -49,10 +49,10 @@ Compiles to bytecode and executes on a virtual machine. Better performance than 
 
 ```bash
 rush -jit program.rush
-rush -jit -log-level=info program.rush  # With JIT statistics
+rush -jit -log-level=info program.rush  # With statistics
 ```
 
-Just-In-Time compilation to native ARM64 code. Maximum performance for compute-intensive functions.
+Just-In-Time compilation to native ARM64 machine code. Highest performance for compute-intensive programs.
 
 **JIT Features:**
 - Hot path detection (functions become "hot" after 100+ calls)
