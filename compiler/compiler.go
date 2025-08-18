@@ -250,8 +250,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 
+		// Handle consequence: if it ends with OpPop, remove it and ensure we have a value
 		if c.lastInstructionIs(bytecode.OpPop) {
 			c.removeLastPop()
+		} else {
+			// If no OpPop, the consequence didn't leave a value, so add null
+			c.emit(bytecode.OpNull)
 		}
 
 		// Emit jump to skip alternative (if present)
@@ -268,8 +272,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return err
 			}
 
+			// Handle alternative: if it ends with OpPop, remove it and ensure we have a value
 			if c.lastInstructionIs(bytecode.OpPop) {
 				c.removeLastPop()
+			} else {
+				// If no OpPop, the alternative didn't leave a value, so add null
+				c.emit(bytecode.OpNull)
 			}
 		}
 
