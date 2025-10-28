@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rush Programming Language - Clean & Refined</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" media="(prefers-color-scheme: light)">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" media="(prefers-color-scheme: dark)">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&family=SF+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
@@ -28,6 +29,27 @@
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 20px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #0A84FF;
+                --secondary: #5E5CE6;
+                --accent: #30D158;
+                --warning: #FF9F0A;
+                --red: #FF453A;
+                --text-primary: #F5F5F7;
+                --text-secondary: #98989D;
+                --text-tertiary: #636366;
+                --bg-primary: #000000;
+                --bg-secondary: #1C1C1E;
+                --bg-tertiary: #2C2C2E;
+                --border: #38383A;
+                --border-light: #2C2C2E;
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+                --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+                --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+            }
         }
 
         * {
@@ -463,9 +485,10 @@
 
         /* Footer */
         footer {
-            background: var(--text-primary);
-            color: white;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             padding: 80px 0 40px;
+            border-top: 1px solid var(--border);
         }
 
         .footer-content {
@@ -478,10 +501,11 @@
         .footer-brand h3 {
             font-size: 24px;
             margin-bottom: 16px;
+            color: var(--text-primary);
         }
 
         .footer-brand p {
-            color: #86868B;
+            color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 24px;
         }
@@ -490,7 +514,7 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 20px;
-            color: white;
+            color: var(--text-primary);
         }
 
         .footer-links {
@@ -502,21 +526,21 @@
         }
 
         .footer-links a {
-            color: #86868B;
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 14px;
             transition: color 0.2s ease;
         }
 
         .footer-links a:hover {
-            color: white;
+            color: var(--text-primary);
         }
 
         .footer-bottom {
             padding-top: 40px;
-            border-top: 1px solid #2C2C2E;
+            border-top: 1px solid var(--border);
             text-align: center;
-            color: #86868B;
+            color: var(--text-secondary);
             font-size: 14px;
         }
 
